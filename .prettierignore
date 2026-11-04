@@ -1,3 +1,4 @@
-work/
+vendor/
 node_modules/
+work/
 favicon.svg

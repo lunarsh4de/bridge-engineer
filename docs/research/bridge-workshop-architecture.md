@@ -60,3 +60,21 @@ The paper describes compliance and constraint-force estimation in position-based
 ## Originality boundary
 
 These are architectural and interaction references. They do not establish that the overall game concept is unique, and they do not guarantee an academic originality outcome. The independently authored implementation, level conditions and teaching flow are the project's concrete contribution. Existing bridge-building games remain disclosed in the earlier comparison report.
+
+## Game engine migration — v0.3
+
+Compared browser game frameworks for native scene management, live objects, cameras, input, animation and audio:
+
+| Framework                                     | Fit for this project                                                                        | Decision                                                      |
+| --------------------------------------------- | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| [Phaser](https://github.com/phaserjs/phaser)  | Complete 2D game framework, WebGL/Canvas, scenes, cameras, particles, audio and input       | Selected Phaser 3.90.0 for its established 3.x API            |
+| [PixiJS](https://github.com/pixijs/pixijs)    | Strong rendering foundation; game scene, input flow and audio systems require more assembly | Keep as a renderer alternative                                |
+| [melonJS](https://github.com/melonjs/melonJS) | Browser game engine; suitable alternative for a broader rewrite                             | No migration benefit sufficient to choose it over Phaser here |
+
+Phaser 4.2.1 was the latest release observed during research. This project deliberately pins 3.90.0; it does not claim to use the latest release. The actual dependency came from https://registry.npmjs.org/phaser/-/phaser-3.90.0.tgz . Its distributed MIT license is included unchanged. No Phaser example game, bridge level, artwork or story is copied.
+
+`BootScene` creates original textures and procedural PCM tones. `WorkshopScene` manages native bridge images, joint circles, vehicle containers, cameras, input and the game clock. `HUDScene` manages mission transitions, force legend and success particles. Canvas code in `art.js` is used only to bake textures, not to redraw the live game. The previous renderer module is removed.
+
+The independent editor and axial structural solver remain separate. Phaser Arcade physics would not supply the required axial force evidence, and replacing the solver with rigid-body contacts would change the teaching model. Engine migration therefore improves interaction and presentation while preserving the verified structural behavior.
+
+Phaser is fully local, with no asset fetches or CDN. Explicit WebGL detection selects the renderer for the existing accessible canvas, falling back to Phaser Canvas. DOM controls remain available to keyboard and assistive technology; this is not a formal accessibility certification.

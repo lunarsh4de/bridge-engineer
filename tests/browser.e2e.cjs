@@ -17,7 +17,24 @@ require("node:fs").mkdirSync("work", { recursive: true });
     errors = [];
   p.on("pageerror", (e) => errors.push(e.message));
   await p.goto(BASE_URL);
-  await p.locator(".material").first().waitFor();
+  await p.waitForFunction(() => document.body.dataset.engineReady === "true");
+  assert.deepEqual(
+    await p.evaluate(() => ({
+      version: BridgeRuntime.version,
+      scenes: BridgeRuntime.game.scene
+        .getScenes(true)
+        .map((s) => s.sys.settings.key),
+      native: BridgeRuntime.game.scene.getScene("Workshop").vehicle.type,
+    })),
+    { version: "3.90.0", scenes: ["Workshop", "HUD"], native: "Container" },
+  );
+  await p.locator("#sound").click();
+  assert.equal(await p.evaluate(() => BridgeRuntime.game.sound.mute), true);
+  await p.reload();
+  await p.waitForFunction(() => document.body.dataset.engineReady === "true");
+  assert.equal(await p.locator("#sound").getAttribute("aria-pressed"), "true");
+  await p.locator("#sound").click();
+  console.log("Engine ready; checking construction");
   const read = () =>
     p.evaluate(() =>
       JSON.parse(localStorage.getItem("bridge-engineer-workshop-v2")),
@@ -117,7 +134,9 @@ require("node:fs").mkdirSync("work", { recursive: true });
   await p.locator("#redo").click();
   await p.locator("#undo").click();
   await p.reload();
+  await p.waitForFunction(() => document.body.dataset.engineReady === "true");
   assert.equal((await read()).designs[0].members.length, 11);
+  console.log("Manual construction completed");
   await p.locator("#test").click();
   await p.locator("#speed").click();
   await p.locator("#speed").click();
@@ -127,7 +146,7 @@ require("node:fs").mkdirSync("work", { recursive: true });
     /No member failed/,
   );
   assert.equal(await p.locator("#pause").isDisabled(), true);
-  await p.screenshot({ path: "work/v2-manual-crossing.png" });
+  await p.screenshot({ path: "work/v3-manual-crossing.png" });
   for (let i = 1; i < 3; i++) {
     await p.locator("#next").click();
     await p.locator("#starter").click();
@@ -177,7 +196,7 @@ require("node:fs").mkdirSync("work", { recursive: true });
   );
   await p.keyboard.press("Escape");
   assert.equal(await p.locator("#time-value").innerText(), paused);
-  await p.screenshot({ path: "work/v2-gravity-drop.png" });
+  await p.screenshot({ path: "work/v3-gravity-drop.png" });
   await p.locator("#back-build").click();
   assert.equal((await read()).designs[0].members.length, 1);
   // Clear is reversible, and keyboard placement remains usable.
@@ -241,9 +260,9 @@ require("node:fs").mkdirSync("work", { recursive: true });
       );
     }
     if (size.width === 390) {
-      await p.screenshot({ path: "work/v2-mobile-build.png" });
+      await p.screenshot({ path: "work/v3-mobile-build.png" });
       await p.locator("#brief-toggle").click();
-      await p.screenshot({ path: "work/v2-mobile-brief.png" });
+      await p.screenshot({ path: "work/v3-mobile-brief.png" });
       await p.locator("#brief-toggle").click();
     }
   }
@@ -254,6 +273,7 @@ require("node:fs").mkdirSync("work", { recursive: true });
   const off = await offline.newPage();
   off.on("pageerror", (e) => errors.push(e.message));
   await off.goto("file://" + path.resolve("index.html"));
+  await off.waitForFunction(() => document.body.dataset.engineReady === "true");
   await off.locator("#starter").click();
   await off.locator("#test").click();
   await off.locator("#speed").click();
@@ -270,6 +290,7 @@ require("node:fs").mkdirSync("work", { recursive: true });
   const bp = await blocked.newPage();
   bp.on("pageerror", (e) => errors.push(e.message));
   await bp.goto(BASE_URL);
+  await bp.waitForFunction(() => document.body.dataset.engineReady === "true");
   await bp.locator("#starter").click();
   await bp.locator("#gravity").click();
   assert.equal(await bp.locator("#simulation-panel").isVisible(), true);
@@ -280,6 +301,7 @@ require("node:fs").mkdirSync("work", { recursive: true });
         status: "PASS",
         browser: await browser.version(),
         checks: [
+          "Phaser scenes, native game objects and persistent mute",
           "direct-to-play viewport",
           "English About",
           "free road drag and automatic segmentation",

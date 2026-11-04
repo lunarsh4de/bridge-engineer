@@ -1,6 +1,6 @@
-# Verification record — gravity workshop v0.2
+# Verification record — Phaser workshop v0.3
 
-Date: 2026-11-04. Tested on this macOS host with Node.js v24.14.0 and Playwright Chromium 153.0.8010.12. The first demo's screenshots and tests are superseded by this record for the updated workshop.
+Date: 2026-11-04. Tested on this macOS host with Node.js v24.14.0 and Playwright Chromium 153.0.8010.12. This record supersedes the v0.2 rendering checks; the independent solver remains unchanged.
 
 ## Physics and editor
 
@@ -28,6 +28,7 @@ Command: `npm run test:browser` with an existing local server.
 
 **Passed** in Chromium:
 
+- Phaser 3.90.0 active Workshop/HUD scenes and native vehicle Container; persistent engine audio mute.
 - Direct entry into a viewport-filling canvas; no landing-page gate or automatic dialog.
 - English About content including STEM topic, story and engineering.
 - Manually drawn full-span road splits into connected deck sections.
@@ -49,3 +50,9 @@ Reviewed desktop construction, crossing results, mobile construction and expande
 ## Limits
 
 Only Chromium was exercised in these browser tests; Safari, Firefox and physical touch devices have not been tested. The tested viewports are emulated sizes. No formal accessibility audit, student learning evaluation, real structural validation or originality certification has been conducted. Vehicle travel uses a supported moving-load approximation, not full wheel-contact dynamics.
+
+## Engine-specific checks
+
+The full interaction suite ran using Phaser WebGL. A separate first-level WebGL smoke test also completed successfully. `npm run test:engine` explicitly disables WebGL context availability before boot to exercise Phaser Canvas fallback with reduced motion enabled. It checks a successful crossing, an unsupported road failure, redesign/retry, absence of decorative tweens, rapid repeated test commands and availability of generated audio buffers. Browser audio mute state and local persistence are verified; subjective audio quality was not evaluated by listening.
+
+No existing public game was imported. The local Phaser MIT distribution is the only added runtime dependency. The former live Canvas renderer is removed; native Phaser scenes and objects supply live game rendering and input. Original Canvas artwork remains only as boot-time texture generation.

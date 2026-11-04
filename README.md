@@ -1,6 +1,6 @@
 # Bridge Engineer — Riverbend Workshop
 
-An English-language STEM game with free construction and gravity-based structural experiments.
+An English-language STEM game powered by Phaser 3.90.0, with free construction and gravity-based structural experiments.
 
 **Play:** https://lunarsh4de.github.io/bridge-engineer/
 
@@ -9,6 +9,8 @@ An English-language STEM game with free construction and gravity-based structura
 Open `index.html` directly. No build, installation, account, server or network connection is needed. In the downloadable game package, `index.html` is at the top level.
 
 The game opens directly into a workshop that fills the browser. Use the top-right full-screen button for optional browser full screen.
+
+[中文运行与教师说明](docs/RUNNING_zh.md)
 
 ## Play
 
@@ -25,15 +27,21 @@ Completed missions and editable designs are saved separately in this browser whe
 
 ## Architecture
 
-| File                  | Responsibility                                                               |
-| --------------------- | ---------------------------------------------------------------------------- |
-| `index.html`     | Full-screen workshop shell, accessible controls and dialogs                  |
-| `styles.css`     | Responsive UI, interaction states and visual hierarchy                       |
-| `js/levels.js`   | Mission data, material limits and optional starter structures                |
-| `js/model.js`    | Editable design, geometry validation, material use, welding and undo/redo    |
-| `js/physics.js`  | Independent fixed-step compliant position-based structural simulation        |
-| `js/renderer.js` | Canvas illustration, camera, physical materials and force view               |
-| `js/app.js`      | Pointer/keyboard interaction, persistence, simulation loop and learning flow |
+| File                 | Responsibility                                                                                  |
+| -------------------- | ----------------------------------------------------------------------------------------------- |
+| `index.html`    | Full-screen workshop shell, accessible controls and dialogs                                     |
+| `styles.css`    | Responsive UI, interaction states and visual hierarchy                                          |
+| `js/levels.js`  | Mission data, material limits and optional starter structures                                   |
+| `js/model.js`   | Editable design, geometry validation, material use, welding and undo/redo                       |
+| `js/physics.js` | Independent fixed-step compliant position-based structural simulation                           |
+| `js/engine.js`  | Phaser Boot/Workshop/HUD scenes, native objects, input, camera, animation, audio and game clock |
+| `js/art.js`     | Original procedural texture painting at boot; no live render loop                               |
+| `vendor/`       | Locally bundled Phaser 3.90.0 and its MIT license                                               |
+| `js/app.js`     | Editor commands, keyboard controls, persistence, fixed-step advancement and learning flow       |
+
+Phaser owns the game loop, scene lifecycle, live rendering, pointer input and visual effects. The accessible HTML interface remains above its canvas. WebGL is selected when available, with a Canvas renderer fallback. Bridge members, joints, truck and effects are native Phaser objects; the former hand-written Canvas render loop has been removed. Original artwork is baked into textures once at boot.
+
+Placement sparks, animated wheels and water, mission transitions, break shake, success particles and procedural tones provide feedback. The sound button persists its mute setting. Reduced-motion preference suppresses decorative motion and effects.
 
 Construction is kept separate from simulation. Tests clone the design into a new physics world; returning to edit restores the original geometry. Physics advances in fixed 1/120 s increments, independently of rendering. Modal dialogs and hidden tabs suspend simulation advancement. Native full-screen mode is entered only through a user action.
 
@@ -61,10 +69,11 @@ npx playwright install chromium
 python3 -m http.server 8766
 # In another terminal:
 npm run test:browser
+npm run test:engine
 ```
 
 `BASE_URL` can select another local test URL. `BROWSER_EXECUTABLE` can select an installed Chromium executable. Browser tests write screenshots to ignored `work/`.
 
 ## Sources and originality
 
-See [architecture research](docs/research/bridge-workshop-architecture.md) and [verification record](docs/TEST_REPORT.md). Matter.js, verlet-js and Excalidraw informed architectural choices; their source was inspected but not embedded in this game. The physics implementation, illustrations, scenarios and UI are independently written. The project has no runtime libraries or CDN dependencies.
+See [architecture research](docs/research/bridge-workshop-architecture.md) and [verification record](docs/TEST_REPORT.md). Matter.js, verlet-js and Excalidraw informed architectural choices; their source was inspected but not embedded in this game. The physics implementation, illustrations, scenarios and UI are independently written. Phaser is the only runtime library, bundled locally under its MIT license in `vendor/PHASER-LICENSE.md`. There are no CDN dependencies. Phaser supplies the game framework; the bridge solver is independently written and does not use Arcade or Matter physics.

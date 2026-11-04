@@ -14,10 +14,12 @@
     <title>Bridge Engineer — Riverbend Workshop</title>
     <link rel="icon" href="favicon.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="styles.css" />
+    <script src="vendor/phaser-3.90.0.min.js" defer></script>
     <script src="js/physics.js" defer></script>
     <script src="js/levels.js" defer></script>
     <script src="js/model.js" defer></script>
-    <script src="js/renderer.js" defer></script>
+    <script src="js/art.js" defer></script>
+    <script src="js/engine.js" defer></script>
     <script src="js/app.js" defer></script>
   </head>
   <body>
@@ -36,7 +38,15 @@
           ><span id="mission-label">01 / Willow Creek</span><span>⌄</span>
         </button>
         <nav aria-label="Main navigation">
-          <span class="version-label">GRAVITY LAB / 02</span
+          <span class="version-label">PHASER · WORKSHOP / 03</span
+          ><button
+            id="sound"
+            class="icon-button sound-button"
+            aria-label="Mute sound"
+            aria-pressed="false"
+            title="Mute sound"
+          >
+            ♪</button
           ><button id="help" class="nav-button">How to play</button
           ><button
             id="fullscreen"
@@ -227,6 +237,8 @@
         </div>
         <div class="bottom-caption">
           <span>DRAG TO BUILD · SNAP TO JOIN · TEST TO DISCOVER</span
+          ><span id="engine-status" class="engine-status"
+            >STARTING GAME ENGINE</span
           ><span id="connection-count">0 members · 2 fixed anchors</span>
         </div>
       </main>

@@ -1468,3 +1468,101 @@ dialog .primary {
     min-height: 44px;
   }
 }
+/* Phaser presents the world; the accessible HTML HUD stays independent of camera motion. */
+#scene {
+  display: block;
+  outline: none;
+}
+#scene:focus-visible {
+  outline: 2px solid #f0a36c;
+  outline-offset: -3px;
+}
+.engine-status {
+  margin-left: auto;
+  margin-right: 25px;
+  color: #295b53;
+}
+.sound-button {
+  font-size: 19px;
+}
+.sound-button[aria-pressed="true"] {
+  color: #9aa996;
+}
+.topbar {
+  z-index: 20;
+}
+.materials-dock {
+  transition:
+    border-color 0.16s,
+    box-shadow 0.16s;
+}
+.materials-dock:focus-within {
+  border-color: #e0cf8b80;
+  box-shadow: 0 8px 25px #173c3d33;
+}
+.material {
+  transition:
+    background 0.13s,
+    border-color 0.13s,
+    transform 0.13s;
+}
+.material:hover:not(:disabled) {
+  transform: translateY(-2px);
+}
+.primary {
+  transition:
+    background 0.13s,
+    transform 0.13s;
+}
+.primary:active:not(:disabled) {
+  transform: translateY(2px);
+  box-shadow: none;
+}
+@media (max-width: 760px) {
+  .version-label {
+    display: none;
+  }
+  .brand {
+    font-size: 10px;
+    letter-spacing: 0.7px;
+  }
+  .brand svg {
+    width: 24px;
+  }
+  .brand-light {
+    font-size: 6px;
+    letter-spacing: 2.1px;
+  }
+  .mission-select {
+    font-size: 9px;
+    padding: 7px;
+    max-width: 127px;
+  }
+  .mission-select > span:nth-child(2) {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .topbar {
+    padding: 0 10px;
+    gap: 5px;
+  }
+  nav {
+    gap: 2px;
+  }
+  .sound-button {
+    width: 29px;
+    min-width: 29px;
+  }
+  .icon-button:not(.sound-button) {
+    width: 30px;
+    min-width: 30px;
+  }
+  .engine-status {
+    display: none;
+  }
+}
+/* Phaser reattaches its canvas after boot. Keep DOM controls above the scene. */
+#scene {
+  z-index: -1;
+}

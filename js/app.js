@@ -4,7 +4,7 @@
     P = BridgePhysics,
     M = BridgeModel,
     L = BridgeLevels,
-    renderer = new BridgeRenderer($("scene")),
+    renderer = new BridgeEngine($("scene")),
     STORAGE = "bridge-engineer-workshop-v2";
   const state = {
     level: L.levels[0],
@@ -226,6 +226,7 @@
   function afterEdit(problem) {
     cancelPlacement();
     if (problem) {
+      renderer.effect("reject");
       note(problem);
       controls();
       return false;
@@ -233,6 +234,7 @@
     hideFeedback();
     save();
     controls();
+    renderer.effect("place");
     note("Design updated. Test gravity, then improve what you observe.");
     return true;
   }
@@ -353,11 +355,10 @@
     } else afterEdit(state.editor.add(a, b, state.material));
   }
   const canvas = $("scene");
-  canvas.addEventListener("pointerdown", (e) => {
+  renderer.onPointer("pointerdown", (e) => {
     if (e.button !== 0 || state.mode !== "build") return;
     e.preventDefault();
     canvas.focus({ preventScroll: true });
-    canvas.setPointerCapture(e.pointerId);
     state.keyboard = false;
     const raw = renderer.toWorld(e.clientX, e.clientY),
       p = snap(raw);
@@ -374,7 +375,7 @@
         );
     }
   });
-  canvas.addEventListener("pointermove", (e) => {
+  renderer.onPointer("pointermove", (e) => {
     if (state.mode !== "build") {
       const p = renderer.toWorld(e.clientX, e.clientY),
         w = state.world;
@@ -410,7 +411,7 @@
     } else if (state.tool === "build" && (state.seed || down))
       state.preview = { start: state.seed || down.start, end: state.pointer };
   });
-  canvas.addEventListener("pointerup", (e) => {
+  renderer.onPointer("pointerup", (e) => {
     if (!down || state.mode !== "build") return;
     const raw = renderer.toWorld(e.clientX, e.clientY),
       p = snap(raw),
@@ -515,6 +516,7 @@
     }
     cancelPlacement();
     hideFeedback();
+    renderer.effect("start");
     state.mode = vehicle ? "crossing" : "gravity";
     state.world = new P.World(state.editor.design, state.level, { vehicle });
     state.paused = false;
@@ -576,6 +578,7 @@
   function experimentResult() {
     const w = state.world;
     if (w.status === "passed") {
+      renderer.effect("success");
       saved.completed[state.index] = true;
       save();
       feedback(
@@ -659,10 +662,25 @@
       `<ol><li><strong>Place a road.</strong> Select Road and drag between positions. A long road gesture creates joined sections.</li><li><strong>Place supports anywhere.</strong> Choose timber, steel or cable. Drag from one position to another, or click two endpoints. No numbered building points are required.</li><li><strong>Join at the ends.</strong> Endpoints close to another joint snap together. Members that cross in the middle are not connected.</li><li><strong>Shape your idea.</strong> Move drags free joints and their attached members. Erase, right-click or Undo returns material.</li><li><strong>Try gravity first.</strong> Members have weight. Floating parts fall, pin-jointed frames can fold, and overloaded members can break.</li><li><strong>Test the crossing.</strong> The structure settles, then a moving delivery load follows the road. Compare results and improve.</li></ol><p>You can also drag a material card onto the scene to place a 1.5 m piece, then reshape it with Move.</p><h3>Keyboard controls</h3><p><span class="key">1–4</span> Materials · <span class="key">M</span> Move · <span class="key">X</span> Erase · <span class="key">Esc</span> Cancel · <span class="key">Ctrl/Cmd Z</span> Undo · <span class="key">Ctrl/Cmd Shift Z</span> Redo</p><p>Focus the canvas, use arrow keys to move the placement cursor, and press Enter to set each endpoint. Space pauses an experiment. H opens help.</p><p class="model-note">The workspace fills your browser. Use ⛶ for optional browser full screen. Gravity values are fixed at Earth gravity (9.81 m/s²).</p>`,
       "A QUICK FIELD GUIDE",
     );
+  $("sound").onclick = () => {
+    const muted = renderer.toggleSound();
+    $("sound").textContent = muted ? "♪̸" : "♪";
+    $("sound").setAttribute(
+      "aria-label",
+      muted ? "Enable sound" : "Mute sound",
+    );
+    $("sound").setAttribute("aria-pressed", String(muted));
+  };
+  $("sound").textContent = renderer.muted ? "♪̸" : "♪";
+  $("sound").setAttribute("aria-pressed", String(renderer.muted));
+  $("sound").setAttribute(
+    "aria-label",
+    renderer.muted ? "Enable sound" : "Mute sound",
+  );
   $("about").onclick = () =>
     modal(
       "Ideas become structures.",
-      `<h3>STEM topic</h3><p><strong>Bridge structures under gravity:</strong> triangulation, load paths, tension, compression, material properties and design iteration.</p><h3>Story</h3><p>You are Riverbend’s new bridge engineer. A school garden, hillside farms and community workshop need reliable crossings. Start with limited timber, gain more material, and unlock steel and cables as the challenge grows.</p><h3>Engineering within STEM</h3><p><strong>Civil and structural engineering.</strong> Define a need, work within material limits, build your own structure, test it, interpret evidence and improve.</p><div class="modal-grid"><div><strong>Science</strong><p>Gravity, weight, force and deformation.</p></div><div><strong>Technology</strong><p>A real-time digital experiment with measurable feedback.</p></div><div><strong>Engineering</strong><p>Design, test and revise under constraints.</p></div><div><strong>Mathematics</strong><p>Geometry, length, mass and comparative measurements.</p></div></div><h3>Learning objectives</h3><ul><li>Build a triangulated structure that supports its own weight and a specified delivery.</li><li>Use observed deformation or failure to justify a change in geometry or material.</li><li>Compare designs while changing one variable and keeping the test conditions fixed.</li></ul><h3>How the game teaches</h3><p><strong>Chunking:</strong> three missions introduce geometry, load paths and material roles. <strong>Storytelling:</strong> each crossing serves the community. <strong>Inquiry:</strong> predict, build, observe and revise. <strong>Scaffolding:</strong> optional starter designs and field notes. <strong>Transfer:</strong> apply earlier ideas to wider spans and heavier loads.</p><h3>What is simulated</h3><p>Every member contributes mass. A fixed-step, compliant position-based solver applies gravity, axial stiffness, damping and a simplified strength/buckling limit. Cables carry tension only. The delivery is a prescribed moving load while supported by the road; it falls under gravity when the road becomes unusable. It is not a full wheel-contact vehicle simulation.</p><p class="model-note">The model uses idealised pin joints and preset members. It omits beam bending, joint failure, self-collision between crossing members, fatigue, wind and real material variability. It is an educational model, not a bridge safety or design tool. Current learning targets are introductory; the intended age group remains to be confirmed.</p><h3>Architecture references and originality</h3><p>Architecture research included <a href="https://github.com/liabru/matter-js/blob/master/examples/bridge.js" target="_blank" rel="noopener noreferrer">Matter.js’s bridge example</a> and <a href="https://github.com/subprotocol/verlet-js" target="_blank" rel="noopener noreferrer">verlet-js</a>. This demo uses independently written code and original illustrations, with no copied game levels or embedded third-party physics runtime.</p><p class="model-note">Designs and progress are stored in this browser when available. The game runs offline without accounts, analytics, remote APIs or CDN dependencies.</p>`,
+      `<h3>STEM topic</h3><p><strong>Bridge structures under gravity:</strong> triangulation, load paths, tension, compression, material properties and design iteration.</p><h3>Story</h3><p>You are Riverbend’s new bridge engineer. A school garden, hillside farms and community workshop need reliable crossings. Start with limited timber, gain more material, and unlock steel and cables as the challenge grows.</p><h3>Engineering within STEM</h3><p><strong>Civil and structural engineering.</strong> Define a need, work within material limits, build your own structure, test it, interpret evidence and improve.</p><div class="modal-grid"><div><strong>Science</strong><p>Gravity, weight, force and deformation.</p></div><div><strong>Technology</strong><p>A real-time digital experiment with measurable feedback.</p></div><div><strong>Engineering</strong><p>Design, test and revise under constraints.</p></div><div><strong>Mathematics</strong><p>Geometry, length, mass and comparative measurements.</p></div></div><h3>Learning objectives</h3><ul><li>Build a triangulated structure that supports its own weight and a specified delivery.</li><li>Use observed deformation or failure to justify a change in geometry or material.</li><li>Compare designs while changing one variable and keeping the test conditions fixed.</li></ul><h3>How the game teaches</h3><p><strong>Chunking:</strong> three missions introduce geometry, load paths and material roles. <strong>Storytelling:</strong> each crossing serves the community. <strong>Inquiry:</strong> predict, build, observe and revise. <strong>Scaffolding:</strong> optional starter designs and field notes. <strong>Transfer:</strong> apply earlier ideas to wider spans and heavier loads.</p><h3>What is simulated</h3><p>Every member contributes mass. A fixed-step, compliant position-based solver applies gravity, axial stiffness, damping and a simplified strength/buckling limit. Cables carry tension only. The delivery is a prescribed moving load while supported by the road; it falls under gravity when the road becomes unusable. It is not a full wheel-contact vehicle simulation.</p><p class="model-note">The model uses idealised pin joints and preset members. It omits beam bending, joint failure, self-collision between crossing members, fatigue, wind and real material variability. It is an educational model, not a bridge safety or design tool. Current learning targets are introductory; the intended age group remains to be confirmed.</p><h3>Architecture references and originality</h3><p>Architecture research included <a href="https://github.com/liabru/matter-js/blob/master/examples/bridge.js" target="_blank" rel="noopener noreferrer">Matter.js’s bridge example</a> and <a href="https://github.com/subprotocol/verlet-js" target="_blank" rel="noopener noreferrer">verlet-js</a>. This edition uses Phaser 3.90.0 (MIT) for the game loop, scenes, native game objects, camera, input, particles, tweens and audio. The structural model, illustrations and missions are independently written; no existing game levels were copied. The game engine is bundled locally for offline play.</p><p class="model-note">Designs and progress are stored in this browser when available. The game runs offline without accounts, analytics, remote APIs or CDN dependencies. Phaser’s license is included in the downloadable source. Sound can be muted; reduced-motion preferences disable shakes and celebratory effects.</p>`,
       "ABOUT THE COURSE",
     );
   $("case").onclick = () =>
@@ -802,11 +820,7 @@
       $("broken-value").textContent = state.world.breakCount;
     }
     renderer.draw({ ...state, editor: state.editor });
-    requestAnimationFrame(frame);
   }
   enter(saved.level);
-  requestAnimationFrame((t) => {
-    lastTime = t;
-    frame(t);
-  });
+  renderer.start(frame);
 })();
