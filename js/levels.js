@@ -1,8 +1,96 @@
-(function(root){
-const levels=[
- {id:1,name:'The first crossing',place:'WILLOW CREEK',short:'Find strength in a triangle.',story:'Riverbend’s school garden is across the creek. Build a bridge to deliver its first load of seedlings.',span:4.8,load:12000,inventory:{wood:3,steel:0},unlock:'3 timber beams',concept:'A triangle holds its shape',lesson:'A pin-jointed rectangle can change shape. A diagonal divides it into triangles and creates a more stable frame.',hint:'Connect the upper point to both riverbanks, then connect it to the middle of the deck. Test what changes.',nodes:[{id:0,x:260,y:340,deck:true},{id:1,x:500,y:340,deck:true},{id:2,x:740,y:340,deck:true},{id:3,x:500,y:210}],reference:[[0,3,'wood'],[3,2,'wood'],[3,1,'wood']]},
- {id:2,name:'Room to grow',place:'FERN VALLEY',short:'Build a connected truss.',story:'The gardens are growing. The next crossing must carry supplies to the hillside farms. More timber is available—but the river is wider.',span:6,load:18000,inventory:{wood:9,steel:0},unlock:'9 timber beams',concept:'Give the load a route to the banks',lesson:'A truss uses connected triangles to transfer loads to its supports. A strong-looking section still needs a stable connection to the rest of the bridge.',hint:'Connect each upper point to the two deck points below it. Join neighbouring upper points to complete a chain of triangles.',nodes:[{id:0,x:200,y:340,deck:true},{id:1,x:400,y:340,deck:true},{id:2,x:600,y:340,deck:true},{id:3,x:800,y:340,deck:true},{id:4,x:300,y:200},{id:5,x:500,y:200},{id:6,x:700,y:200}],reference:[[0,4,'wood'],[4,1,'wood'],[1,5,'wood'],[5,2,'wood'],[2,6,'wood'],[6,3,'wood'],[4,5,'wood'],[5,6,'wood']]},
- {id:3,name:'A stronger connection',place:'THE HIGH PASS',short:'Choose where steel matters.',story:'A heavier delivery truck must reach the new community workshop. Steel has arrived. Use it where your bridge needs greater capacity.',span:6.8,load:42000,inventory:{wood:8,steel:5},unlock:'Timber + steel',concept:'Tension pulls. Compression pushes.',lesson:'Members can carry tension or compression. In this model, steel members have greater stiffness and capacity. Long compressed members are more vulnerable to buckling.',hint:'Start with a continuous truss. Use steel for the upper horizontal members and the two outer diagonals, then test the load path.',nodes:[{id:0,x:160,y:340,deck:true},{id:1,x:330,y:340,deck:true},{id:2,x:500,y:340,deck:true},{id:3,x:670,y:340,deck:true},{id:4,x:840,y:340,deck:true},{id:5,x:245,y:210},{id:6,x:415,y:210},{id:7,x:585,y:210},{id:8,x:755,y:210}],reference:[[0,5,'steel'],[5,1,'wood'],[1,6,'wood'],[6,2,'wood'],[2,7,'wood'],[7,3,'wood'],[3,8,'wood'],[8,4,'steel'],[5,6,'steel'],[6,7,'steel'],[7,8,'steel']]}
-];
-if(typeof module!=='undefined'&&module.exports)module.exports=levels;root.BridgeLevels=levels;
-})(typeof window!=='undefined'?window:globalThis);
+(function (root) {
+  "use strict";
+  const levels = [
+    {
+      id: 1,
+      name: "The first crossing",
+      place: "Willow Creek",
+      left: 440,
+      right: 1040,
+      deckY: 430,
+      truckMass: 600,
+      inventory: { road: 6.2, wood: 14, steel: 0, cable: 0 },
+      story:
+        "The school garden is across the creek. Build a crossing so a small delivery can reach it.",
+      concept: "Geometry before strength",
+      lesson:
+        "A pin-jointed rectangle can fold. A diagonal creates triangles that resist changing shape. Try both arrangements under gravity.",
+      hint: "Lay three road sections between the orange bank anchors. Build a row of triangles above or below the deck. Connect all your joints.",
+      caseTitle: "Triangles at work",
+      newMaterial: "Start with timber",
+      guideY: 330,
+    },
+    {
+      id: 2,
+      name: "Room to grow",
+      place: "Fern Valley",
+      left: 340,
+      right: 1140,
+      deckY: 430,
+      truckMass: 1000,
+      inventory: { road: 8.2, wood: 19, steel: 0, cable: 0 },
+      story:
+        "The hillside farms need a wider crossing. You have more timber, but the delivery is heavier too.",
+      concept: "Follow the load",
+      lesson:
+        "Loads need a continuous route to the banks. Extra members also add weight. Where does one well-placed diagonal help most?",
+      hint: "Use four road sections. A connected row of triangles can spread the load. A floating triangle still needs a route to both bank supports.",
+      caseTitle: "A connected structure",
+      newMaterial: "More timber, a wider river",
+      guideY: 330,
+    },
+    {
+      id: 3,
+      name: "A stronger connection",
+      place: "The high pass",
+      left: 240,
+      right: 1240,
+      deckY: 430,
+      truckMass: 1800,
+      inventory: { road: 10.2, wood: 13, steel: 18, cable: 12 },
+      story:
+        "The community workshop is waiting for its first heavy delivery. Steel and cables open new ways to cross the high pass.",
+      concept: "Different jobs. Different materials.",
+      lesson:
+        "Steel is stronger and stiffer in this model, but heavier. A cable can carry tension; when pushed, it goes slack. Test the difference.",
+      hint: "Start with a continuous deck and truss. Use steel where compressed members carry high loads. Cables can pull a deck toward a higher anchored structure; they cannot replace compression struts.",
+      caseTitle: "Tension and compression",
+      newMaterial: "Steel + cables unlocked",
+      guideY: 305,
+    },
+  ];
+  function starter(level) {
+    const nodes = [
+        { id: "left", x: level.left, y: level.deckY, fixed: true },
+        { id: "right", x: level.right, y: level.deckY, fixed: true },
+      ],
+      members = [];
+    let serial = 0;
+    const add = (a, b, material) =>
+      members.push({ id: "m" + ++serial, a, b, material });
+    const cells = Math.round((level.right - level.left) / 200),
+      deck = ["left"];
+    for (let i = 1; i < cells; i++) {
+      const id = "d" + i;
+      nodes.push({ id, x: level.left + i * 200, y: level.deckY });
+      deck.push(id);
+    }
+    deck.push("right");
+    for (let i = 0; i < cells; i++) {
+      add(deck[i], deck[i + 1], "road");
+      const id = "t" + i;
+      nodes.push({ id, x: level.left + i * 200 + 100, y: level.guideY });
+      add(deck[i], id, level.id === 3 && i === 0 ? "steel" : "wood");
+      add(
+        id,
+        deck[i + 1],
+        level.id === 3 && i === cells - 1 ? "steel" : "wood",
+      );
+      if (i) add("t" + (i - 1), id, level.id === 3 ? "steel" : "wood");
+    }
+    return { nodes, members };
+  }
+  const api = { levels, starter };
+  if (typeof module !== "undefined" && module.exports) module.exports = api;
+  root.BridgeLevels = api;
+})(typeof window !== "undefined" ? window : globalThis);

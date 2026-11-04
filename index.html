@@ -1,22 +1,244 @@
 <!doctype html>
 <html lang="en">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#f5f4ed"><meta name="description" content="Build, test and improve bridges in an interactive STEM engineering adventure."><title>Bridge Engineer — Build a way forward</title><link rel="icon" href="favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="styles.css"><script src="js/physics.js" defer></script><script src="js/levels.js" defer></script><script src="js/app.js" defer></script></head>
-<body>
-<header class="header"><a class="brand" href="#" id="brand" aria-label="Bridge Engineer home"><svg viewBox="0 0 40 32" aria-hidden="true"><path d="M3 26h34M6 26V10l14 16L34 10v16M6 10h28M20 10v16"/></svg><span>BRIDGE<span class="brand-light">ENGINEER</span></span></a><nav aria-label="Main navigation"><span class="demo-tag">PLAYABLE DEMO</span><button class="text-button" id="help">How to play</button><button class="text-button" id="about">About <span aria-hidden="true">↗</span></button></nav></header>
-<main id="home">
-<section class="hero"><div class="hero-copy"><div class="eyebrow"><span class="green-dot"></span> A LITTLE MATERIAL. A LOT OF POSSIBILITY.</div><h1>Build a way<br><em>forward.</em></h1><p class="hero-description">A river separates a community.<br>Your ideas can bring it together.</p><p class="hero-detail">Build bridges. Discover what makes them strong.<br>Turn a first attempt into a better design.</p><button class="primary large" id="start">Enter the workshop <span aria-hidden="true">↗</span></button><div class="hero-meta"><span>3 hands-on missions</span><span>No experience needed</span></div></div>
-<div class="hero-art"><div class="art-label"><span>RIVERBEND FIELD NOTES</span><span>01 / 03</span></div><svg id="hero-svg" viewBox="0 0 1000 570" role="img" aria-label="An illustrated timber truss bridge crossing a river between green hills"></svg><div class="art-note"><span class="note-icon">↳</span><span>Good engineering starts<br>with a curious question.</span><span class="coordinate">48° N<br>RIVERBEND</span></div></div></section>
-<section class="journey"><div class="section-heading"><div><span class="eyebrow">YOUR ROUTE THROUGH RIVERBEND</span><h2>One crossing at a time.</h2></div><p>New places. New materials. Better ideas.</p></div><div id="mission-cards" class="mission-cards"></div></section>
-<footer class="footer"><span>DESIGN · TEST · LEARN · REPEAT</span><span>An interactive STEM engineering adventure</span></footer>
-</main>
-<main id="game" hidden>
-<div class="game-top"><button class="text-button" id="back">← Mission map</button><div id="progress" class="progress"></div><span class="workshop-label">RIVERBEND WORKSHOP</span></div>
-<div class="mission-heading"><div><div id="level-place" class="eyebrow"></div><h1 id="level-name"></h1></div><div class="mission-stats"><div><span>SPAN</span><strong id="span"></strong></div><div><span>TEST LOAD</span><strong id="load"></strong></div></div></div>
-<p id="story" class="mission-story"></p>
-<div class="workbench"><section class="build-panel" aria-label="Bridge building area"><div class="canvas-toolbar"><div><span class="green-dot"></span><span id="mode-label">BUILD MODE</span></div><span id="selection-hint">Choose a material. Connect two points.</span></div><svg id="board" viewBox="0 0 1000 570" aria-label="Bridge workspace. Select two connection points to add a beam."></svg><div class="canvas-bottom"><div class="legend"><span><i class="legend-anchor"></i> Support</span><span><i class="legend-node"></i> Connection point</span><span><i class="legend-tension"></i> Tension</span><span><i class="legend-compression"></i> Compression</span></div><span id="test-position">1 grid unit = 1 metre</span></div></section>
-<aside class="tool-panel"><div class="eyebrow">YOUR TOOLKIT</div><h2>Make every beam count.</h2><div id="materials" class="materials"></div><div class="edit-tools"><button id="undo" class="secondary">↶ Undo</button><button id="clear" class="secondary">Clear</button></div><p class="tiny">Click a placed beam to remove it and return it to your toolkit. The deck is provided.</p><button id="test" class="primary full">Test my bridge <span aria-hidden="true">→</span></button><button id="hint" class="text-button hint-button">Need a nudge?</button><div class="result" id="feedback" role="status" aria-live="polite"><strong>Your first idea starts here.</strong><p>Connect two points to place a beam. You can test and improve as often as you like.</p></div><button class="primary full" id="next" hidden>Next crossing →</button></aside></div>
-<section class="learning-strip"><div class="lesson-number" id="lesson-number">01</div><div class="lesson-copy"><span class="eyebrow">A SMALL IDEA. A STRONGER BRIDGE.</span><h2 id="concept"></h2><p id="lesson"></p></div><button class="case-button" id="case">From the real world <span>Meet the Forth Bridge ↗</span></button></section>
-</main>
-<dialog id="modal"><button id="close-modal" class="close" aria-label="Close dialog">×</button><div id="modal-body"></div></dialog>
-<noscript><p>This game needs JavaScript enabled in your browser.</p></noscript>
-</body></html>
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#142b27" />
+    <meta
+      name="description"
+      content="A full-screen bridge engineering sandbox. Place materials freely, explore gravity, and test your own structures."
+    />
+    <title>Bridge Engineer — Riverbend Workshop</title>
+    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="styles.css" />
+    <script src="js/physics.js" defer></script>
+    <script src="js/levels.js" defer></script>
+    <script src="js/model.js" defer></script>
+    <script src="js/renderer.js" defer></script>
+    <script src="js/app.js" defer></script>
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <a
+          class="brand"
+          href="#"
+          id="brand"
+          aria-label="Bridge Engineer mission map"
+          ><svg viewBox="0 0 40 32" aria-hidden="true">
+            <path d="M3 26h34M6 26V10l14 16L34 10v16M6 10h28M20 10v16" /></svg
+          ><span>BRIDGE<span class="brand-light">ENGINEER</span></span></a
+        ><button class="mission-select" id="missions">
+          <span class="small-dot"></span
+          ><span id="mission-label">01 / Willow Creek</span><span>⌄</span>
+        </button>
+        <nav aria-label="Main navigation">
+          <span class="version-label">GRAVITY LAB / 02</span
+          ><button id="help" class="nav-button">How to play</button
+          ><button
+            id="fullscreen"
+            class="icon-button"
+            aria-label="Enter full screen"
+            title="Enter full screen"
+          >
+            ⛶</button
+          ><button id="about" class="nav-button">About ↗</button>
+        </nav>
+      </header>
+      <main class="workshop" id="workshop">
+        <canvas
+          id="scene"
+          tabindex="0"
+          aria-label="Bridge building canvas. Drag to place members anywhere on the grid. Arrow keys move the keyboard cursor; Enter chooses endpoints. Press H for help."
+        ></canvas>
+        <section class="mission-panel panel" aria-label="Mission brief">
+          <button class="mission-toggle" id="brief-toggle" aria-expanded="true">
+            <span class="eyebrow" id="place-label"
+              >MISSION 01 · WILLOW CREEK</span
+            ><span id="brief-chevron">−</span>
+          </button>
+          <h1 id="mission-title">The first crossing</h1>
+          <div id="brief-content">
+            <p id="story"></p>
+            <div class="brief-stats">
+              <div>
+                <span>RIVER SPAN</span><strong id="span-value">6 m</strong>
+              </div>
+              <div>
+                <span>DELIVERY</span><strong id="load-value">600 kg</strong>
+              </div>
+            </div>
+            <div class="objective">
+              <span class="small-dot"></span>Build a continuous road. Get the
+              delivery across. Keep deck drop below 12 cm.
+            </div>
+            <button id="starter" class="starter-button">
+              Try a starter design <span>↗</span>
+            </button>
+            <p class="starter-note">Or start with your own idea.</p>
+            <button id="case" class="case-button">
+              <span class="eyebrow">ENGINEER’S FIELD NOTE</span
+              ><strong id="concept">Geometry before strength</strong
+              ><span>Explore the idea + a real bridge ↗</span>
+            </button>
+          </div>
+        </section>
+        <div class="mode-chip" id="mode-chip">
+          <span class="small-dot"></span><span id="mode-text">BUILD MODE</span
+          ><span class="mode-divider"></span
+          ><span id="mode-detail">Gravity waits until you test</span>
+        </div>
+        <aside
+          class="simulation-panel panel"
+          id="simulation-panel"
+          hidden
+          aria-label="Simulation measurements"
+        >
+          <div class="eyebrow">LIVE EXPERIMENT</div>
+          <div class="live-measurements">
+            <div>
+              <span>GRAVITY</span
+              ><strong id="gravity-value">9.81 <small>m/s²</small></strong>
+            </div>
+            <div>
+              <span>TIME</span
+              ><strong id="time-value">0.0 <small>s</small></strong>
+            </div>
+            <div>
+              <span>MAX. DECK DROP</span
+              ><strong id="sag-value">0 <small>cm</small></strong>
+            </div>
+            <div>
+              <span>BROKEN MEMBERS</span><strong id="broken-value">0</strong>
+            </div>
+          </div>
+          <div class="simulation-controls">
+            <button id="pause" class="small-button">Pause</button
+            ><button id="speed" class="small-button">Speed 1×</button
+            ><button id="back-build" class="small-button">↶ Edit design</button>
+          </div>
+        </aside>
+        <div class="view-controls panel" aria-label="View options">
+          <button
+            id="grid"
+            class="view-button active"
+            aria-pressed="true"
+            title="Toggle grid"
+          >
+            Grid</button
+          ><button
+            id="stress"
+            class="view-button"
+            aria-pressed="false"
+            title="Colour members by tension and compression"
+          >
+            Forces</button
+          ><span></span
+          ><button id="zoom-out" class="view-button" aria-label="Zoom out">
+            −</button
+          ><button id="zoom-in" class="view-button" aria-label="Zoom in">
+            +
+          </button>
+        </div>
+        <div class="instruction" id="instruction" aria-live="polite">
+          Choose Road, then drag from an orange anchor to begin.
+        </div>
+        <section
+          class="feedback panel"
+          id="feedback-panel"
+          hidden
+          aria-label="Experiment result"
+        >
+          <div class="feedback-heading">
+            <span class="eyebrow" id="feedback-label">FIELD OBSERVATION</span
+            ><button id="dismiss-feedback" aria-label="Dismiss feedback">
+              ×
+            </button>
+          </div>
+          <h2 id="feedback-title"></h2>
+          <p id="feedback-body" role="status" aria-live="polite"></p>
+          <div class="feedback-actions">
+            <button class="primary" id="next" hidden>Next crossing →</button
+            ><button class="small-button" id="result-edit">
+              ↶ Keep experimenting
+            </button>
+          </div>
+        </section>
+        <div class="materials-dock panel">
+          <div class="dock-intro">
+            <span class="eyebrow">PLACE A MATERIAL</span
+            ><strong>Your bridge.<br />Your approach.</strong>
+          </div>
+          <div
+            id="materials"
+            class="material-list"
+            role="group"
+            aria-label="Construction materials"
+          ></div>
+          <div class="dock-tools">
+            <button
+              id="move"
+              class="edit-button"
+              title="Move a joint (M)"
+              aria-label="Move a joint"
+              aria-pressed="false"
+            >
+              ✥ <span>Move</span></button
+            ><button
+              id="erase"
+              class="edit-button"
+              title="Remove a member (X)"
+              aria-label="Remove a member"
+              aria-pressed="false"
+            >
+              ⌫ <span>Erase</span></button
+            ><button
+              id="undo"
+              class="edit-button"
+              title="Undo (Ctrl/Cmd+Z)"
+              aria-label="Undo"
+            >
+              ↶</button
+            ><button
+              id="redo"
+              class="edit-button"
+              title="Redo (Ctrl/Cmd+Shift+Z)"
+              aria-label="Redo"
+            >
+              ↷</button
+            ><button
+              id="clear"
+              class="edit-button"
+              aria-label="Clear the design"
+              title="Clear the design"
+            >
+              ↺
+            </button>
+          </div>
+          <div class="test-actions">
+            <button id="gravity" class="gravity-button">↓ Gravity lab</button
+            ><button id="test" class="primary">
+              Test crossing <span>→</span>
+            </button>
+          </div>
+        </div>
+        <div class="bottom-caption">
+          <span>DRAG TO BUILD · SNAP TO JOIN · TEST TO DISCOVER</span
+          ><span id="connection-count">0 members · 2 fixed anchors</span>
+        </div>
+      </main>
+    </div>
+    <dialog id="modal" aria-labelledby="modal-title">
+      <button id="close-modal" class="close" aria-label="Close dialog">
+        ×
+      </button>
+      <div id="modal-body"></div>
+    </dialog>
+    <noscript
+      >This game needs JavaScript. Enable it to enter the workshop.</noscript
+    >
+  </body>
+</html>

@@ -1,0 +1,18 @@
+{
+  "name": "bridge-engineer-workshop",
+  "version": "0.2.0",
+  "private": true,
+  "description": "An offline-capable STEM bridge workshop with free construction and gravity.",
+  "scripts": {
+    "test": "node --test tests/physics.test.cjs tests/model.test.cjs",
+    "test:browser": "node tests/browser.e2e.cjs",
+    "format": "prettier --write index.html styles.css js tests README.md docs/TEST_REPORT.md docs/research/bridge-workshop-architecture.md"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "playwright": "1.62.1",
+    "prettier": "3.6.2"
+  }
+}

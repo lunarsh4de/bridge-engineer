@@ -1,69 +1,812 @@
-'use strict';
-(()=>{
-const $=id=>document.getElementById(id),levels=window.BridgeLevels,P=window.BridgePhysics;
-let completed=[false,false,false];try{const v=JSON.parse(localStorage.getItem('bridge-engineer-v1'));if(Array.isArray(v)&&v.length===3){completed=v.map(x=>x===true);for(let i=1;i<3;i++)if(!completed[i-1])completed[i]=false;}}catch{}
-const state={level:0,beams:[],material:'wood',selected:null,running:false,raf:null,result:null,position:0,attempts:0,passed:false,hints:0};
-const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
-function save(){try{localStorage.setItem('bridge-engineer-v1',JSON.stringify(completed));}catch{}}
-function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
-function openModal(html){$('modal-body').innerHTML=html;if(!$('modal').open)$('modal').showModal();}
-function closeModal(){$('modal').close();}
-$('close-modal').onclick=closeModal;
-$('modal').addEventListener('click',e=>{if(e.target===$('modal')){const r=$('modal').getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)closeModal();}});
-function scenery(level,hero=false){const d=level.nodes.filter(n=>n.deck),l=d[0].x,r=d.at(-1).x;return `
-<defs><pattern id="${hero?'hero':'game'}grid" width="50" height="50" patternUnits="userSpaceOnUse"><circle cx="1" cy="1" r="1.1" fill="#6c9273" opacity=".18"/></pattern><linearGradient id="${hero?'hero':'game'}river" x2="0" y2="1"><stop stop-color="#9ac6c3"/><stop offset="1" stop-color="#c3dad0"/></linearGradient></defs>
-<rect width="1000" height="570" fill="${hero?'#e8ecdf':'#edf2e7'}"/><circle cx="760" cy="105" r="48" fill="#e9dca9" opacity=".8"/>
-<path d="M0 250L90 180 210 240 345 120 490 257 620 170 770 245 900 135 1000 230V570H0Z" fill="#cedbc5"/><path d="M0 290L140 215 270 290 430 222 600 300 780 202 1000 270V570H0Z" fill="#b8cdb2"/>
-<path d="M${l-65} 355Q460 400 400 475T320 570H760Q565 450 ${r+45} 355Z" fill="url(#${hero?'hero':'game'}river)"/>
-<path d="M0 325Q${l/2} 310 ${l} 335L${l-15} 395 110 440 0 440Z" fill="#6f9372"/><path d="M${r} 335Q920 308 1000 325V455L${r+30} 410Z" fill="#799876"/>
-<path d="M0 344H${l}M${r} 344H1000" stroke="#e5d9b8" stroke-width="18"/><path d="M0 338H${l}M${r} 338H1000" stroke="#f1e9cd" stroke-width="4"/>
-<path d="M0 361H${l-5}M${r+5} 361H1000" stroke="#345b45" stroke-width="4" opacity=".4"/>
-${[70,150,870,945].map((x,i)=>`<g transform="translate(${x},${i%2?280:300})"><path d="M0 22V-25" stroke="#42654a" stroke-width="4"/><path d="M-20 4L0-45 20 4Z" fill="${i%2?'#4e7957':'#628763'}"/></g>`).join('')}
-<path d="M450 445h48m55 25h65m-220 44h80m84 23h85" stroke="#e6f2e6" stroke-width="3" stroke-linecap="round" opacity=".65"/>
-${hero?'':`<rect width="1000" height="340" fill="url(#gamegrid)"/><path d="M${l} 480v12m0-6H${r}m0-6v12" stroke="#628d7c" opacity=".6"/><text x="${(l+r)/2}" y="512" text-anchor="middle" font-family="Arial" font-size="13" fill="#5f8373">${level.span.toFixed(1)} m crossing</text>`}`;}
-function truck(x,y,small=false){return `<g transform="translate(${x},${y}) scale(${small?.82:1})"><path d="M-36-34H6V-5H-36Z" fill="#d16a42"/><path d="M6-28H24L35-14V-5H6Z" fill="#e9b45e"/><path d="M11-24H21L29-15H11Z" fill="#d7e8db"/><path d="M-39-5h76" stroke="#36534b" stroke-width="5"/><circle cx="-22" cy="-3" r="8" fill="#304a42"/><circle cx="24" cy="-3" r="8" fill="#304a42"/><circle cx="-22" cy="-3" r="3" fill="#d8ddca"/><circle cx="24" cy="-3" r="3" fill="#d8ddca"/></g>`;}
-function hero(){const l=levels[1];let s=scenery(l,true);for(const e of l.reference){const a=l.nodes[e[0]],b=l.nodes[e[1]];s+=`<line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" stroke="#a27548" stroke-width="10" stroke-linecap="round"/><line x1="${a.x}" y1="${a.y-2}" x2="${b.x}" y2="${b.y-2}" stroke="#d4ad75" stroke-width="3"/>`;}
-s+='<path d="M195 340H805" stroke="#365746" stroke-width="13"/><path d="M195 334H805" stroke="#eee0bb" stroke-width="4"/>';
-s+=l.nodes.map(n=>`<circle cx="${n.x}" cy="${n.y}" r="6" fill="#f5edcf" stroke="#5e7755" stroke-width="2"/>`).join('');s+=truck(560,331);s+='<text x="500" y="130" text-anchor="middle" font-family="Arial" font-size="12" fill="#61795e" letter-spacing="3">IDEAS TAKE SHAPE HERE</text>';$('hero-svg').innerHTML=s;}
-function cards(){$('mission-cards').innerHTML=levels.map((l,i)=>{const unlocked=i===0||completed[i-1];return `<button class="mission-card ${unlocked?'':'locked'}" data-level="${i}" aria-label="${l.name}. ${completed[i]?'Completed':unlocked?'Available':'Locked. Complete the previous mission.'}"><span class="number">0${i+1}</span><span class="card-status ${unlocked?'ready':''}">${completed[i]?'✓ CONNECTED':unlocked?'READY TO BUILD ↗':'LOCKED · '+l.unlock.toUpperCase()}</span><h3>${l.name}</h3><p>${l.short}</p></button>`;}).join('');}
-function feedback(title,body,kind=''){$('feedback').className='result '+kind;$('feedback').innerHTML=`<strong>${esc(title)}</strong><p>${esc(body)}</p>`;}
-function stop(){if(state.raf)cancelAnimationFrame(state.raf);state.raf=null;state.running=false;$('test').innerHTML='Test my bridge <span aria-hidden="true">→</span>';}
-function invalidate(){state.result=null;state.passed=false;state.position=0;$('next').hidden=true;}
-function remaining(material){return levels[state.level].inventory[material]-state.beams.filter(b=>b.material===material).length;}
-function controls(){const l=levels[state.level];$('materials').innerHTML=['wood','steel'].map(m=>`<button data-material="${m}" class="material ${state.material===m?'selected':''}" aria-pressed="${state.material===m}" ${state.running||!l.inventory[m]?'disabled':''}><span class="swatch ${m}"></span><span><span class="material-name">${P.MATERIALS[m].name}</span><span class="material-desc">${!l.inventory[m]?'Unlocks in mission 03':m==='wood'?'Lightweight starter member':'Greater stiffness & capacity'}</span></span><span class="material-count">${remaining(m)}</span></button>`).join('');$('undo').disabled=state.running||!state.beams.length;$('clear').disabled=state.running||!state.beams.length;$('hint').disabled=state.running;$('mode-label').textContent=state.running?'LOAD TEST IN PROGRESS':state.passed?'CROSSING COMPLETE':'BUILD MODE';$('selection-hint').textContent=state.running?'Watch the load move through your structure.':state.selected!==null?'Now choose a second point.':'Choose a material. Connect two points.';}
-function draw(){const focus=document.activeElement;const focusNode=focus?.dataset?.node;const focusBeam=focus?.dataset?.beam;const l=levels[state.level],r=state.result;let s=scenery(l);const nodePos=n=>{const d=r?.stable&&r.deflections[n.id];return {x:n.x+(d?Math.max(-18,Math.min(18,d.x*2500)):0),y:n.y-(d?Math.max(-24,Math.min(24,d.y*2500)):0)};};
-const deck=l.nodes.filter(n=>n.deck);for(let i=0;i<deck.length-1;i++){const a=nodePos(deck[i]),b=nodePos(deck[i+1]);s+=`<line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" stroke="#4c6653" stroke-width="10"/><line x1="${a.x}" y1="${a.y-4}" x2="${b.x}" y2="${b.y-4}" stroke="#dce0c8" stroke-width="3"/>`;}
-for(const n of [deck[0],deck.at(-1)])s+=`<path d="M${n.x} ${n.y+5}l-13 20h26Z" fill="#3c654d"/><path d="M${n.x-18} ${n.y+29}h36" stroke="#547758" stroke-width="3"/>`;
-for(const e of state.beams){const a=nodePos(l.nodes[e.a]),b=nodePos(l.nodes[e.b]),f=r?.forces?.find(z=>z.id===e.id);const color=f?(f.ratio>1?'#bd3434':f.force>=0?'#4a879a':'#c36a45'):(e.material==='wood'?'#b58a55':'#657e91');s+=`<g><title>${P.MATERIALS[e.material].name} beam ${e.a+1}–${e.b+1}${f?`: ${Math.abs(f.force/1000).toFixed(1)} kN ${f.force>=0?'tension':'compression'}`:''}</title><line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" stroke="${color}" stroke-width="${e.material==='steel'?9:7}" stroke-linecap="round"/><line class="beam-hit" data-beam="${e.id}" x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" tabindex="${state.running?-1:0}" role="button" aria-label="Remove ${P.MATERIALS[e.material].name} beam between points ${e.a+1} and ${e.b+1}"/></g>`;}
-for(const n of l.nodes){const pos=nodePos(n),selected=state.selected===n.id;const name=n.deck&&(n.id===deck[0].id||n.id===deck.at(-1).id)?'Support':'Connection point';s+=`<g class="node" data-node="${n.id}" tabindex="${state.running?-1:0}" role="button" aria-label="${name} ${n.id+1}${selected?', selected':''}"><circle cx="${pos.x}" cy="${pos.y}" r="22" fill="transparent"/><circle class="node-ring" cx="${pos.x}" cy="${pos.y}" r="${selected?12:8}" fill="${selected?'#d35a35':'#f8f7e8'}" stroke="${selected?'#d35a35':'#5b7b61'}" stroke-width="2.5"/><text x="${pos.x}" y="${pos.y-20}" text-anchor="middle" font-family="Arial" font-size="12" fill="#3e5d4b">${n.id+1}</text></g>`;}
-const tx=state.running||r?deck[0].x+(deck.at(-1).x-deck[0].x)*state.position:deck[0].x-66;s+=truck(tx,329);if(state.running||r)s+='<text x="32" y="47" font-family="Arial" font-size="12" fill="#47634d">Deformation exaggerated for visibility</text>';$('board').innerHTML=s;if(focusNode!==undefined)$('board').querySelector('[data-node="'+focusNode+'"]')?.focus({preventScroll:true});else if(focusBeam!==undefined)$('board').querySelector('[data-beam="'+focusBeam+'"]')?.focus({preventScroll:true});$('test-position').textContent=r?.stable?`${state.passed?'Peak member use':'Member use'}: ${Math.round(r.maxRatio*100)}%`:'1 grid unit = 1 metre';}
-function enter(i){stop();Object.assign(state,{level:i,beams:[],material:'wood',selected:null,result:null,position:0,attempts:0,passed:false,hints:0});$('home').hidden=true;$('game').hidden=false;const l=levels[i];$('level-place').textContent=`MISSION 0${i+1} / ${l.place}`;$('level-name').textContent=l.name;$('span').textContent=l.span.toFixed(1)+' m';$('load').textContent=(l.load/1000)+' kN';$('story').textContent=l.story;$('concept').textContent=l.concept;$('lesson').textContent=l.lesson;$('lesson-number').textContent='0'+(i+1);$('progress').innerHTML=levels.map((_,j)=>`<span class="${j<=i?'active':''}"></span>`).join('');$('next').hidden=true;feedback('Your first idea starts here.','Connect two points to place a beam. Test, observe and improve. A complete deck alone needs additional support.');controls();draw();window.scrollTo(0,0);}
-function home(){stop();state.selected=null;$('home').hidden=false;$('game').hidden=true;cards();window.scrollTo(0,0);}
-function addNode(id){if(state.running)return;if(state.selected===id){state.selected=null;controls();draw();return;}if(state.selected===null){state.selected=id;controls();draw();return;}
-const a=state.selected,b=id,l=levels[state.level];state.selected=null;
-if(state.beams.some(e=>(e.a===a&&e.b===b)||(e.a===b&&e.b===a))){feedback('That connection is already there.','Click the existing beam to remove it before changing its material.');}
-else if(l.nodes[a].deck&&l.nodes[b].deck){feedback('The deck is already provided.','Build supports between an upper point and a deck point, or connect upper points.');}
-else if(remaining(state.material)<=0){feedback('Your toolkit is empty.','Remove a beam to reuse it, undo your last move, or choose another available material.');}
-else if(Math.hypot(l.nodes[a].x-l.nodes[b].x,l.nodes[a].y-l.nodes[b].y)>350){feedback('That member is too long.','Connect closer points. Each available member can span up to 3.5 metres in this demo.');}
-else {state.beams.push({a,b,material:state.material,id:'b'+Date.now()+'-'+state.beams.length});invalidate();feedback('Connection made.','Look for a continuous, stable path from the deck to both banks. Test whenever you are ready.');}
-controls();draw();}
-function removeBeam(id){if(state.running)return;state.beams=state.beams.filter(e=>e.id!==id);state.selected=null;invalidate();controls();draw();feedback('Material returned.','That member is available again in your toolkit. Try a different connection.');}
-$('board').addEventListener('click',e=>{const n=e.target.closest('[data-node]'),b=e.target.closest('[data-beam]');if(n)addNode(Number(n.dataset.node));else if(b)removeBeam(b.dataset.beam);});
-$('board').addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){const n=e.target.closest('[data-node]'),b=e.target.closest('[data-beam]');if(n||b){e.preventDefault();if(n)addNode(Number(n.dataset.node));else removeBeam(b.dataset.beam);}}else if(e.key==='Escape'){state.selected=null;controls();draw();}});
-$('materials').onclick=e=>{const b=e.target.closest('[data-material]');if(b&&!b.disabled){state.material=b.dataset.material;state.selected=null;controls();draw();}};
-$('undo').onclick=()=>{if(state.running)return;state.beams.pop();state.selected=null;invalidate();controls();draw();feedback('One step back.','Your last beam has been returned to the toolkit.');};
-$('clear').onclick=()=>{if(state.running)return;openModal('<div class="eyebrow">A FRESH START</div><h2 class="modal-title">Clear this design?</h2><p>All placed beams will return to your toolkit. Your completed missions will stay unlocked.</p><button class="primary" id="confirm-clear">Clear the design</button>');$('confirm-clear').onclick=()=>{state.beams=[];state.selected=null;invalidate();closeModal();controls();draw();feedback('A clean drawing board.','Try a new arrangement. All your materials are available.');};};
-$('hint').onclick=()=>{state.hints++;feedback('Engineer’s field note',levels[state.level].hint);};
-function finishTest(result){stop();state.result=result;if(result.passes){state.passed=true;completed[state.level]=true;save();feedback('A connection worth celebrating.',`The truck crossed successfully. Your bridge stayed within the model’s member-capacity and deflection limits. Peak member use: ${Math.round(result.maxRatio*100)}%. Try explaining which supports made the difference.`,'success');$('next').textContent=state.level===2?'See your field report →':'Next crossing →';$('next').hidden=false;}else if(!result.stable){feedback('The structure can still change shape.','The frame has an unsupported movement in this pin-jointed model. Connect triangles to the deck and both banks. A dangling member can also leave a joint unstable.','failure');}else{const critical=result.forces.reduce((a,b)=>a.ratio>b.ratio?a:b);feedback('A useful failure. A better next attempt.',result.maxRatio>1?`The member between points ${critical.a+1} and ${critical.b+1} exceeded its ${critical.force>=0?'tension':'compression'} capacity. Change the load path or use a stronger member where available.`:'The deck moved beyond the 40 mm teaching-model limit. Add effective support or use stiffer members.','failure');}controls();draw();}
-$('test').onclick=()=>{if(state.running){stop();invalidate();controls();draw();feedback('Test stopped.','You can adjust your bridge and run the same test again.');return;}
-state.selected=null;invalidate();state.attempts++;const l=levels[state.level];const assessment=P.testBridge(l,state.beams);const startResult=P.analyze(l,state.beams,0);if(!startResult.stable){finishTest({...startResult,passes:false});return;}
-state.running=true;controls();$('test').textContent='Stop test';feedback('The delivery is on its way.','Blue members are in tension. Orange members are in compression. Red marks an exceeded capacity.');let start=null,peak=0;const duration=reduced?700:4300;
-function frame(t){if(!state.running)return;if(start===null)start=t;state.position=Math.min(1,(t-start)/duration);const r=P.analyze(l,state.beams,state.position);state.result=r;peak=Math.max(peak,r.maxRatio||0);draw();if(!r.stable||!r.passes){finishTest(r);return;}if(!assessment.passes&&state.position>=(assessment.position??1)){finishTest(assessment);return;}if(state.position>=1){finishTest({...assessment,maxRatio:Math.max(assessment.maxRatio,peak)});return;}state.raf=requestAnimationFrame(frame);}state.raf=requestAnimationFrame(frame);};
-$('next').onclick=()=>{if(!state.passed)return;if(state.level<2){enter(state.level+1);return;}openModal(`<div class="eyebrow">RIVERBEND, RECONNECTED</div><h2 class="modal-title">You built a way forward.</h2><p>Seedlings reached the garden. Supplies reached the farms. The workshop is connected. Every crossing began with a design you could test and improve.</p><div class="finish-stats"><div><strong>3 / 3</strong><span>MISSIONS CONNECTED</span></div><div><strong>2</strong><span>MATERIALS EXPLORED</span></div></div><h3>Your engineering field notes</h3><ul><li>Triangles can stabilise a pin-jointed frame.</li><li>A connected truss transfers loads to its supports.</li><li>Members experience tension or compression; material and geometry affect capacity.</li></ul><p><strong>One last thought:</strong> If the truck became heavier, which member would you investigate first—and what evidence would you use?</p><p class="model-note">Completion records successful designs. It is not a formal grade or proof of conceptual mastery.</p><button class="primary" id="return-map">Return to the mission map ↗</button>`);$('return-map').onclick=()=>{closeModal();home();};};
-$('mission-cards').onclick=e=>{const c=e.target.closest('[data-level]');if(!c)return;const i=Number(c.dataset.level);if(i>0&&!completed[i-1]){openModal(`<div class="eyebrow">ONE CROSSING AT A TIME</div><h2 class="modal-title">${levels[i].name}</h2><p>${levels[i].story}</p><p>Complete mission ${i} to unlock this crossing and its toolkit: <strong>${levels[i].unlock}</strong>.</p>`);}else enter(i);};
-$('start').onclick=()=>enter(Math.max(0,completed.findIndex(v=>!v)));$('back').onclick=home;$('brand').onclick=e=>{e.preventDefault();home();};
-$('about').onclick=()=>openModal(`<div class="eyebrow">ABOUT THE COURSE</div><h2 class="modal-title">Small bridges.<br>Big engineering ideas.</h2><h3>STEM topic</h3><p><strong>Bridge structures: stability, load paths, tension and compression.</strong> This introductory demo explores how geometry and material choices affect a bridge’s ability to carry a load.</p><h3>The story</h3><p>You are Riverbend’s new bridge engineer. Three crossings connect a school garden, hillside farms and a community workshop. Start with a small timber toolkit, earn more materials, and unlock steel as the community’s needs grow.</p><h3>Engineering within STEM</h3><p><strong>Civil and structural engineering</strong> is the main focus. You define a need, work within material limits, design a structure, test it, interpret evidence and improve your solution.</p><div class="modal-grid"><div><strong>Science</strong><p>Forces, tension, compression and deformation.</p></div><div><strong>Technology</strong><p>Use a digital structural model to test designs.</p></div><div><strong>Engineering</strong><p>Build, test and improve under constraints.</p></div><div><strong>Mathematics</strong><p>Geometry, spans and quantitative comparisons.</p></div></div><h3>Learning objectives</h3><ul><li>Build a stable, triangulated frame that carries the specified load within a material limit.</li><li>Use force and failure feedback to identify a critical member and improve a design.</li><li>Compare timber and steel choices in a new, heavier-load challenge.</li></ul><h3>How you learn</h3><p>Storytelling connects the missions. Chunking introduces one main idea at a time. Repeated tests support inquiry, and contextual hints provide scaffolding. The final crossing applies earlier ideas to a new constraint.</p><p class="model-note">Prototype for introductory learners; the intended age group is still to be confirmed. About 5–10 minutes, depending on experimentation. This simplified 2D, pin-jointed truss model uses preset member properties and a slowly moving static load. It omits bending, joint failure, wind, fatigue and dynamic impact. Deflection is visually exaggerated. It is not a real bridge design or safety tool.</p><p class="model-note">Progress is saved on this browser when storage is available. Refreshing keeps completed missions but clears the current design. All illustrations and game code were created for this demo. Bridge-building is an established game genre; the learning sequence and scenarios here are independently designed.</p>`);
-$('help').onclick=()=>openModal(`<div class="eyebrow">YOUR FIRST DAY ON SITE</div><h2 class="modal-title">An idea. A test. An improvement.</h2><ol><li><strong>Choose a material.</strong> The toolkit shows how many members remain.</li><li><strong>Click two numbered points.</strong> A beam connects them. The deck and riverbank supports are provided.</li><li><strong>Test your bridge.</strong> Watch the truck and read the structural feedback.</li><li><strong>Improve your design.</strong> Click a beam to remove it, use Undo, or clear the design.</li><li><strong>Connect the next place.</strong> A successful crossing unlocks the next mission.</li></ol><p>Each member can span up to 3.5 m. Crossing lines connect only at numbered points. Blue shows tension, orange shows compression, and red marks an exceeded capacity.</p><p>Keyboard: Tab to a connection point, then press Enter or Space. Escape cancels a selected point or closes a dialog. You can stop a running test at any time.</p>`);
-$('case').onclick=()=>openModal(`<div class="eyebrow">FROM THE REAL WORLD · SCOTLAND</div><h2 class="modal-title">The Forth Bridge</h2><svg class="case-sketch" viewBox="0 0 600 180" role="img" aria-label="Conceptual outline of a cantilever bridge with triangular steel framing"><path d="M15 135H585" stroke="#5a6553" stroke-width="5"/><path d="M30 135L170 45 170 135 300 105 430 135 430 45 570 135M170 45L300 105 430 45M80 103L110 135 140 65 170 135 205 61 240 121 270 92M330 92L360 121 395 61 430 135 460 65 490 135 520 103" fill="none" stroke="#b45f43" stroke-width="4"/><path d="M170 140v25m260-25v25" stroke="#596b57" stroke-width="12"/></svg><p>The Forth Bridge opened in 1890. It is a steel cantilever railway bridge and a UNESCO World Heritage Site. Its large structural framework offers a real example of how engineers organise members to carry loads.</p><h3>Notice → connect → try</h3><p>Notice the repeated triangular framing. In your bridge, find a region that can change shape and consider how an additional member could stabilise it. Predict the effect, then test.</p><p class="model-note">The drawing is a conceptual illustration, not a measured plan. Our small simply supported trusses do not reproduce the Forth Bridge’s cantilever system.</p><p><a href="https://whc.unesco.org/en/list/1485/" target="_blank" rel="noopener noreferrer">Explore the Forth Bridge on UNESCO ↗</a></p>`);
-hero();cards();
+"use strict";
+(() => {
+  const $ = (id) => document.getElementById(id),
+    P = BridgePhysics,
+    M = BridgeModel,
+    L = BridgeLevels,
+    renderer = new BridgeRenderer($("scene")),
+    STORAGE = "bridge-engineer-workshop-v2";
+  const state = {
+    level: L.levels[0],
+    index: 0,
+    editor: null,
+    material: "road",
+    tool: "build",
+    mode: "build",
+    world: null,
+    paused: false,
+    speed: 1,
+    grid: true,
+    forces: false,
+    seed: null,
+    preview: null,
+    pointer: { x: 440, y: 430 },
+    hoverNode: null,
+    hoverMember: null,
+    moving: null,
+    keyboard: false,
+    elapsed: 0,
+    reduced: matchMedia("(prefers-reduced-motion: reduce)").matches,
+    storageOK: true,
+  };
+  let saved = { level: 0, completed: [false, false, false], designs: {} },
+    down = null,
+    accumulator = 0,
+    lastTime = 0,
+    metricsAt = 0,
+    briefExpanded = innerWidth > 760;
+  try {
+    const value = JSON.parse(localStorage.getItem(STORAGE));
+    if (
+      value &&
+      Array.isArray(value.completed) &&
+      value.completed.length === 3 &&
+      value.designs &&
+      typeof value.designs === "object"
+    ) {
+      saved = {
+        level: Number.isInteger(value.level)
+          ? Math.max(0, Math.min(2, value.level))
+          : 0,
+        completed: value.completed.map((x) => x === true),
+        designs: value.designs,
+      };
+    }
+  } catch {
+    state.storageOK = false;
+  }
+  function escapeHTML(s) {
+    return String(s).replace(
+      /[&<>"']/g,
+      (c) =>
+        ({
+          "&": "&amp;",
+          "<": "&lt;",
+          ">": "&gt;",
+          '"': "&quot;",
+          "'": "&#39;",
+        })[c],
+    );
+  }
+  function save() {
+    saved.level = state.index;
+    saved.designs[state.index] = state.editor.design;
+    try {
+      localStorage.setItem(STORAGE, JSON.stringify(saved));
+      state.storageOK = true;
+    } catch {
+      state.storageOK = false;
+    }
+  }
+  function modal(title, body, eyebrow = "RIVERBEND WORKSHOP") {
+    $("modal-body").innerHTML =
+      `<div class="eyebrow">${eyebrow}</div><h2 class="modal-title" id="modal-title">${title}</h2>${body}`;
+    if (!$("modal").open) $("modal").showModal();
+  }
+  function closeModal() {
+    $("modal").close();
+  }
+  $("close-modal").onclick = closeModal;
+  $("modal").addEventListener("click", (e) => {
+    if (e.target === $("modal")) {
+      const r = $("modal").getBoundingClientRect();
+      if (
+        e.clientX < r.left ||
+        e.clientX > r.right ||
+        e.clientY < r.top ||
+        e.clientY > r.bottom
+      )
+        closeModal();
+    }
+  });
+  // Freeze the experiment when a modal or another browser tab covers it.
+  $("modal").addEventListener("close", () => {
+    lastTime = performance.now();
+  });
+  document.addEventListener("visibilitychange", () => {
+    lastTime = performance.now();
+    accumulator = 0;
+  });
+  function note(s) {
+    $("instruction").textContent = s;
+  }
+  function hideFeedback() {
+    $("feedback-panel").hidden = true;
+    $("simulation-panel").classList.remove("under-feedback");
+  }
+  function feedback(title, body, type = "observation") {
+    const box = $("feedback-panel");
+    box.hidden = false;
+    box.className = "feedback panel " + type;
+    $("feedback-title").textContent = title;
+    $("feedback-body").textContent = body;
+    $("feedback-label").textContent =
+      type === "success"
+        ? "CROSSING COMPLETE"
+        : type === "failure"
+          ? "A USEFUL FAILURE"
+          : "FIELD OBSERVATION";
+    $("next").hidden = type !== "success";
+    $("next").textContent =
+      state.index === 2 ? "Your field report →" : "Next crossing →";
+    $("simulation-panel").classList.add("under-feedback");
+  }
+  function setBrief(expanded) {
+    briefExpanded = expanded;
+    $("brief-content").hidden = !expanded;
+    document
+      .querySelector(".mission-panel")
+      .classList.toggle("collapsed", !expanded);
+    $("brief-toggle").setAttribute("aria-expanded", String(expanded));
+    $("brief-chevron").textContent = expanded ? "−" : "+";
+  }
+  $("brief-toggle").onclick = () => setBrief(!briefExpanded);
+  function controls() {
+    const used = M.usage(state.editor.design),
+      running = state.mode !== "build";
+    $("materials").innerHTML = Object.entries(P.MATERIALS)
+      .map(([key, m], i) => {
+        const available = state.level.inventory[key] > 0;
+        return `<button class="material ${state.material === key && state.tool === "build" ? "selected" : ""} ${available ? "" : "locked"}" data-material="${key}" draggable="${available && !running}" aria-pressed="${state.material === key && state.tool === "build"}" aria-label="${m.name}: ${available ? (state.level.inventory[key] - used[key]).toFixed(1) + " metres left" : "unlocks in mission 3"}" title="${escapeHTML(m.description)}. Maximum member length ${m.maxLength} m." ${!available || running ? "disabled" : ""}><span class="material-top"><span class="material-icon ${key}"></span><span class="material-key">${i + 1}</span></span><span class="material-name">${m.name}</span><span class="material-amount">${available ? Math.max(0, state.level.inventory[key] - used[key]).toFixed(1) + " / " + state.level.inventory[key] + " m" : "Mission 03"}</span></button>`;
+      })
+      .join("");
+    for (const id of ["move", "erase", "clear", "starter"])
+      $(id).disabled = running;
+    for (const id of ["move", "erase"]) {
+      $(id).classList.toggle("active", state.tool === id && !running);
+      $(id).setAttribute("aria-pressed", String(state.tool === id && !running));
+    }
+    $("undo").disabled = running || !state.editor.undoStack.length;
+    $("redo").disabled = running || !state.editor.redoStack.length;
+    $("test").disabled = running;
+    $("gravity").textContent = running ? "↶ Edit design" : "↓ Gravity lab";
+    $("simulation-panel").hidden = !running;
+    $("mode-text").textContent = running
+      ? state.paused
+        ? "EXPERIMENT PAUSED"
+        : state.mode === "gravity"
+          ? "GRAVITY LAB"
+          : "CROSSING TEST"
+      : "BUILD MODE";
+    $("mode-detail").textContent = running
+      ? "9.81 m/s² · real-time model"
+      : "Gravity waits until you test";
+    $("connection-count").textContent =
+      `${state.editor.design.members.length} members · ${state.editor.design.nodes.length - 2} free joints · 2 fixed anchors`;
+    $("pause").disabled = !!state.world && state.world.status !== "running";
+    $("pause").textContent = state.paused ? "Resume" : "Pause";
+    $("speed").textContent = "Speed " + state.speed + "×";
+    $("scene").style.cursor = running
+      ? "default"
+      : state.tool === "move"
+        ? "grab"
+        : state.tool === "erase"
+          ? "not-allowed"
+          : "crosshair";
+  }
+  function cancelPlacement() {
+    state.seed = null;
+    state.preview = null;
+    state.moving = null;
+    down = null;
+  }
+  function enter(index) {
+    state.index = index;
+    state.level = L.levels[index];
+    state.editor = new M.Editor(state.level, saved.designs[index]);
+    state.material = "road";
+    state.tool = "build";
+    state.mode = "build";
+    state.world = null;
+    state.paused = false;
+    state.speed = 1;
+    state.pointer = { x: state.level.left, y: state.level.deckY };
+    state.hoverNode = null;
+    state.hoverMember = null;
+    renderer.zoom = 1;
+    cancelPlacement();
+    hideFeedback();
+    $("mission-label").textContent = `0${index + 1} / ${state.level.place}`;
+    $("place-label").textContent =
+      `MISSION 0${index + 1} · ${state.level.place.toUpperCase()}`;
+    $("mission-title").textContent = state.level.name;
+    $("story").textContent = state.level.story;
+    $("span-value").textContent =
+      (state.level.right - state.level.left) / 100 + " m";
+    $("load-value").textContent =
+      state.level.truckMass.toLocaleString() + " kg";
+    $("concept").textContent = state.level.concept;
+    setBrief(innerWidth > 760);
+    controls();
+    note(
+      "Choose Road, then drag from an orange anchor. No fixed building points.",
+    );
+    save();
+  }
+  function afterEdit(problem) {
+    cancelPlacement();
+    if (problem) {
+      note(problem);
+      controls();
+      return false;
+    }
+    hideFeedback();
+    save();
+    controls();
+    note("Design updated. Test gravity, then improve what you observe.");
+    return true;
+  }
+  function chooseMaterial(key) {
+    if (state.mode !== "build" || !state.level.inventory[key]) return;
+    state.material = key;
+    state.tool = "build";
+    cancelPlacement();
+    controls();
+    note(
+      `${P.MATERIALS[key].name}: drag to place a member. Ends snap together; crossing lines do not join.`,
+    );
+  }
+  $("materials").onclick = (e) => {
+    const b = e.target.closest("[data-material]");
+    if (b && !b.disabled) chooseMaterial(b.dataset.material);
+  };
+  $("materials").addEventListener("dragstart", (e) => {
+    const b = e.target.closest("[data-material]");
+    if (!b || b.disabled) {
+      e.preventDefault();
+      return;
+    }
+    chooseMaterial(b.dataset.material);
+    e.dataTransfer.setData("text/plain", b.dataset.material);
+    e.dataTransfer.effectAllowed = "copy";
+    note(
+      "Drop a member anywhere in the build area. Move its joints to reshape it.",
+    );
+  });
+  $("scene").addEventListener("dragover", (e) => {
+    if (state.mode === "build") {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = "copy";
+    }
+  });
+  $("scene").addEventListener("drop", (e) => {
+    e.preventDefault();
+    if (state.mode !== "build") return;
+    const material = e.dataTransfer.getData("text/plain");
+    if (!P.MATERIALS[material] || !state.level.inventory[material]) return;
+    const p = snap(renderer.toWorld(e.clientX, e.clientY));
+    state.material = material;
+    afterEdit(
+      state.editor.add(
+        { x: p.x - 75, y: p.y },
+        { x: p.x + 75, y: p.y },
+        material,
+      ),
+    );
+  });
+  function hitNode(p) {
+    let best = null,
+      dist = 25;
+    for (const n of state.editor.design.nodes) {
+      const d = Math.hypot(n.x - p.x, n.y - p.y);
+      if (d < dist) {
+        best = n;
+        dist = d;
+      }
+    }
+    return best;
+  }
+  function snap(p) {
+    const n = hitNode(p);
+    return n
+      ? { x: n.x, y: n.y }
+      : {
+          x: state.level.left + Math.round((p.x - state.level.left) / 25) * 25,
+          y:
+            state.level.deckY + Math.round((p.y - state.level.deckY) / 25) * 25,
+        };
+  }
+  function segmentDistance(p, a, b) {
+    const dx = b.x - a.x,
+      dy = b.y - a.y,
+      L = dx * dx + dy * dy,
+      t = L
+        ? Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.y - a.y) * dy) / L))
+        : 0;
+    return Math.hypot(p.x - a.x - t * dx, p.y - a.y - t * dy);
+  }
+  function hitMember(p) {
+    return state.editor.design.members
+      .slice()
+      .reverse()
+      .find((e) => {
+        const a = state.editor.design.nodes.find((n) => n.id === e.a),
+          b = state.editor.design.nodes.find((n) => n.id === e.b);
+        return segmentDistance(p, a, b) < Math.max(9, 5 / renderer.view.scale);
+      });
+  }
+  function addMember(a, b) {
+    if (Math.hypot(a.x - b.x, a.y - b.y) < 24) {
+      afterEdit("Drag farther, or click a second position.");
+      return;
+    }
+    // A long road gesture becomes joined deck sections in one undoable operation.
+    if (state.material === "road" && Math.hypot(a.x - b.x, a.y - b.y) > 210) {
+      const count = Math.ceil(Math.hypot(a.x - b.x, a.y - b.y) / 200),
+        draft = new M.Editor(state.level, state.editor.design);
+      for (let i = 0; i < count; i++) {
+        const p = {
+            x: a.x + ((b.x - a.x) * i) / count,
+            y: a.y + ((b.y - a.y) * i) / count,
+          },
+          q = {
+            x: a.x + ((b.x - a.x) * (i + 1)) / count,
+            y: a.y + ((b.y - a.y) * (i + 1)) / count,
+          };
+        const problem = draft.add(p, q, "road");
+        if (problem) {
+          afterEdit(problem);
+          return;
+        }
+      }
+      afterEdit(state.editor.commit(draft.design));
+    } else afterEdit(state.editor.add(a, b, state.material));
+  }
+  const canvas = $("scene");
+  canvas.addEventListener("pointerdown", (e) => {
+    if (e.button !== 0 || state.mode !== "build") return;
+    e.preventDefault();
+    canvas.focus({ preventScroll: true });
+    canvas.setPointerCapture(e.pointerId);
+    state.keyboard = false;
+    const raw = renderer.toWorld(e.clientX, e.clientY),
+      p = snap(raw);
+    down = { x: e.clientX, y: e.clientY, start: state.seed || p, raw };
+    state.pointer = p;
+    if (state.tool === "move") {
+      const n = hitNode(raw);
+      if (n && !n.fixed) {
+        state.moving = { id: n.id, start: { x: n.x, y: n.y } };
+        canvas.style.cursor = "grabbing";
+      } else
+        note(
+          "Drag a free joint to move it. The orange bank anchors stay fixed.",
+        );
+    }
+  });
+  canvas.addEventListener("pointermove", (e) => {
+    if (state.mode !== "build") {
+      const p = renderer.toWorld(e.clientX, e.clientY),
+        w = state.world;
+      const member = w?.members.find((edge) => {
+        const a = w.byId.get(edge.a),
+          b = w.byId.get(edge.b);
+        return (
+          segmentDistance(
+            p,
+            { x: a.x * 100, y: a.y * 100 },
+            { x: b.x * 100, y: b.y * 100 },
+          ) < Math.max(10, 7 / renderer.view.scale)
+        );
+      });
+      if (member) {
+        state.hoverMember = member.id;
+        note(
+          `${P.MATERIALS[member.material].name} · ${member.length.toFixed(2)} m · ${member.broken ? "broken" : Math.abs(member.force) < 10 ? "nearly unloaded" : (Math.abs(member.force) / 1000).toFixed(1) + " kN " + (member.force > 0 ? "tension" : "compression")}`,
+        );
+      } else state.hoverMember = null;
+      return;
+    }
+    const raw = renderer.toWorld(e.clientX, e.clientY);
+    state.pointer = snap(raw);
+    state.hoverNode = hitNode(raw)?.id || null;
+    state.hoverMember = hitMember(raw)?.id || null;
+    if (state.moving) {
+      state.pointer = {
+        x: state.level.left + Math.round((raw.x - state.level.left) / 25) * 25,
+        y:
+          state.level.deckY + Math.round((raw.y - state.level.deckY) / 25) * 25,
+      };
+    } else if (state.tool === "build" && (state.seed || down))
+      state.preview = { start: state.seed || down.start, end: state.pointer };
+  });
+  canvas.addEventListener("pointerup", (e) => {
+    if (!down || state.mode !== "build") return;
+    const raw = renderer.toWorld(e.clientX, e.clientY),
+      p = snap(raw),
+      moved = Math.hypot(e.clientX - down.x, e.clientY - down.y) > 7;
+    const start = down.start;
+    down = null;
+    if (state.tool === "erase") {
+      const beam = hitMember(raw);
+      if (beam) afterEdit(state.editor.remove(beam.id));
+      else note("Click a member to return its material.");
+      return;
+    }
+    if (state.tool === "move") {
+      if (state.moving) {
+        const id = state.moving.id,
+          target = state.pointer;
+        state.moving = null;
+        afterEdit(state.editor.move(id, target));
+      }
+      return;
+    }
+    if (moved || state.seed) {
+      addMember(start, p);
+    } else {
+      state.seed = p;
+      state.preview = { start: p, end: p };
+      note(
+        "Choose a second position, or drag from this point. Escape cancels.",
+      );
+    }
+  });
+  canvas.addEventListener("pointercancel", () => {
+    cancelPlacement();
+    controls();
+  });
+  canvas.addEventListener("lostpointercapture", () => {
+    if (down) {
+      cancelPlacement();
+      controls();
+    }
+  });
+  canvas.addEventListener("contextmenu", (e) => {
+    e.preventDefault();
+    if (state.mode !== "build") return;
+    cancelPlacement();
+    const beam = hitMember(renderer.toWorld(e.clientX, e.clientY));
+    if (beam) afterEdit(state.editor.remove(beam.id));
+  });
+  for (const id of ["move", "erase"])
+    $(id).onclick = () => {
+      if (state.mode !== "build") return;
+      state.tool = state.tool === id ? "build" : id;
+      cancelPlacement();
+      controls();
+      note(
+        id === "move"
+          ? "Drag any free joint. Attached members move with it."
+          : "Click a member to remove it and reuse its material.",
+      );
+    };
+  $("undo").onclick = () => {
+    if (state.mode === "build" && state.editor.undo()) afterEdit(null);
+  };
+  $("redo").onclick = () => {
+    if (state.mode === "build" && state.editor.redo()) afterEdit(null);
+  };
+  function clearDesign() {
+    modal(
+      "A fresh drawing board?",
+      '<p>Return all placed materials to your toolkit. You can undo this action afterwards. Completed missions stay recorded.</p><button class="primary" id="confirm-clear">Clear design</button>',
+    );
+    $("confirm-clear").onclick = () => {
+      afterEdit(state.editor.commit(M.fresh(state.level)));
+      closeModal();
+    };
+  }
+  $("clear").onclick = clearDesign;
+  function loadStarter() {
+    const apply = () => {
+      afterEdit(state.editor.commit(L.starter(state.level)));
+      note(
+        "A starter truss is ready. Try gravity, then move a joint or remove a diagonal to compare.",
+      );
+    };
+    if (state.editor.design.members.length) {
+      modal(
+        "Try a different starting point?",
+        '<p>The starter replaces this design. Undo will restore your previous work. It is an example to explore, not a required answer.</p><button id="confirm-starter" class="primary">Load starter design</button>',
+      );
+      $("confirm-starter").onclick = () => {
+        apply();
+        closeModal();
+      };
+    } else apply();
+  }
+  $("starter").onclick = loadStarter;
+  function startExperiment(vehicle) {
+    if (state.mode !== "build") return;
+    if (!state.editor.design.members.length) {
+      note("Place a member first—or try the starter design.");
+      return;
+    }
+    cancelPlacement();
+    hideFeedback();
+    state.mode = vehicle ? "crossing" : "gravity";
+    state.world = new P.World(state.editor.design, state.level, { vehicle });
+    state.paused = false;
+    state.speed = 1;
+    accumulator = 0;
+    lastTime = performance.now();
+    controls();
+    setBrief(false);
+    note(
+      vehicle
+        ? "The bridge settles under its own weight before the delivery starts."
+        : "Gravity is on. Unanchored members fall; connected members transfer their weight.",
+    );
+    if (vehicle && !state.world.route)
+      note(
+        "The road is not connected yet. Watch what happens at the gap, then return to build.",
+      );
+  }
+  function edit() {
+    state.mode = "build";
+    state.world = null;
+    state.paused = false;
+    accumulator = 0;
+    cancelPlacement();
+    hideFeedback();
+    controls();
+    note(
+      "Back to your saved design. Adjust the structure and run the same experiment again.",
+    );
+  }
+  $("gravity").onclick = () =>
+    state.mode === "build" ? startExperiment(false) : edit();
+  $("test").onclick = () => startExperiment(true);
+  $("back-build").onclick = edit;
+  $("result-edit").onclick = edit;
+  $("dismiss-feedback").onclick = hideFeedback;
+  $("pause").onclick = () => {
+    state.paused = !state.paused;
+    controls();
+  };
+  $("speed").onclick = () => {
+    state.speed = state.speed === 1 ? 0.5 : state.speed === 0.5 ? 2 : 1;
+    controls();
+  };
+  $("grid").onclick = () => {
+    state.grid = !state.grid;
+    $("grid").classList.toggle("active", state.grid);
+    $("grid").setAttribute("aria-pressed", String(state.grid));
+  };
+  $("stress").onclick = () => {
+    state.forces = !state.forces;
+    $("stress").classList.toggle("active", state.forces);
+    $("stress").setAttribute("aria-pressed", String(state.forces));
+  };
+  $("zoom-in").onclick = () =>
+    (renderer.zoom = Math.min(1.5, renderer.zoom + 0.1));
+  $("zoom-out").onclick = () =>
+    (renderer.zoom = Math.max(0.65, renderer.zoom - 0.1));
+  function experimentResult() {
+    const w = state.world;
+    if (w.status === "passed") {
+      saved.completed[state.index] = true;
+      save();
+      feedback(
+        "A way across. Built by you.",
+        `The delivery reached the other bank. Maximum deck drop: ${(w.maxSag * 100).toFixed(1)} cm. No member failed. What would you change to use less material?`,
+        "success",
+      );
+    } else {
+      const reason = w.firstBreak
+        ? `${P.MATERIALS[w.firstBreak.material].name} failed in ${w.firstBreak.force > 0 ? "tension" : "compression"} at ${w.firstBreak.time.toFixed(1)} s. Change the member’s material, length or load path.`
+        : !w.route
+          ? "The delivery needs a connected road between the orange bank anchors. Road sections must meet at their endpoints."
+          : "The deck exceeded the 12 cm drop limit or became too steep for the vehicle. Add a stable load path and compare the result.";
+      feedback("Now you have evidence.", reason, "failure");
+    }
+    state.paused = true;
+    controls();
+    note(
+      "Return to build to change your design. The experiment did not alter your saved structure.",
+    );
+  }
+  function showMissions() {
+    modal(
+      "One crossing at a time.",
+      `<p>Build from scratch, or use a starter to explore. Each new mission introduces different material choices.</p>${L.levels.map((l, i) => `<button class="mission-card ${i && !saved.completed[i - 1] ? "locked" : ""}" data-mission="${i}"><span class="num">0${i + 1}</span><span><strong>${l.name}</strong><small>${l.newMaterial} · ${(l.right - l.left) / 100} m span</small></span><span class="mission-status">${saved.completed[i] ? "✓ COMPLETE" : i && !saved.completed[i - 1] ? "PREVIEW" : "BUILD ↗"}</span></button>`).join("")}<p class="toolbar-explanation">Your design is saved separately for each mission in this browser. ${state.storageOK ? "Completed crossings unlock the next mission." : "Browser storage is unavailable; keep this tab open to retain your work."}</p><button class="reset-progress" id="reset-progress">Reset all designs and progress</button>`,
+      "YOUR ROUTE THROUGH RIVERBEND",
+    );
+    $("modal-body")
+      .querySelectorAll("[data-mission]")
+      .forEach(
+        (b) =>
+          (b.onclick = () => {
+            const i = Number(b.dataset.mission);
+            if (i && !saved.completed[i - 1]) {
+              modal(
+                L.levels[i].name,
+                `<p>${L.levels[i].story}</p><p>Complete mission ${i} to unlock <strong>${L.levels[i].newMaterial.toLowerCase()}</strong>.</p><button id="back-missions" class="primary">Back to missions</button>`,
+                "A LOOK AHEAD",
+              );
+              $("back-missions").onclick = showMissions;
+            } else {
+              save();
+              enter(i);
+              closeModal();
+            }
+          }),
+      );
+    $("reset-progress").onclick = () => {
+      modal(
+        "Start a new journey?",
+        '<p>This removes saved designs and completed crossings from this browser.</p><button id="confirm-reset" class="primary">Reset workshop</button>',
+      );
+      $("confirm-reset").onclick = () => {
+        saved = { level: 0, completed: [false, false, false], designs: {} };
+        enter(0);
+        closeModal();
+      };
+    };
+  }
+  $("missions").onclick = showMissions;
+  $("brand").onclick = (e) => {
+    e.preventDefault();
+    showMissions();
+  };
+  $("next").onclick = () => {
+    if (state.world?.status !== "passed") return;
+    if (state.index < 2) {
+      enter(state.index + 1);
+      return;
+    }
+    modal(
+      "Riverbend, reconnected.",
+      '<p>You connected the garden, the farms and the community workshop. You explored geometry, weight, stiffness and material choice through structures of your own.</p><h3>Your next experiment</h3><p>Return to a crossing. Keep the same vehicle and remove one member, change a material, or move one joint. Predict what changes before you test.</p><p class="model-note">A successful delivery records this design’s result in a simplified model. It is not proof of conceptual mastery or a real engineering safety assessment.</p><button class="primary" id="report-map">Choose an experiment ↗</button>',
+      "FIELD REPORT · THREE CROSSINGS",
+    );
+    $("report-map").onclick = showMissions;
+  };
+  $("help").onclick = () =>
+    modal(
+      "Build something. See what happens.",
+      `<ol><li><strong>Place a road.</strong> Select Road and drag between positions. A long road gesture creates joined sections.</li><li><strong>Place supports anywhere.</strong> Choose timber, steel or cable. Drag from one position to another, or click two endpoints. No numbered building points are required.</li><li><strong>Join at the ends.</strong> Endpoints close to another joint snap together. Members that cross in the middle are not connected.</li><li><strong>Shape your idea.</strong> Move drags free joints and their attached members. Erase, right-click or Undo returns material.</li><li><strong>Try gravity first.</strong> Members have weight. Floating parts fall, pin-jointed frames can fold, and overloaded members can break.</li><li><strong>Test the crossing.</strong> The structure settles, then a moving delivery load follows the road. Compare results and improve.</li></ol><p>You can also drag a material card onto the scene to place a 1.5 m piece, then reshape it with Move.</p><h3>Keyboard controls</h3><p><span class="key">1–4</span> Materials · <span class="key">M</span> Move · <span class="key">X</span> Erase · <span class="key">Esc</span> Cancel · <span class="key">Ctrl/Cmd Z</span> Undo · <span class="key">Ctrl/Cmd Shift Z</span> Redo</p><p>Focus the canvas, use arrow keys to move the placement cursor, and press Enter to set each endpoint. Space pauses an experiment. H opens help.</p><p class="model-note">The workspace fills your browser. Use ⛶ for optional browser full screen. Gravity values are fixed at Earth gravity (9.81 m/s²).</p>`,
+      "A QUICK FIELD GUIDE",
+    );
+  $("about").onclick = () =>
+    modal(
+      "Ideas become structures.",
+      `<h3>STEM topic</h3><p><strong>Bridge structures under gravity:</strong> triangulation, load paths, tension, compression, material properties and design iteration.</p><h3>Story</h3><p>You are Riverbend’s new bridge engineer. A school garden, hillside farms and community workshop need reliable crossings. Start with limited timber, gain more material, and unlock steel and cables as the challenge grows.</p><h3>Engineering within STEM</h3><p><strong>Civil and structural engineering.</strong> Define a need, work within material limits, build your own structure, test it, interpret evidence and improve.</p><div class="modal-grid"><div><strong>Science</strong><p>Gravity, weight, force and deformation.</p></div><div><strong>Technology</strong><p>A real-time digital experiment with measurable feedback.</p></div><div><strong>Engineering</strong><p>Design, test and revise under constraints.</p></div><div><strong>Mathematics</strong><p>Geometry, length, mass and comparative measurements.</p></div></div><h3>Learning objectives</h3><ul><li>Build a triangulated structure that supports its own weight and a specified delivery.</li><li>Use observed deformation or failure to justify a change in geometry or material.</li><li>Compare designs while changing one variable and keeping the test conditions fixed.</li></ul><h3>How the game teaches</h3><p><strong>Chunking:</strong> three missions introduce geometry, load paths and material roles. <strong>Storytelling:</strong> each crossing serves the community. <strong>Inquiry:</strong> predict, build, observe and revise. <strong>Scaffolding:</strong> optional starter designs and field notes. <strong>Transfer:</strong> apply earlier ideas to wider spans and heavier loads.</p><h3>What is simulated</h3><p>Every member contributes mass. A fixed-step, compliant position-based solver applies gravity, axial stiffness, damping and a simplified strength/buckling limit. Cables carry tension only. The delivery is a prescribed moving load while supported by the road; it falls under gravity when the road becomes unusable. It is not a full wheel-contact vehicle simulation.</p><p class="model-note">The model uses idealised pin joints and preset members. It omits beam bending, joint failure, self-collision between crossing members, fatigue, wind and real material variability. It is an educational model, not a bridge safety or design tool. Current learning targets are introductory; the intended age group remains to be confirmed.</p><h3>Architecture references and originality</h3><p>Architecture research included <a href="https://github.com/liabru/matter-js/blob/master/examples/bridge.js" target="_blank" rel="noopener noreferrer">Matter.js’s bridge example</a> and <a href="https://github.com/subprotocol/verlet-js" target="_blank" rel="noopener noreferrer">verlet-js</a>. This demo uses independently written code and original illustrations, with no copied game levels or embedded third-party physics runtime.</p><p class="model-note">Designs and progress are stored in this browser when available. The game runs offline without accounts, analytics, remote APIs or CDN dependencies.</p>`,
+      "ABOUT THE COURSE",
+    );
+  $("case").onclick = () =>
+    modal(
+      "Notice. Predict. Build.",
+      `<h3>${state.level.concept}</h3><p>${state.level.lesson}</p><div class="hint-example"><p><strong>Try it here:</strong> ${state.level.hint}</p></div><h3>Real-world case · The Forth Bridge, Scotland</h3><svg class="case-sketch" viewBox="0 0 600 170" role="img" aria-label="Conceptual illustration of a cantilever bridge with triangular framing"><path d="M15 130H585" stroke="#5a6553" stroke-width="5"/><path d="M30 130L170 40 170 130 300 100 430 130 430 40 570 130M170 40L300 100 430 40M80 98L110 130 140 60 170 130 205 56 240 116 270 87M330 87L360 116 395 56 430 130 460 60 490 130 520 98" fill="none" stroke="#b46a49" stroke-width="4"/><path d="M170 135v25m260-25v25" stroke="#5b7451" stroke-width="12"/></svg><p>The Forth Bridge opened in 1890. This steel cantilever railway bridge is a UNESCO World Heritage Site. Its exposed framework includes large compression members and lighter tension members.</p><p>Look for repeated triangular shapes and follow how the members connect. Then use the Forces view on your own design: which members pull, and which push?</p><p><a href="https://whc.unesco.org/en/list/1485/" target="_blank" rel="noopener noreferrer">Read the UNESCO bridge case ↗</a></p><p class="model-note">This is a conceptual sketch, not a measured plan. The game’s small trusses do not reproduce the real bridge’s cantilever system. Changing a single variable while keeping the same load makes comparisons more informative.</p>`,
+      "ENGINEER’S FIELD NOTE",
+    );
+  $("fullscreen").onclick = async () => {
+    try {
+      if (document.fullscreenElement) await document.exitFullscreen();
+      else if (document.documentElement.requestFullscreen)
+        await document.documentElement.requestFullscreen();
+      else
+        note(
+          "Your browser does not support this full-screen control. The workshop already fills the viewport.",
+        );
+    } catch {
+      note(
+        "Full-screen mode was unavailable. You can keep playing in this window.",
+      );
+    }
+  };
+  document.addEventListener("fullscreenchange", () => {
+    $("fullscreen").setAttribute(
+      "aria-label",
+      document.fullscreenElement ? "Exit full screen" : "Enter full screen",
+    );
+  });
+  document.addEventListener("keydown", (e) => {
+    if ($("modal").open) return;
+    if (e.target.matches("input,textarea,select")) return;
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") {
+      e.preventDefault();
+      if (state.mode === "build") {
+        const changed = e.shiftKey ? state.editor.redo() : state.editor.undo();
+        if (changed) afterEdit(null);
+      }
+      return;
+    }
+    if (e.key.toLowerCase() === "h") {
+      e.preventDefault();
+      $("help").click();
+      return;
+    }
+    if (e.key === "Escape") {
+      cancelPlacement();
+      note("Placement cancelled. Choose a material and try a new idea.");
+      return;
+    }
+    if (e.code === "Space" && state.mode !== "build") {
+      e.preventDefault();
+      $("pause").click();
+      return;
+    }
+    if (state.mode !== "build") return;
+    if (["1", "2", "3", "4"].includes(e.key)) {
+      chooseMaterial(Object.keys(P.MATERIALS)[Number(e.key) - 1]);
+      return;
+    }
+    if (e.key.toLowerCase() === "m") {
+      $("move").click();
+      return;
+    }
+    if (e.key.toLowerCase() === "x") {
+      $("erase").click();
+      return;
+    }
+    if (document.activeElement === canvas) {
+      const arrows = {
+        ArrowLeft: [-25, 0],
+        ArrowRight: [25, 0],
+        ArrowUp: [0, -25],
+        ArrowDown: [0, 25],
+      };
+      if (arrows[e.key]) {
+        e.preventDefault();
+        state.keyboard = true;
+        const [dx, dy] = arrows[e.key];
+        state.pointer = {
+          x: Math.max(
+            state.level.left - 150,
+            Math.min(state.level.right + 150, state.pointer.x + dx),
+          ),
+          y: Math.max(155, Math.min(655, state.pointer.y + dy)),
+        };
+        if (state.seed)
+          state.preview = { start: state.seed, end: state.pointer };
+      } else if (e.key === "Enter") {
+        e.preventDefault();
+        state.keyboard = true;
+        if (state.tool === "erase") {
+          const beam = hitMember(state.pointer);
+          if (beam) afterEdit(state.editor.remove(beam.id));
+        } else if (state.tool === "build") {
+          if (state.seed) addMember(state.seed, state.pointer);
+          else {
+            state.seed = { ...state.pointer };
+            state.preview = { start: state.seed, end: state.pointer };
+          }
+        }
+      }
+    }
+  });
+  function frame(t) {
+    const dt = Math.min(0.05, Math.max(0, (t - lastTime) / 1000));
+    lastTime = t;
+    state.elapsed += dt;
+    if (state.world && !state.paused && !$("modal").open && !document.hidden) {
+      accumulator += dt * state.speed;
+      let count = 0;
+      while (accumulator >= P.STEP && count++ < 16) {
+        state.world.step();
+        accumulator -= P.STEP;
+        if (state.world.status !== "running") {
+          experimentResult();
+          break;
+        }
+        if (state.mode === "gravity" && state.world.time >= 15) {
+          state.paused = true;
+          controls();
+          feedback(
+            "Take a closer look.",
+            "The gravity experiment paused at 15 seconds. Look at what moved, then edit your design and compare.",
+          );
+          note("Return to build to change one variable and test again.");
+          break;
+        }
+      }
+    }
+    if (state.world && t - metricsAt > 100) {
+      metricsAt = t;
+      $("time-value").innerHTML =
+        state.world.time.toFixed(1) + " <small>s</small>";
+      $("sag-value").innerHTML =
+        (state.world.maxSag * 100).toFixed(1) + " <small>cm</small>";
+      $("broken-value").textContent = state.world.breakCount;
+    }
+    renderer.draw({ ...state, editor: state.editor });
+    requestAnimationFrame(frame);
+  }
+  enter(saved.level);
+  requestAnimationFrame((t) => {
+    lastTime = t;
+    frame(t);
+  });
 })();
