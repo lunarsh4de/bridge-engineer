@@ -1,58 +1,58 @@
-# Verification record — Phaser workshop v0.3
+# Verification record — Riverbend v0.4
 
-Date: 2026-11-04. Tested on this macOS host with Node.js v24.14.0 and Playwright Chromium 153.0.8010.12. This record supersedes the v0.2 rendering checks; the independent solver remains unchanged.
+Date: 2026-11-05. Local macOS host, Node.js v24.14.0, Playwright Chromium 153.0.8010.12. This report covers local v0.4 development, not the existing public website. No deployment was performed.
 
-## Physics and editor
+## Numerical/editor/evidence checks
 
-Command: `npm test` (equivalent to `node --test tests/physics.test.cjs tests/model.test.cjs`).
+`node --test tests/physics.test.cjs tests/model.test.cjs tests/progress.test.cjs`: **21 passed**.
 
-**16 tests passed.**
+The original editor and physics checks remain: placement/welding, atomic rejected edits, fixed supports, move/remove/undo/redo, validation fallback, self-weight and gravity, cable slack/tension, break evidence, road connectivity, deterministic fixed steps, and material differences. All **four** reference designs fit inventory and pass.
 
-- All three starter designs fit their material limits and carry the delivery under gravity.
-- Unanchored members fall; bank anchors remain fixed. Zero gravity leaves an initially motionless member still.
-- Members contribute mass; equal-length steel members are heavier than timber in the game presets.
-- A road without effective supports sags beyond the 12 cm task limit; the triangulated comparison passes.
-- Compressed cables go slack and stretched cables develop tension.
-- Excessive delivery loads cause member failure, with the first failed member and force recorded.
-- The final all-timber comparison fails while the mixed-material design passes.
-- Missing road connections cannot pass.
-- Identical designs and fixed time steps produce identical numerical results.
-- Free placement, endpoint welding, material use, maximum lengths, fixed anchors, invalid design fallback and atomic rejected edits are checked.
-- Move, remove, undo, redo and undoable clearing preserve complete editable structures.
+New checks verify migration from a three-level save, independent immutable evidence snapshots, geometry identity independent of generated node IDs, exclusion of mismatched conditions, cost rewards only for comparable successful designs, bounded records and recomputed import cost. The new lower cable chord passes in tension; reflecting the same structure above the deck fails. A separate numerical probe also confirmed a mixed timber/steel diagonal variant passes the fourth level.
 
-These tests verify behavior and internal consistency. They do not calibrate the model against a structural-engineering solver or real-world experiments.
+These checks establish modeled behavior and internal consistency. They do not validate the solver against real bridges or establish student learning outcomes.
 
-## Browser interaction
+## Full browser regression
 
-Command: `npm run test:browser` with an existing local server.
+`tests/browser.e2e.cjs`: **passed** using the local file entry point. Its fresh primary context is offline.
 
-**Passed** in Chromium:
+- Home shows only the game title, Start, Select level and About; workshop controls are hidden/inert and no automatic dialog opens.
+- Selection has four crossings, locked previews and explicit return.
+- Start opens a clean editable scene with Help accessible and no initial instruction bar.
+- Actual mouse gestures construct the first bridge; duplicate members reject atomically, and outside release cancels.
+- A road-only design fails; Edit design preserves the original geometry and material usage.
+- Manually adding supports, moving a joint and undoing leads to a successful crossing.
+- Prediction and reflection are stored; different designs under the same conditions produce a comparison table.
+- Repeated Test commands create one experiment; identical reruns do not add evidence records.
+- Opening Help pauses the experiment; closing leaves an explicit Resume.
+- All four crossings complete, including the new cable challenge. The final report is available only after the result action.
+- Reload returns to the menu; Start restores the last editable bridge without reopening help/results.
+- Real-bridge content, persistent mute, fullscreen entry/exit and JSON export/import work.
+- Active controls fit 1440×900, 1024×768, 844×390 and 390×844 viewports.
+- Blocked localStorage remains playable, and save failure is visible after an edit.
+- Old three-level progress migrates without deleting valid designs.
+- No uncaught page errors were recorded.
 
-- Phaser 3.90.0 active Workshop/HUD scenes and native vehicle Container; persistent engine audio mute.
-- Direct entry into a viewport-filling canvas; no landing-page gate or automatic dialog.
-- English About content including STEM topic, story and engineering.
-- Manually drawn full-span road splits into connected deck sections.
-- Timber supports placed at arbitrary grid positions; endpoints weld.
-- Move, undo/redo and editable-design persistence after reload.
-- Full three-mission progression, including a manually constructed first bridge.
-- Palette drag/drop creates a loose member away from predefined points.
-- Gravity experiment, pause, modal handling and restoration of the original design on returning to edit.
-- Keyboard construction and explicit native full-screen entry/exit.
-- No document overflow and important active controls remain within the viewport at 1440×900, 1024×768, 844×390 and 390×844.
-- Complete first-level test from an offline `file://` page.
-- Graceful fallback when localStorage access is blocked.
-- No uncaught JavaScript page errors during the suite.
+## Canvas fallback and input
 
-## Visual inspection
+`tests/engine.e2e.cjs`: **passed** with WebGL disabled, reduced motion and an offline file entry. It verifies Phaser Canvas, no decorative Workshop tweens, force legend, a successful crossing and return to editing.
 
-Reviewed desktop construction, crossing results, mobile construction and expanded mobile mission brief. Updated the scene to distinguish warm outlined bridge members from cool distant mountains and a blue river. Reviewed material states, grouping, foreground shadows, mobile toolbar layout and contextual result panels. Result feedback replaces the redundant live HUD to avoid overlapping panels.
+`tests/input.e2e.cjs`: **passed** with Chromium touch/mobile emulation at 390×844. It places a full-span road and a timber member through two taps, cancels an unfinished member, then constructs a member with keyboard arrows/Enter. This is input emulation, not a physical phone test.
+
+Two bugs exposed during development were fixed: unconditional outside-up cancellation rebuilt the material dock and swallowed button clicks; native lostpointercapture arrived before Phaser touchend and cancelled normal taps. The updated input tests exercise the corrected paths.
+
+## Visual checks and portable package
+
+Inspected actual desktop and mobile home/workshop screenshots, desktop/mobile level selection and the fourth-crossing success state. Home uses the existing original landscape with an independent decorative bridge, which never enters the player's saved design. Mobile Help remains visible. The mobile result panel was moved below the bridge area and given bounded scrolling; measurements/force legend were positioned independently from controls.
+
+The runtime uses relative local script/style paths. No required network fetch, CDN, login or key is introduced. External URLs are optional reference links in user-opened educational content. The local Phaser MIT notice is retained. Final package extraction and relocated offline smoke verification are recorded with the release artifact.
 
 ## Limits
 
-Only Chromium was exercised in these browser tests; Safari, Firefox and physical touch devices have not been tested. The tested viewports are emulated sizes. No formal accessibility audit, student learning evaluation, real structural validation or originality certification has been conducted. Vehicle travel uses a supported moving-load approximation, not full wheel-contact dynamics.
+Chromium only; no Safari/Firefox or physical touch device certification. No formal screen-reader audit, course-rubric certification, user learning study, engineering calibration, plagiarism assessment or subjective audio-quality evaluation. The current scenario and material cost are game presets. The delivery remains a prescribed moving load rather than full wheel-contact dynamics.
 
-## Engine-specific checks
+The browser tests require a development Playwright installation (or an available runtime package). The game itself does not. The host's default npm launcher pointed to an obsolete app path, so development checks used the equivalent direct Node commands and an available Playwright runtime without changing game dependencies.
 
-The full interaction suite ran using Phaser WebGL. A separate first-level WebGL smoke test also completed successfully. `npm run test:engine` explicitly disables WebGL context availability before boot to exercise Phaser Canvas fallback with reduced motion enabled. It checks a successful crossing, an unsupported road failure, redesign/retry, absence of decorative tweens, rapid repeated test commands and availability of generated audio buffers. Browser audio mute state and local persistence are verified; subjective audio quality was not evaluated by listening.
+## GitHub distribution layout
 
-No existing public game was imported. The local Phaser MIT distribution is the only added runtime dependency. The former live Canvas renderer is removed; native Phaser scenes and objects supply live game rendering and input. Original Canvas artwork remains only as boot-time texture generation.
+The GitHub repository serves runtime files from its root. The verified site files are copied unchanged from the local site directory; test entry points and README paths are adapted to the root layout. GitHub synchronization is a subsequent user-authorized action; the numerical and browser checks above describe the preceding v0.4 validation.

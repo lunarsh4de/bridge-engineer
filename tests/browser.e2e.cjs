@@ -1,245 +1,267 @@
 const { chromium } = require("playwright");
 const assert = require("node:assert/strict");
 const path = require("node:path");
-const { levels } = require("../js/levels.js");
-const EXE = process.env.BROWSER_EXECUTABLE;
-const BASE_URL = process.env.BASE_URL || "http://localhost:8766";
-require("node:fs").mkdirSync("work", { recursive: true });
+const fs = require("node:fs");
+const { levels, starter } = require("../js/levels.js");
+const URL = process.env.BASE_URL || "file://" + path.resolve("index.html");
+fs.mkdirSync("work", { recursive: true });
 (async () => {
   const browser = await chromium.launch({
     headless: true,
-    ...(EXE ? { executablePath: EXE } : {}),
+    ...(process.env.BROWSER_EXECUTABLE
+      ? { executablePath: process.env.BROWSER_EXECUTABLE }
+      : {}),
   });
-  const context = await browser.newContext({
-    viewport: { width: 1440, height: 1000 },
-  });
-  const p = await context.newPage(),
-    errors = [];
-  p.on("pageerror", (e) => errors.push(e.message));
-  await p.goto(BASE_URL);
-  await p.waitForFunction(() => document.body.dataset.engineReady === "true");
-  assert.deepEqual(
-    await p.evaluate(() => ({
-      version: BridgeRuntime.version,
-      scenes: BridgeRuntime.game.scene
-        .getScenes(true)
-        .map((s) => s.sys.settings.key),
-      native: BridgeRuntime.game.scene.getScene("Workshop").vehicle.type,
-    })),
-    { version: "3.90.0", scenes: ["Workshop", "HUD"], native: "Container" },
-  );
-  await p.locator("#sound").click();
-  assert.equal(await p.evaluate(() => BridgeRuntime.game.sound.mute), true);
-  await p.reload();
-  await p.waitForFunction(() => document.body.dataset.engineReady === "true");
-  assert.equal(await p.locator("#sound").getAttribute("aria-pressed"), "true");
-  await p.locator("#sound").click();
-  console.log("Engine ready; checking construction");
-  const read = () =>
-    p.evaluate(() =>
-      JSON.parse(localStorage.getItem("bridge-engineer-workshop-v2")),
+  try {
+    const errors = [];
+    const ctx = await browser.newContext({
+      viewport: { width: 1440, height: 900 },
+      offline: URL.startsWith("file:"),
+    });
+    const p = await ctx.newPage();
+    p.on("pageerror", (e) => errors.push(e.message));
+    const ready = async (page) => {
+      await page.goto(URL);
+      await page.waitForFunction(
+        () => document.body.dataset.engineReady === "true",
+      );
+    };
+    const read = () =>
+      p.evaluate(() =>
+        JSON.parse(localStorage.getItem("bridge-engineer-workshop-v2")),
+      );
+    async function point(x, y) {
+      return p.evaluate(
+        ({ x, y }) => {
+          const host = BridgeRuntime.game.scene.getScene("Workshop").host;
+          const r = document.querySelector("#scene").getBoundingClientRect();
+          return {
+            x: r.left + host.view.x + x * host.view.scale,
+            y: r.top + host.view.y + y * host.view.scale,
+          };
+        },
+        { x, y },
+      );
+    }
+    async function drag(a, b) {
+      const s = await point(...a),
+        e = await point(...b);
+      await p.mouse.move(s.x, s.y);
+      await p.mouse.down();
+      await p.mouse.move(e.x, e.y, { steps: 9 });
+      await p.mouse.up();
+    }
+    async function example(page = p) {
+      await page.locator("#help").click();
+      await page.locator('[data-guide="structures"]').click();
+      await page.locator("summary").first().click();
+      await page.locator("#starter").click();
+      if (await page.locator("#confirm-starter").count())
+        await page.locator("#confirm-starter").click();
+    }
+    async function crossing(page = p, result = "success") {
+      await page.locator("#test").click();
+      await page.locator("#speed").click();
+      await page.locator("#speed").click();
+      await page
+        .locator("#feedback-panel." + result)
+        .waitFor({ timeout: 30000 });
+    }
+    await ready(p);
+    assert.equal(await p.locator("dialog[open]").count(), 0);
+    const buttons = await p.locator("button:visible").allTextContents();
+    assert.deepEqual(
+      buttons.map((s) => s.replace(/\s+/g, " ").trim()),
+      ["About", "Start →", "Select level"],
     );
-  async function coords(x, y, index = 0) {
-    const l = levels[index];
-    return p.locator("#scene").evaluate(
-      (e, { x, y, l }) => {
-        const r = e.getBoundingClientRect(),
-          mobile = r.width < 761,
-          scale = Math.max(
-            0.19,
-            Math.min(
-              (r.width - (mobile ? 65 : 400)) / (l.right - l.left + 180),
-              (r.height - (mobile ? 300 : 190)) / 430,
-            ),
-          );
-        return {
-          x:
-            r.left +
-            r.width / 2 +
-            (mobile ? 0 : 70) +
-            (x - (l.left + l.right) / 2) * scale,
-          y: r.top + r.height * 0.52 + (y - l.deckY) * scale,
-        };
-      },
-      { x, y, l },
+    assert.equal(await p.locator("#play-ui").isVisible(), false);
+    await p.screenshot({ path: "work/v4-home-desktop.png" });
+    await p.locator("#about").click();
+    assert.match(await p.locator("#modal-body").innerText(), /Learning goals/);
+    assert.match(await p.locator("#modal-body").innerText(), /STEM Education/);
+    await p.keyboard.press("Escape");
+    await p.locator("#select-level").click();
+    assert.equal(await p.locator("[data-mission]").count(), 4);
+    await p.locator('[data-mission="3"]').click();
+    assert.match(
+      await p.locator("#modal-body").innerText(),
+      /Complete crossing 3/,
     );
-  }
-  async function drag(a, b, index = 0) {
-    const s = await coords(...a, index),
-      e = await coords(...b, index);
-    await p.mouse.move(s.x, s.y);
-    await p.mouse.down();
-    await p.mouse.move(e.x, e.y, { steps: 9 });
-    await p.mouse.up();
-  }
-  assert.equal(await p.locator("#scene").isVisible(), true);
-  assert.ok((await p.locator("#scene").boundingBox()).height > 800);
-  assert.equal(await p.locator("dialog[open]").count(), 0);
-  await p.locator("#about").click();
-  assert.match(
-    await p.locator("#modal-body").innerText(),
-    /Engineering within STEM/i,
-  );
-  await p.keyboard.press("Escape");
-  // Free construction: a single road gesture splits into joined deck pieces.
-  await drag([440, 430], [1040, 430]);
-  let d = (await read()).designs[0];
-  assert.equal(d.members.length, 3);
-  assert.equal(d.nodes.filter((n) => !n.fixed).length, 2);
-  await p.locator('[data-material="wood"]').click();
-  for (const [a, b] of [
-    [
-      [440, 430],
-      [540, 330],
-    ],
-    [
-      [540, 330],
-      [640, 430],
-    ],
-    [
-      [640, 430],
-      [740, 330],
-    ],
-    [
-      [740, 330],
-      [840, 430],
-    ],
-    [
-      [840, 430],
-      [940, 330],
-    ],
-    [
-      [940, 330],
-      [1040, 430],
-    ],
-    [
-      [540, 330],
-      [740, 330],
-    ],
-    [
-      [740, 330],
-      [940, 330],
-    ],
-  ])
-    await drag(a, b);
-  d = (await read()).designs[0];
-  assert.equal(d.members.length, 11);
-  assert.equal(d.nodes.length, 7);
-  // Moving an arbitrary joint updates attached members; undo restores the exact geometry.
-  await p.locator("#move").click();
-  await drag([740, 330], [740, 305]);
-  assert.equal((await read()).designs[0].nodes.find((n) => n.x === 740).y, 305);
-  await p.locator("#undo").click();
-  assert.equal((await read()).designs[0].nodes.find((n) => n.x === 740).y, 330);
-  await p.locator("#redo").click();
-  await p.locator("#undo").click();
-  await p.reload();
-  await p.waitForFunction(() => document.body.dataset.engineReady === "true");
-  assert.equal((await read()).designs[0].members.length, 11);
-  console.log("Manual construction completed");
-  await p.locator("#test").click();
-  await p.locator("#speed").click();
-  await p.locator("#speed").click();
-  await p.locator("#feedback-panel.success").waitFor({ timeout: 20000 });
-  assert.match(
-    await p.locator("#feedback-body").innerText(),
-    /No member failed/,
-  );
-  assert.equal(await p.locator("#pause").isDisabled(), true);
-  await p.screenshot({ path: "work/v3-manual-crossing.png" });
-  for (let i = 1; i < 3; i++) {
-    await p.locator("#next").click();
-    await p.locator("#starter").click();
+    await p.keyboard.press("Escape");
+    await p.locator("#selection-back").click();
+    await p.locator("#start").click();
+    assert.equal(await p.locator("#instruction").isVisible(), false);
+    assert.equal(await p.locator("#help").isVisible(), true);
     await p.locator("#test").click();
-    await p.locator("#speed").click();
-    await p.locator("#speed").click();
-    await p.locator("#feedback-panel.success").waitFor({ timeout: 20000 });
-  }
-  await p.locator("#next").click();
-  assert.match(
-    await p.locator("#modal-body").innerText(),
-    /Riverbend, reconnected/,
-  );
-  assert.deepEqual((await read()).completed, [true, true, true]);
-  await p.keyboard.press("Escape");
-  await p.locator("#result-edit").click();
-  await p.locator("#missions").click();
-  await p.locator('[data-mission="0"]').click();
-  await p.locator("#clear").click();
-  await p.locator("#confirm-clear").click();
-  assert.equal((await read()).designs[0].members.length, 0);
-  // Palette drag-and-drop places a physical piece without predefined connection points.
-  const spot = await coords(740, 230);
-  const dt = await p.evaluateHandle(() => {
-    const data = new DataTransfer();
-    data.setData("text/plain", "wood");
-    return data;
-  });
-  await p.locator("#scene").dispatchEvent("drop", {
-    dataTransfer: dt,
-    clientX: spot.x,
-    clientY: spot.y,
-  });
-  d = (await read()).designs[0];
-  assert.equal(d.members.length, 1);
-  assert.ok(d.nodes.some((n) => n.y === 230));
-  await p.locator("#gravity").click();
-  await p.waitForFunction(
-    () => parseFloat(document.querySelector("#time-value").textContent) > 0.4,
-  );
-  await p.locator("#pause").click();
-  const paused = await p.locator("#time-value").innerText();
-  await p.locator("#about").click();
-  assert.match(
-    await p.locator("#modal-body").innerText(),
-    /prescribed moving load/,
-  );
-  await p.keyboard.press("Escape");
-  assert.equal(await p.locator("#time-value").innerText(), paused);
-  await p.screenshot({ path: "work/v3-gravity-drop.png" });
-  await p.locator("#back-build").click();
-  assert.equal((await read()).designs[0].members.length, 1);
-  // Clear is reversible, and keyboard placement remains usable.
-  await p.locator("#clear").click();
-  await p.locator("#confirm-clear").click();
-  await p.locator("#undo").click();
-  assert.equal((await read()).designs[0].members.length, 1);
-  await p.locator("#redo").click();
-  await p.locator('[data-material="wood"]').click();
-  await p.locator("#scene").focus();
-  await p.keyboard.press("Enter");
-  for (let i = 0; i < 4; i++) await p.keyboard.press("ArrowUp");
-  await p.keyboard.press("Enter");
-  assert.equal((await read()).designs[0].members.length, 1);
-  // Fullscreen can be entered and exited by an explicit user action.
-  await p.locator("#fullscreen").click();
-  await p.waitForFunction(() => !!document.fullscreenElement);
-  await p.locator("#fullscreen").click();
-  await p.waitForFunction(() => !document.fullscreenElement);
-  await p.locator("#clear").click();
-  await p.locator("#confirm-clear").click();
-  for (const size of [
-    { width: 1440, height: 900 },
-    { width: 1024, height: 768 },
-    { width: 844, height: 390 },
-    { width: 390, height: 844 },
-  ]) {
-    await p.setViewportSize(size);
-    await p.evaluate(() => window.dispatchEvent(new Event("resize")));
+    assert.match(await p.locator("#instruction").innerText(), /Place a road/);
+    // Real gestures create the first bridge. Duplicate and invalid edits do not spend material.
+    await drag([440, 430], [1040, 430]);
+    let d = (await read()).designs[0];
+    assert.equal(d.members.length, 3);
+    await drag([440, 430], [640, 430]);
+    assert.equal((await read()).designs[0].members.length, 3);
+    assert.match(await p.locator("#instruction").innerText(), /already/);
+    await p.locator('[data-material="wood"]').click();
+    const anchor = await point(440, 430);
+    await p.mouse.move(anchor.x, anchor.y);
+    await p.mouse.down();
+    await p.mouse.move(400, -20, { steps: 6 });
+    await p.mouse.up();
+    assert.equal((await read()).designs[0].members.length, 3);
+    // A road-only design fails; returning restores the original editable geometry.
+    const roadOnly = JSON.stringify((await read()).designs[0]);
+    await crossing(p, "failure");
+    assert.equal((await read()).records[0].length, 1);
+    await p.locator("#result-edit").click();
+    assert.equal(JSON.stringify((await read()).designs[0]), roadOnly);
+    await p.locator('[data-material="wood"]').click();
+    for (const [a, b] of [
+      [
+        [440, 430],
+        [540, 330],
+      ],
+      [
+        [540, 330],
+        [640, 430],
+      ],
+      [
+        [640, 430],
+        [740, 330],
+      ],
+      [
+        [740, 330],
+        [840, 430],
+      ],
+      [
+        [840, 430],
+        [940, 330],
+      ],
+      [
+        [940, 330],
+        [1040, 430],
+      ],
+      [
+        [540, 330],
+        [740, 330],
+      ],
+      [
+        [740, 330],
+        [940, 330],
+      ],
+    ])
+      await drag(a, b);
+    assert.equal((await read()).designs[0].members.length, 11);
+    await p.locator("#move").click();
+    await drag([740, 330], [740, 305]);
+    assert.equal(
+      (await read()).designs[0].nodes.find((n) => n.x === 740).y,
+      305,
+    );
+    await p.locator("#undo").click();
+    assert.equal(
+      (await read()).designs[0].nodes.find((n) => n.x === 740).y,
+      330,
+    );
+    await p.locator("#notebook").click();
+    await p.locator("#prediction").fill("The triangles will reduce deck drop.");
+    await p.locator("#save-prediction").click();
+    await crossing();
+    assert.equal((await read()).records[0].length, 2);
+    assert.match((await read()).records[0][1].prediction, /triangles/);
+    await p.locator("#result-compare").click();
+    assert.match(await p.locator("#modal-body").innerText(), /Same conditions/);
+    assert.equal(await p.locator(".compare-table tbody tr").count(), 4);
+    await p.locator(".evidence-record").last().locator("summary").click();
+    await p
+      .locator("#reflection-1")
+      .fill("The same load passed after adding connected diagonals.");
+    await p.locator('[data-reflect-save="1"]').click();
+    await p.locator("#result-edit").click();
+    for (let i = 0; i < 20; i++)
+      await p.locator("#test").dispatchEvent("click");
+    assert.equal(await p.locator("#test").isDisabled(), true);
+    await p.locator("#help").click();
+    const t = await p.evaluate(
+      () => BridgeRuntime.game.scene.getScene("Workshop").host.state.world.time,
+    );
+    await p.keyboard.press("Escape");
+    assert.equal(await p.locator("#pause").innerText(), "Resume");
     assert.equal(
       await p.evaluate(
         () =>
-          document.documentElement.scrollWidth <= innerWidth &&
-          document.documentElement.scrollHeight <= innerHeight,
+          BridgeRuntime.game.scene.getScene("Workshop").host.state.world.time,
       ),
-      true,
+      t,
     );
-    const buttons = await p
-      .locator("#materials button, #test, #gravity, #about")
-      .evaluateAll((es) =>
-        es
-          .filter((e) => !e.disabled)
-          .map((e) => {
+    await p.locator("#pause").click();
+    await p.locator("#speed").click();
+    await p.locator("#speed").click();
+    await p.locator("#feedback-panel.success").waitFor({ timeout: 30000 });
+    assert.equal((await read()).records[0].length, 2);
+    console.log(
+      "PASS: menu, manual construction, failure/retry, evidence, comparison, duplicate tests and modal pause",
+    );
+    for (let i = 1; i < 4; i++) {
+      await p.locator("#next").click();
+      await example();
+      await crossing();
+      assert.equal((await read()).completed[i], true);
+    }
+    await p.screenshot({ path: "work/v4-cable-success.png" });
+    await p.locator("#next").click();
+    assert.match(
+      await p.locator("#modal-body").innerText(),
+      /Riverbend, reconnected/,
+    );
+    await p.keyboard.press("Escape");
+    await p.reload();
+    await p.waitForFunction(() => document.body.dataset.engineReady === "true");
+    assert.equal(await p.locator("#main-menu").isVisible(), true);
+    assert.equal(await p.locator("dialog[open]").count(), 0);
+    await p.locator("#start").click();
+    assert.equal(await p.locator("#instruction").isVisible(), false);
+    assert.equal((await read()).designs[3].members.length, 15);
+    await p.locator("#help").click();
+    await p.locator('[data-guide="cases"]').click();
+    assert.match(await p.locator("#modal-body").innerText(), /Queensferry/);
+    await p.locator('[data-guide="settings"]').click();
+    await p.locator("#sound").click();
+    assert.equal(
+      await p.locator("#sound").getAttribute("aria-pressed"),
+      "true",
+    );
+    const download = p.waitForEvent("download");
+    await p.locator("#export").click();
+    const exported = await download;
+    await exported.saveAs("work/v4-export.json");
+    const exportData = JSON.parse(fs.readFileSync("work/v4-export.json"));
+    assert.equal(exportData.data.completed.length, 4);
+    await p.locator("#fullscreen").click();
+    await p.waitForFunction(() => !!document.fullscreenElement);
+    await p.locator("#fullscreen").click();
+    await p.waitForFunction(() => !document.fullscreenElement);
+    await p.keyboard.press("Escape");
+    for (const size of [
+      { width: 1440, height: 900 },
+      { width: 1024, height: 768 },
+      { width: 844, height: 390 },
+      { width: 390, height: 844 },
+    ]) {
+      await p.setViewportSize(size);
+      await p.waitForFunction(
+        ({ w, h }) =>
+          Math.abs(
+            document.querySelector("#scene").getBoundingClientRect().width - w,
+          ) < 1 &&
+          Math.abs(
+            document.querySelector("#scene").getBoundingClientRect().height - h,
+          ) < 1,
+        { w: size.width, h: size.height },
+      );
+      const rects = await p
+        .locator("#materials button, #test, #gravity, #help, #about, #notebook")
+        .evaluateAll((es) =>
+          es.map((e) => {
             const r = e.getBoundingClientRect();
             return {
               id: e.id || e.dataset.material,
@@ -249,82 +271,109 @@ require("node:fs").mkdirSync("work", { recursive: true });
               bottom: r.bottom,
             };
           }),
+        );
+      for (const r of rects)
+        assert.ok(
+          r.x >= 0 &&
+            r.y >= 0 &&
+            r.right <= size.width + 1 &&
+            r.bottom <= size.height + 1,
+          JSON.stringify({ size, r }),
+        );
+      assert.equal(
+        await p.evaluate(
+          () => document.documentElement.scrollWidth <= innerWidth,
+        ),
+        true,
       );
-    for (const r of buttons) {
-      assert.ok(
-        r.x >= 0 &&
-          r.y >= 0 &&
-          r.right <= size.width + 1 &&
-          r.bottom <= size.height + 1,
-        JSON.stringify({ size, r }),
-      );
+      if (size.width === 390)
+        await p.screenshot({ path: "work/v4-workshop-mobile.png" });
     }
-    if (size.width === 390) {
-      await p.screenshot({ path: "work/v3-mobile-build.png" });
-      await p.locator("#brief-toggle").click();
-      await p.screenshot({ path: "work/v3-mobile-brief.png" });
-      await p.locator("#brief-toggle").click();
-    }
-  }
-  const offline = await browser.newContext({
-    offline: true,
-    viewport: { width: 1280, height: 900 },
-  });
-  const off = await offline.newPage();
-  off.on("pageerror", (e) => errors.push(e.message));
-  await off.goto("file://" + path.resolve("index.html"));
-  await off.waitForFunction(() => document.body.dataset.engineReady === "true");
-  await off.locator("#starter").click();
-  await off.locator("#test").click();
-  await off.locator("#speed").click();
-  await off.locator("#speed").click();
-  await off.locator("#feedback-panel.success").waitFor({ timeout: 20000 });
-  const blocked = await browser.newContext();
-  await blocked.addInitScript(() =>
-    Object.defineProperty(window, "localStorage", {
-      get() {
-        throw new Error("storage blocked");
-      },
-    }),
-  );
-  const bp = await blocked.newPage();
-  bp.on("pageerror", (e) => errors.push(e.message));
-  await bp.goto(BASE_URL);
-  await bp.waitForFunction(() => document.body.dataset.engineReady === "true");
-  await bp.locator("#starter").click();
-  await bp.locator("#gravity").click();
-  assert.equal(await bp.locator("#simulation-panel").isVisible(), true);
-  assert.deepEqual(errors, []);
-  console.log(
-    JSON.stringify(
+    await p.locator("#home").click();
+    await p.screenshot({ path: "work/v4-home-mobile.png" });
+    await p.locator("#select-level").click();
+    await p.screenshot({ path: "work/v4-select-mobile.png" });
+    await p.setViewportSize({ width: 1440, height: 900 });
+    await p.screenshot({ path: "work/v4-select-desktop.png" });
+    // Storage failure remains playable and can be exported; importing is validated and confirmed.
+    const blocked = await browser.newContext({
+      offline: URL.startsWith("file:"),
+    });
+    await blocked.addInitScript(() =>
+      Object.defineProperty(window, "localStorage", {
+        get() {
+          throw new Error("blocked");
+        },
+      }),
+    );
+    const bp = await blocked.newPage();
+    bp.on("pageerror", (e) => errors.push(e.message));
+    await ready(bp);
+    await bp.locator("#start").click();
+    await example(bp);
+    assert.equal(await bp.locator("#storage-status").isVisible(), true);
+    await bp.locator("#gravity").click();
+    assert.equal(await bp.locator("#simulation-panel").isVisible(), true);
+    // Old saved progress must survive the additional mission.
+    const migrated = await browser.newContext();
+    await migrated.addInitScript(
+      (data) =>
+        localStorage.setItem(
+          "bridge-engineer-workshop-v2",
+          JSON.stringify(data),
+        ),
       {
-        status: "PASS",
-        browser: await browser.version(),
-        checks: [
-          "Phaser scenes, native game objects and persistent mute",
-          "direct-to-play viewport",
-          "English About",
-          "free road drag and automatic segmentation",
-          "free timber placement and endpoint welding",
-          "move/undo/redo",
-          "design persistence",
-          "manual first-level construction and test",
-          "three gravity-based crossings",
-          "palette drop at arbitrary coordinates",
-          "pause and edit restore",
-          "keyboard construction",
-          "full-screen entry/exit",
-          "four viewport sizes",
-          "offline file:// crossing",
-          "blocked storage fallback",
-          "no uncaught page errors",
-        ],
+        level: 1,
+        completed: [true, false, false],
+        designs: { 0: starter(levels[0]) },
       },
-      null,
-      2,
-    ),
-  );
-  await browser.close();
+    );
+    const mp = await migrated.newPage();
+    await ready(mp);
+    assert.deepEqual(
+      await mp.evaluate(
+        () =>
+          JSON.parse(localStorage.getItem("bridge-engineer-workshop-v2"))
+            .completed,
+      ),
+      [true, false, false, false],
+    );
+    await mp.locator("#start").click();
+    await mp.locator("#help").click();
+    await mp.locator('[data-guide="settings"]').click();
+    await mp
+      .locator("#import-file")
+      .setInputFiles(path.resolve("work/v4-export.json"));
+    await mp.locator("#confirm-import").click();
+    assert.equal(
+      await mp.locator("#mission-label").innerText(),
+      "04 / Millwater Reach",
+    );
+    assert.deepEqual(errors, []);
+    console.log(
+      JSON.stringify(
+        {
+          status: "PASS",
+          browser: await browser.version(),
+          checks: [
+            "four crossings",
+            "offline local files",
+            "responsive home/select/workshop",
+            "old-save migration",
+            "export/import",
+            "blocked storage",
+            "keyboard-accessible Help/About",
+            "preserved designs and evidence",
+            "no uncaught errors",
+          ],
+        },
+        null,
+        2,
+      ),
+    );
+  } finally {
+    await browser.close();
+  }
 })().catch((e) => {
   console.error(e);
   process.exit(1);

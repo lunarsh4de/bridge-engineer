@@ -34,9 +34,11 @@
     )
       return "This design is too large or invalid.";
     const ids = new Set(),
+      memberIds = new Set(),
       edges = new Set();
     for (const n of design.nodes) {
       if (
+        !n ||
         typeof n.id !== "string" ||
         ids.has(n.id) ||
         !Number.isFinite(n.x + n.y) ||
@@ -57,12 +59,16 @@
     }
     for (const e of design.members) {
       if (
-        !P.MATERIALS[e.material] ||
+        !e ||
+        typeof e.id !== "string" ||
+        memberIds.has(e.id) ||
+        !Object.hasOwn(P.MATERIALS, e.material) ||
         !ids.has(e.a) ||
         !ids.has(e.b) ||
         e.a === e.b
       )
         return "Choose two different, valid endpoints.";
+      memberIds.add(e.id);
       const k = [e.a, e.b].sort().join("|");
       if (edges.has(k)) return "A member already connects those joints.";
       edges.add(k);

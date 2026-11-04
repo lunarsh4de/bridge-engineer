@@ -1,0 +1,20 @@
+{
+  "version": "0.4.0",
+  "date": "2026-11-05",
+  "artifact": "bridge-engineer-v0.4-offline-2026-11-05.zip",
+  "sha256": "4659ffc9a982e4ef1202d48a4662828c3f72da98f72abe96077ed58ee99738fe",
+  "bytes": 378967,
+  "checks": {
+    "nodeTests": "21/21 passed",
+    "browserRegression": "four crossings, migration, comparison, import/export and storage failure passed",
+    "canvasFallback": "passed",
+    "touchAndKeyboardEmulation": "passed",
+    "relocatedOfflinePackage": "passed",
+    "packageRemoteRequests": 0,
+    "publicDeployment": false
+  },
+  "limits": [
+    "Chromium tested; physical devices, Safari and Firefox unverified",
+    "No engineering calibration or learning-outcome study"
+  ]
+}

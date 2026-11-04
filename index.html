@@ -9,237 +9,207 @@
     <meta name="theme-color" content="#142b27" />
     <meta
       name="description"
-      content="A full-screen bridge engineering sandbox. Place materials freely, explore gravity, and test your own structures."
+      content="Build your own bridges. Test an idea, follow the forces, and connect Riverbend."
     />
-    <title>Bridge Engineer — Riverbend Workshop</title>
+    <title>Bridge Engineer — Riverbend</title>
     <link rel="icon" href="favicon.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="styles.css" />
     <script src="vendor/phaser-3.90.0.min.js" defer></script>
     <script src="js/physics.js" defer></script>
     <script src="js/levels.js" defer></script>
     <script src="js/model.js" defer></script>
+    <script src="js/progress.js" defer></script>
+    <script src="js/content.js" defer></script>
     <script src="js/art.js" defer></script>
     <script src="js/engine.js" defer></script>
     <script src="js/app.js" defer></script>
   </head>
-  <body>
+  <body data-screen="home">
     <div class="app-shell">
-      <header class="topbar">
-        <a
-          class="brand"
-          href="#"
-          id="brand"
-          aria-label="Bridge Engineer mission map"
-          ><svg viewBox="0 0 40 32" aria-hidden="true">
-            <path d="M3 26h34M6 26V10l14 16L34 10v16M6 10h28M20 10v16" /></svg
-          ><span>BRIDGE<span class="brand-light">ENGINEER</span></span></a
-        ><button class="mission-select" id="missions">
-          <span class="small-dot"></span
-          ><span id="mission-label">01 / Willow Creek</span><span>⌄</span>
-        </button>
-        <nav aria-label="Main navigation">
-          <span class="version-label">PHASER · WORKSHOP / 03</span
-          ><button
-            id="sound"
-            class="icon-button sound-button"
-            aria-label="Mute sound"
-            aria-pressed="false"
-            title="Mute sound"
-          >
-            ♪</button
-          ><button id="help" class="nav-button">How to play</button
-          ><button
-            id="fullscreen"
-            class="icon-button"
-            aria-label="Enter full screen"
-            title="Enter full screen"
-          >
-            ⛶</button
-          ><button id="about" class="nav-button">About ↗</button>
-        </nav>
-      </header>
       <main class="workshop" id="workshop">
         <canvas
           id="scene"
-          tabindex="0"
-          aria-label="Bridge building canvas. Drag to place members anywhere on the grid. Arrow keys move the keyboard cursor; Enter chooses endpoints. Press H for help."
+          tabindex="-1"
+          aria-label="Bridge building canvas. Use arrow keys and Enter to place endpoints. H opens help."
         ></canvas>
-        <section class="mission-panel panel" aria-label="Mission brief">
-          <button class="mission-toggle" id="brief-toggle" aria-expanded="true">
-            <span class="eyebrow" id="place-label"
-              >MISSION 01 · WILLOW CREEK</span
-            ><span id="brief-chevron">−</span>
-          </button>
-          <h1 id="mission-title">The first crossing</h1>
-          <div id="brief-content">
-            <p id="story"></p>
-            <div class="brief-stats">
-              <div>
-                <span>RIVER SPAN</span><strong id="span-value">6 m</strong>
-              </div>
-              <div>
-                <span>DELIVERY</span><strong id="load-value">600 kg</strong>
-              </div>
-            </div>
-            <div class="objective">
-              <span class="small-dot"></span>Build a continuous road. Get the
-              delivery across. Keep deck drop below 12 cm.
-            </div>
-            <button id="starter" class="starter-button">
-              Try a starter design <span>↗</span>
+        <header class="topbar">
+          <div id="workshop-nav" class="workshop-nav" hidden inert>
+            <button id="home" class="nav-button" title="Return to main menu">
+              ← Menu
             </button>
-            <p class="starter-note">Or start with your own idea.</p>
-            <button id="case" class="case-button">
-              <span class="eyebrow">ENGINEER’S FIELD NOTE</span
-              ><strong id="concept">Geometry before strength</strong
-              ><span>Explore the idea + a real bridge ↗</span>
+            <button id="missions" class="mission-select">
+              <span id="mission-label">01 / Willow Creek</span> <span>⌄</span>
             </button>
+            <button id="task" class="nav-button">Task</button>
+          </div>
+          <div class="topbar-right">
+            <nav id="play-nav" aria-label="Workshop navigation" hidden inert>
+              <button id="notebook" class="nav-button">Notebook</button>
+              <button id="help" class="nav-button">Help</button>
+            </nav>
+            <button id="about" class="nav-button about-button">About</button>
+          </div>
+        </header>
+        <section id="main-menu" class="main-menu" aria-labelledby="game-title">
+          <div class="menu-content">
+            <p class="menu-location">RIVERBEND</p>
+            <h1 id="game-title">BRIDGE<br /><span>ENGINEER</span></h1>
+            <div class="menu-actions">
+              <button id="start" class="menu-start" disabled>
+                Start <span aria-hidden="true">→</span>
+              </button>
+              <button id="select-level" class="menu-select" disabled>
+                Select level
+              </button>
+            </div>
           </div>
         </section>
-        <div class="mode-chip" id="mode-chip">
-          <span class="small-dot"></span><span id="mode-text">BUILD MODE</span
-          ><span class="mode-divider"></span
-          ><span id="mode-detail">Gravity waits until you test</span>
-        </div>
-        <aside
-          class="simulation-panel panel"
-          id="simulation-panel"
-          hidden
-          aria-label="Simulation measurements"
-        >
-          <div class="eyebrow">LIVE EXPERIMENT</div>
-          <div class="live-measurements">
-            <div>
-              <span>GRAVITY</span
-              ><strong id="gravity-value">9.81 <small>m/s²</small></strong>
-            </div>
-            <div>
-              <span>TIME</span
-              ><strong id="time-value">0.0 <small>s</small></strong>
-            </div>
-            <div>
-              <span>MAX. DECK DROP</span
-              ><strong id="sag-value">0 <small>cm</small></strong>
-            </div>
-            <div>
-              <span>BROKEN MEMBERS</span><strong id="broken-value">0</strong>
-            </div>
-          </div>
-          <div class="simulation-controls">
-            <button id="pause" class="small-button">Pause</button
-            ><button id="speed" class="small-button">Speed 1×</button
-            ><button id="back-build" class="small-button">↶ Edit design</button>
-          </div>
-        </aside>
-        <div class="view-controls panel" aria-label="View options">
-          <button
-            id="grid"
-            class="view-button active"
-            aria-pressed="true"
-            title="Toggle grid"
-          >
-            Grid</button
-          ><button
-            id="stress"
-            class="view-button"
-            aria-pressed="false"
-            title="Colour members by tension and compression"
-          >
-            Forces</button
-          ><span></span
-          ><button id="zoom-out" class="view-button" aria-label="Zoom out">
-            −</button
-          ><button id="zoom-in" class="view-button" aria-label="Zoom in">
-            +
-          </button>
-        </div>
-        <div class="instruction" id="instruction" aria-live="polite">
-          Choose Road, then drag from an orange anchor to begin.
-        </div>
         <section
-          class="feedback panel"
-          id="feedback-panel"
+          id="level-select"
+          class="level-select"
           hidden
-          aria-label="Experiment result"
+          inert
+          aria-labelledby="select-title"
         >
-          <div class="feedback-heading">
-            <span class="eyebrow" id="feedback-label">FIELD OBSERVATION</span
-            ><button id="dismiss-feedback" aria-label="Dismiss feedback">
-              ×
-            </button>
+          <div class="selection-heading">
+            <div>
+              <p class="eyebrow">YOUR ROUTE THROUGH RIVERBEND</p>
+              <h1 id="select-title">Choose a crossing.</h1>
+            </div>
+            <button id="selection-back" class="small-button">← Back</button>
           </div>
-          <h2 id="feedback-title"></h2>
-          <p id="feedback-body" role="status" aria-live="polite"></p>
-          <div class="feedback-actions">
-            <button class="primary" id="next" hidden>Next crossing →</button
-            ><button class="small-button" id="result-edit">
-              ↶ Keep experimenting
+          <div id="level-cards" class="level-cards"></div>
+          <div class="selection-footer">
+            <p>Start with timber. Build further. Discover new materials.</p>
+            <button
+              id="explore-toggle"
+              class="text-button"
+              aria-pressed="false"
+            >
+              Explore all levels
             </button>
           </div>
         </section>
-        <div class="materials-dock panel">
-          <div class="dock-intro">
-            <span class="eyebrow">PLACE A MATERIAL</span
-            ><strong>Your bridge.<br />Your approach.</strong>
+        <div id="play-ui" class="play-ui" hidden inert>
+          <div class="task-status" aria-label="Crossing conditions">
+            <span id="span-value">6 m</span><span id="load-value">600 kg</span
+            ><span id="drop-limit">Drop &lt; 12 cm</span>
+          </div>
+          <div id="storage-status" class="storage-status" role="status" hidden>
+            Not saved on this device
+          </div>
+          <aside
+            class="simulation-panel panel"
+            id="simulation-panel"
+            hidden
+            aria-label="Simulation measurements"
+          >
+            <div class="simulation-heading">
+              <span class="eyebrow" id="mode-text">CROSSING TEST</span
+              ><button id="back-build" class="text-button">Edit design</button>
+            </div>
+            <div class="live-measurements">
+              <div>
+                <span>TIME</span
+                ><strong id="time-value">0.0 <small>s</small></strong>
+              </div>
+              <div>
+                <span>MAX. DROP</span
+                ><strong id="sag-value">0 <small>cm</small></strong>
+              </div>
+              <div><span>BROKEN</span><strong id="broken-value">0</strong></div>
+            </div>
+            <div class="simulation-controls">
+              <button id="pause" class="small-button">Pause</button
+              ><button id="speed" class="small-button">Speed 1×</button>
+            </div>
+          </aside>
+          <section
+            class="feedback panel"
+            id="feedback-panel"
+            hidden
+            aria-label="Experiment result"
+          >
+            <div class="feedback-heading">
+              <span class="eyebrow" id="feedback-label">TEST RESULT</span
+              ><button id="dismiss-feedback" aria-label="Dismiss result">
+                ×
+              </button>
+            </div>
+            <h2 id="feedback-title"></h2>
+            <p id="feedback-body" role="status"></p>
+            <p id="result-reward" class="result-reward" hidden></p>
+            <div class="feedback-actions">
+              <button class="primary" id="result-edit">Edit design</button
+              ><button class="small-button" id="result-compare">
+                Compare tests</button
+              ><button class="small-button" id="next" hidden>
+                Next crossing →
+              </button>
+            </div>
+          </section>
+          <div class="view-controls panel" aria-label="View options">
+            <button id="grid" class="view-button active" aria-pressed="true">
+              Grid</button
+            ><button id="stress" class="view-button" aria-pressed="false">
+              Forces</button
+            ><button id="zoom-out" class="view-button" aria-label="Zoom out">
+              −</button
+            ><button id="zoom-in" class="view-button" aria-label="Zoom in">
+              +
+            </button>
           </div>
           <div
-            id="materials"
-            class="material-list"
-            role="group"
-            aria-label="Construction materials"
+            class="instruction"
+            id="instruction"
+            role="status"
+            aria-live="polite"
+            hidden
           ></div>
-          <div class="dock-tools">
-            <button
-              id="move"
-              class="edit-button"
-              title="Move a joint (M)"
-              aria-label="Move a joint"
-              aria-pressed="false"
-            >
-              ✥ <span>Move</span></button
-            ><button
-              id="erase"
-              class="edit-button"
-              title="Remove a member (X)"
-              aria-label="Remove a member"
-              aria-pressed="false"
-            >
-              ⌫ <span>Erase</span></button
-            ><button
-              id="undo"
-              class="edit-button"
-              title="Undo (Ctrl/Cmd+Z)"
-              aria-label="Undo"
-            >
-              ↶</button
-            ><button
-              id="redo"
-              class="edit-button"
-              title="Redo (Ctrl/Cmd+Shift+Z)"
-              aria-label="Redo"
-            >
-              ↷</button
-            ><button
-              id="clear"
-              class="edit-button"
-              aria-label="Clear the design"
-              title="Clear the design"
-            >
-              ↺
-            </button>
+          <div class="materials-dock panel" id="materials-dock">
+            <div
+              id="materials"
+              class="material-list"
+              role="group"
+              aria-label="Construction materials"
+            ></div>
+            <div class="dock-tools">
+              <button id="move" class="edit-button" aria-pressed="false">
+                Move</button
+              ><button id="erase" class="edit-button" aria-pressed="false">
+                Erase</button
+              ><button
+                id="undo"
+                class="edit-button"
+                aria-label="Undo"
+                title="Undo (Ctrl/Cmd Z)"
+              >
+                ↶</button
+              ><button
+                id="redo"
+                class="edit-button"
+                aria-label="Redo"
+                title="Redo (Ctrl/Cmd Shift Z)"
+              >
+                ↷</button
+              ><button
+                id="clear"
+                class="edit-button"
+                aria-label="Restart this design"
+                title="Restart this design"
+              >
+                ↺</button
+              ><button id="cancel-placement" class="edit-button" hidden>
+                Cancel
+              </button>
+            </div>
+            <div class="test-actions">
+              <button id="gravity" class="gravity-button">Self-weight</button
+              ><button id="test" class="primary">
+                Test crossing <span aria-hidden="true">→</span>
+              </button>
+            </div>
           </div>
-          <div class="test-actions">
-            <button id="gravity" class="gravity-button">↓ Gravity lab</button
-            ><button id="test" class="primary">
-              Test crossing <span>→</span>
-            </button>
-          </div>
-        </div>
-        <div class="bottom-caption">
-          <span>DRAG TO BUILD · SNAP TO JOIN · TEST TO DISCOVER</span
-          ><span id="engine-status" class="engine-status"
-            >STARTING GAME ENGINE</span
-          ><span id="connection-count">0 members · 2 fixed anchors</span>
         </div>
       </main>
     </div>
@@ -249,8 +219,12 @@
       </button>
       <div id="modal-body"></div>
     </dialog>
-    <noscript
-      >This game needs JavaScript. Enable it to enter the workshop.</noscript
-    >
+    <input
+      id="import-file"
+      type="file"
+      accept=".json,application/json"
+      hidden
+    />
+    <noscript>This game needs JavaScript. Enable it to play.</noscript>
   </body>
 </html>

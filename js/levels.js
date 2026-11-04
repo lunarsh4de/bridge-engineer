@@ -58,6 +58,25 @@
       newMaterial: "Steel + cables unlocked",
       guideY: 305,
     },
+    {
+      id: 4,
+      name: "Pulling together",
+      place: "Millwater Reach",
+      left: 340,
+      right: 1140,
+      deckY: 430,
+      truckMass: 1400,
+      inventory: { road: 8.2, wood: 8, steel: 16, cable: 8 },
+      story:
+        "The riverside mill needs a new delivery route. A smaller timber supply makes the role of every member matter.",
+      concept: "A cable needs a pulling job",
+      lesson:
+        "A cable becomes slack when pushed. In a truss below the deck, the lower chord can carry tension. The diagonals still need to carry their own forces to the banks.",
+      hint: "Try a truss below the road. Connect its lower joints with cables and compare it with the same shape above the road. Watch which members pull and which push.",
+      caseTitle: "Cables, towers and load paths",
+      newMaterial: "Apply what you learned",
+      guideY: 555,
+    },
   ];
   function starter(level) {
     const nodes = [
@@ -80,13 +99,24 @@
       add(deck[i], deck[i + 1], "road");
       const id = "t" + i;
       nodes.push({ id, x: level.left + i * 200 + 100, y: level.guideY });
-      add(deck[i], id, level.id === 3 && i === 0 ? "steel" : "wood");
+      add(
+        deck[i],
+        id,
+        level.id === 4 || (level.id === 3 && i === 0) ? "steel" : "wood",
+      );
       add(
         id,
         deck[i + 1],
-        level.id === 3 && i === cells - 1 ? "steel" : "wood",
+        level.id === 4 || (level.id === 3 && i === cells - 1)
+          ? "steel"
+          : "wood",
       );
-      if (i) add("t" + (i - 1), id, level.id === 3 ? "steel" : "wood");
+      if (i)
+        add(
+          "t" + (i - 1),
+          id,
+          level.id === 4 ? "cable" : level.id === 3 ? "steel" : "wood",
+        );
     }
     return { nodes, members };
   }

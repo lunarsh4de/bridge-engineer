@@ -19,7 +19,7 @@ function floating(material = "wood") {
     members: [{ id: "float", a: "a", b: "b", material }],
   };
 }
-test("all three starter structures fit inventory and carry their delivery under gravity", () => {
+test("all four starter structures fit inventory and carry their delivery under gravity", () => {
   for (const l of levels) {
     const design = starter(l);
     assert.equal(M.validate(design, l), null);

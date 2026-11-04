@@ -162,7 +162,7 @@
         this.host.dispatchPointer("pointerup", pointer),
       );
       this.input.on("pointerupoutside", (pointer) =>
-        this.host.dispatchPointer("pointerup", pointer),
+        this.host.dispatchPointer("pointercancel", pointer),
       );
       this.scale.on("resize", () => {
         this.host.width = this.scale.width;
@@ -170,9 +170,9 @@
       });
       this.host.canvas.dataset.engine = "phaser-" + Phaser.VERSION;
       document.body.dataset.engineReady = "true";
-      document
-        .getElementById("engine-status")
-        ?.replaceChildren(document.createTextNode("PHASER " + Phaser.VERSION));
+      document.getElementById("start").disabled = false;
+      document.getElementById("select-level").disabled = false;
+      this.host.refreshViewport();
       this.events.once("shutdown", () => {
         this.input.removeAllListeners();
       });
@@ -316,6 +316,10 @@
         this.lastLevel = level.id;
         this.levelChanged(level, state.reduced);
       }
+      this.labels.forEach((label) =>
+        label.setVisible(state.screen === "workshop"),
+      );
+      this.guide.setVisible(state.screen === "workshop");
       if (this.lastWorld !== w) {
         this.lastWorld = w;
         this.brokenSeen.clear();
@@ -431,7 +435,7 @@
         const active = state.hoverNode === n.id || state.moving?.id === n.id;
         circle
           .setPosition(p.x, p.y)
-          .setRadius(active ? 8 : 5)
+          .setRadius((active ? 8 : n.fixed ? 7 : 5) / Math.min(1, view.scale))
           .setFillStyle(n.fixed ? 0xf2af70 : active ? 0xf4f3d1 : 0xe4e5c1)
           .setStrokeStyle(2, n.fixed ? 0xb07341 : 0x4c6b48);
         if (n.fixed) {
@@ -456,9 +460,12 @@
           object.destroy();
           this.nodes.delete(id);
         }
-      const empty = !d.members.length && state.mode === "build";
+      const empty =
+        !d.members.length &&
+        state.mode === "build" &&
+        state.screen === "workshop";
       this.guideText
-        .setVisible(empty)
+        .setVisible(false)
         .setPosition((level.left + level.right) / 2, level.deckY + 32);
       if (empty) {
         g.lineStyle(2, 0x718658, 0.7);
@@ -493,7 +500,7 @@
         y = vehicle ? vehicle.y * 100 : level.deckY - 16;
       this.vehicle.setPosition(x, y).setRotation(vehicle?.angle || 0);
       this.loadText
-        .setVisible(!!vehicle && !vehicle.finished)
+        .setVisible(state.screen === "workshop" && !vehicle?.finished)
         .setPosition(x, y - 76)
         .setText(level.truckMass.toLocaleString() + " kg");
       if (vehicle && !vehicle.finished) {
@@ -534,17 +541,6 @@
       this.host = host;
     }
     create() {
-      this.intro = this.add
-        .text(this.scale.width / 2, 105, "", {
-          fontFamily: "Georgia",
-          fontSize: "27px",
-          color: "#294d42",
-          align: "center",
-          backgroundColor: "#f1f3e7",
-          padding: { x: 22, y: 13 },
-        })
-        .setOrigin(0.5)
-        .setAlpha(0);
       this.legend = this.add
         .container(this.scale.width / 2, this.scale.width < 761 ? 150 : 81)
         .setVisible(false);
@@ -560,26 +556,12 @@
             .setOrigin(0.5),
         );
       });
-      const mission = (level) => {
-        if (this.host.state?.reduced) return;
-        this.tweens.killTweensOf(this.intro);
-        this.intro
-          .setText("0" + level.id + " / " + level.place.toUpperCase())
-          .setPosition(this.scale.width / 2, 110)
-          .setAlpha(0);
-        this.tweens.add({
-          targets: this.intro,
-          alpha: 1,
-          y: 100,
-          duration: 250,
-          hold: 850,
-          yoyo: true,
-          ease: "Sine.easeInOut",
-        });
-      };
-      this.host.events.on("mission", mission);
       const onState = (state) => {
         this.legend.setVisible(state.forces && state.mode !== "build");
+        this.legend.setPosition(
+          this.scale.width / 2,
+          this.scale.height - this.host.dockHeight - 100,
+        );
       };
       this.host.events.on("state", onState);
       const victory = () => {
@@ -602,14 +584,12 @@
       };
       this.host.events.on("success", victory);
       this.scale.on("resize", () => {
-        this.intro.setX(this.scale.width / 2);
         this.legend.setPosition(
           this.scale.width / 2,
           this.scale.width < 761 ? 150 : 81,
         );
       });
       this.events.once("shutdown", () => {
-        this.host.events.off("mission", mission);
         this.host.events.off("state", onState);
         this.host.events.off("success", victory);
       });
@@ -622,6 +602,7 @@
       this.zoom = 1;
       this.width = 0;
       this.height = 0;
+      this.dockHeight = 120;
       this.view = { scale: 1, x: 0, y: 0 };
       this.events = new Phaser.Events.EventEmitter();
       this.inputHandlers = new Map();
@@ -636,6 +617,9 @@
     }
     start(tick) {
       this.tick = tick;
+      this.layoutObserver = new ResizeObserver(() => this.refreshViewport());
+      this.layoutObserver.observe(this.canvas.parentElement);
+      this.layoutObserver.observe(document.getElementById("materials-dock"));
       const rect = this.canvas.parentElement.getBoundingClientRect();
       this.game = new Phaser.Game({
         type: rendererType(),
@@ -675,22 +659,44 @@
         game: this.game,
       };
     }
-    calculateView(level) {
+    refreshViewport() {
       const rect = this.canvas.getBoundingClientRect();
       this.width = rect.width;
       this.height = rect.height;
-      const w = rect.width,
-        h = rect.height,
-        mobile = w < 761;
+      const dock = document
+        .getElementById("materials-dock")
+        .getBoundingClientRect();
+      if (dock.height) this.dockHeight = dock.height;
+      document
+        .getElementById("play-ui")
+        .style.setProperty(
+          "--controls-bottom",
+          `${this.dockHeight + (rect.width < 761 ? 20 : 28)}px`,
+        );
+    }
+    calculateView(level) {
+      const w = this.width || 1280,
+        h = this.height || 800;
+      const menu = this.state?.screen !== "workshop";
+      const top = h < 500 ? 70 : 115;
+      const available = Math.max(130, h - top - this.dockHeight - 60);
       let scale = Math.min(
-        (w - (mobile ? 65 : 400)) / (level.right - level.left + 180),
-        (h - (mobile ? 300 : 190)) / 430,
+        (w - 70) / (level.right - level.left + 180),
+        available / 430,
+        1.6,
       );
-      scale = Math.max(0.19, scale) * this.zoom;
+      if (menu)
+        scale = Math.min(
+          (w * (w < 761 ? 0.94 : 0.75)) / (level.right - level.left + 180),
+          h / 500,
+        );
+      scale = Math.max(0.18, scale) * (menu ? 1 : this.zoom);
       this.view = {
         scale,
-        x: w / 2 + (mobile ? 0 : 70) - ((level.left + level.right) / 2) * scale,
-        y: h * 0.52 - level.deckY * scale,
+        x:
+          w * (menu && w > 760 ? 0.65 : 0.5) -
+          ((level.left + level.right) / 2) * scale,
+        y: (menu ? h * 0.71 : top + available * 0.52) - level.deckY * scale,
       };
       return this.view;
     }
@@ -710,6 +716,7 @@
       const touch = e?.changedTouches?.[0] || e?.touches?.[0];
       this.inputHandlers.get(type)?.({
         button: e?.button ?? 0,
+        pointerId: pointer.id,
         clientX: touch?.clientX ?? e?.clientX ?? rect.left + pointer.x,
         clientY: touch?.clientY ?? e?.clientY ?? rect.top + pointer.y,
         preventDefault: () => e?.preventDefault?.(),
