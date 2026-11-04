@@ -58,7 +58,7 @@ The physics and editor tests have no third-party dependencies. Optional browser 
 ```sh
 npm install
 npx playwright install chromium
-python3 -m http.server 8766 
+python3 -m http.server 8766
 # In another terminal:
 npm run test:browser
 ```
