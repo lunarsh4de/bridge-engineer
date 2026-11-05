@@ -1,0 +1,4474 @@
+{
+  "version": "0.6.0",
+  "date": "2026-11-06",
+  "solver": "unchanged axial-v1",
+  "step_s": 0.008333333333333333,
+  "pass_rule": "delivery complete, zero breaks, maximum road drop <12 cm",
+  "rows": [
+    {
+      "level": 1,
+      "name": "reference",
+      "conditions": "[\"axial-v1\",440,1040,430,\"crossing\",600,9.81,0.12]",
+      "design": {
+        "nodes": [
+          {
+            "id": "left",
+            "x": 440,
+            "y": 430,
+            "fixed": true
+          },
+          {
+            "id": "right",
+            "x": 1040,
+            "y": 430,
+            "fixed": true
+          },
+          {
+            "id": "d1",
+            "x": 640,
+            "y": 430
+          },
+          {
+            "id": "d2",
+            "x": 840,
+            "y": 430
+          },
+          {
+            "id": "t0",
+            "x": 540,
+            "y": 330
+          },
+          {
+            "id": "t1",
+            "x": 740,
+            "y": 330
+          },
+          {
+            "id": "t2",
+            "x": 940,
+            "y": 330
+          }
+        ],
+        "members": [
+          {
+            "id": "m1",
+            "a": "left",
+            "b": "d1",
+            "material": "road"
+          },
+          {
+            "id": "m2",
+            "a": "left",
+            "b": "t0",
+            "material": "wood"
+          },
+          {
+            "id": "m3",
+            "a": "t0",
+            "b": "d1",
+            "material": "wood"
+          },
+          {
+            "id": "m4",
+            "a": "d1",
+            "b": "d2",
+            "material": "road"
+          },
+          {
+            "id": "m5",
+            "a": "d1",
+            "b": "t1",
+            "material": "wood"
+          },
+          {
+            "id": "m6",
+            "a": "t1",
+            "b": "d2",
+            "material": "wood"
+          },
+          {
+            "id": "m7",
+            "a": "t0",
+            "b": "t1",
+            "material": "wood"
+          },
+          {
+            "id": "m8",
+            "a": "d2",
+            "b": "right",
+            "material": "road"
+          },
+          {
+            "id": "m9",
+            "a": "d2",
+            "b": "t2",
+            "material": "wood"
+          },
+          {
+            "id": "m10",
+            "a": "t2",
+            "b": "right",
+            "material": "wood"
+          },
+          {
+            "id": "m11",
+            "a": "t1",
+            "b": "t2",
+            "material": "wood"
+          }
+        ]
+      },
+      "valid": true,
+      "result": "passed",
+      "drop_cm": 1.8189,
+      "time_s": 8.875,
+      "breaks": 0,
+      "firstBreak": null,
+      "force_ratio": 0.3651,
+      "usage_m": {
+        "road": 6,
+        "wood": 12.485281374238571,
+        "steel": 0,
+        "cable": 0
+      },
+      "cost": 18.4853
+    },
+    {
+      "level": 1,
+      "name": "alternative",
+      "conditions": "[\"axial-v1\",440,1040,430,\"crossing\",600,9.81,0.12]",
+      "design": {
+        "nodes": [
+          {
+            "id": "left",
+            "x": 440,
+            "y": 430,
+            "fixed": true
+          },
+          {
+            "id": "right",
+            "x": 1040,
+            "y": 430,
+            "fixed": true
+          },
+          {
+            "id": "d1",
+            "x": 640,
+            "y": 430
+          },
+          {
+            "id": "d2",
+            "x": 840,
+            "y": 430
+          },
+          {
+            "id": "t0",
+            "x": 540,
+            "y": 355
+          },
+          {
+            "id": "t1",
+            "x": 740,
+            "y": 355
+          },
+          {
+            "id": "t2",
+            "x": 940,
+            "y": 355
+          }
+        ],
+        "members": [
+          {
+            "id": "m1",
+            "a": "left",
+            "b": "d1",
+            "material": "road"
+          },
+          {
+            "id": "m2",
+            "a": "left",
+            "b": "t0",
+            "material": "wood"
+          },
+          {
+            "id": "m3",
+            "a": "t0",
+            "b": "d1",
+            "material": "wood"
+          },
+          {
+            "id": "m4",
+            "a": "d1",
+            "b": "d2",
+            "material": "road"
+          },
+          {
+            "id": "m5",
+            "a": "d1",
+            "b": "t1",
+            "material": "wood"
+          },
+          {
+            "id": "m6",
+            "a": "t1",
+            "b": "d2",
+            "material": "wood"
+          },
+          {
+            "id": "m7",
+            "a": "t0",
+            "b": "t1",
+            "material": "wood"
+          },
+          {
+            "id": "m8",
+            "a": "d2",
+            "b": "right",
+            "material": "road"
+          },
+          {
+            "id": "m9",
+            "a": "d2",
+            "b": "t2",
+            "material": "wood"
+          },
+          {
+            "id": "m10",
+            "a": "t2",
+            "b": "right",
+            "material": "wood"
+          },
+          {
+            "id": "m11",
+            "a": "t1",
+            "b": "t2",
+            "material": "wood"
+          }
+        ]
+      },
+      "valid": true,
+      "result": "passed",
+      "drop_cm": 2.8007,
+      "time_s": 8.875,
+      "breaks": 0,
+      "firstBreak": null,
+      "force_ratio": 0.4839,
+      "usage_m": {
+        "road": 6,
+        "wood": 11.5,
+        "steel": 0,
+        "cable": 0
+      },
+      "cost": 17.5
+    },
+    {
+      "level": 2,
+      "name": "reference",
+      "conditions": "[\"axial-v1\",340,1140,430,\"crossing\",1000,9.81,0.12]",
+      "design": {
+        "nodes": [
+          {
+            "id": "left",
+            "x": 340,
+            "y": 430,
+            "fixed": true
+          },
+          {
+            "id": "right",
+            "x": 1140,
+            "y": 430,
+            "fixed": true
+          },
+          {
+            "id": "d1",
+            "x": 540,
+            "y": 430
+          },
+          {
+            "id": "d2",
+            "x": 740,
+            "y": 430
+          },
+          {
+            "id": "d3",
+            "x": 940,
+            "y": 430
+          },
+          {
+            "id": "t0",
+            "x": 440,
+            "y": 330
+          },
+          {
+            "id": "t1",
+            "x": 640,
+            "y": 330
+          },
+          {
+            "id": "t2",
+            "x": 840,
+            "y": 330
+          },
+          {
+            "id": "t3",
+            "x": 1040,
+            "y": 330
+          }
+        ],
+        "members": [
+          {
+            "id": "m1",
+            "a": "left",
+            "b": "d1",
+            "material": "road"
+          },
+          {
+            "id": "m2",
+            "a": "left",
+            "b": "t0",
+            "material": "wood"
+          },
+          {
+            "id": "m3",
+            "a": "t0",
+            "b": "d1",
+            "material": "wood"
+          },
+          {
+            "id": "m4",
+            "a": "d1",
+            "b": "d2",
+            "material": "road"
+          },
+          {
+            "id": "m5",
+            "a": "d1",
+            "b": "t1",
+            "material": "wood"
+          },
+          {
+            "id": "m6",
+            "a": "t1",
+            "b": "d2",
+            "material": "wood"
+          },
+          {
+            "id": "m7",
+            "a": "t0",
+            "b": "t1",
+            "material": "wood"
+          },
+          {
+            "id": "m8",
+            "a": "d2",
+            "b": "d3",
+            "material": "road"
+          },
+          {
+            "id": "m9",
+            "a": "d2",
+            "b": "t2",
+            "material": "wood"
+          },
+          {
+            "id": "m10",
+            "a": "t2",
+            "b": "d3",
+            "material": "wood"
+          },
+          {
+            "id": "m11",
+            "a": "t1",
+            "b": "t2",
+            "material": "wood"
+          },
+          {
+            "id": "m12",
+            "a": "d3",
+            "b": "right",
+            "material": "road"
+          },
+          {
+            "id": "m13",
+            "a": "d3",
+            "b": "t3",
+            "material": "wood"
+          },
+          {
+            "id": "m14",
+            "a": "t3",
+            "b": "right",
+            "material": "wood"
+          },
+          {
+            "id": "m15",
+            "a": "t2",
+            "b": "t3",
+            "material": "wood"
+          }
+        ]
+      },
+      "valid": true,
+      "result": "passed",
+      "drop_cm": 6.4499,
+      "time_s": 10.975,
+      "breaks": 0,
+      "firstBreak": null,
+      "force_ratio": 0.8767,
+      "usage_m": {
+        "road": 8,
+        "wood": 17.313708498984763,
+        "steel": 0,
+        "cable": 0
+      },
+      "cost": 25.3137
+    },
+    {
+      "level": 2,
+      "name": "alternative",
+      "conditions": "[\"axial-v1\",340,1140,430,\"crossing\",1000,9.81,0.12]",
+      "design": {
+        "nodes": [
+          {
+            "id": "left",
+            "x": 340,
+            "y": 430,
+            "fixed": true
+          },
+          {
+            "id": "right",
+            "x": 1140,
+            "y": 430,
+            "fixed": true
+          },
+          {
+            "id": "d1",
+            "x": 540,
+            "y": 430
+          },
+          {
+            "id": "d2",
+            "x": 740,
+            "y": 430
+          },
+          {
+            "id": "d3",
+            "x": 940,
+            "y": 430
+          },
+          {
+            "id": "t0",
+            "x": 440,
+            "y": 305
+          },
+          {
+            "id": "t1",
+            "x": 640,
+            "y": 305
+          },
+          {
+            "id": "t2",
+            "x": 840,
+            "y": 305
+          },
+          {
+            "id": "t3",
+            "x": 1040,
+            "y": 305
+          }
+        ],
+        "members": [
+          {
+            "id": "m1",
+            "a": "left",
+            "b": "d1",
+            "material": "road"
+          },
+          {
+            "id": "m2",
+            "a": "left",
+            "b": "t0",
+            "material": "wood"
+          },
+          {
+            "id": "m3",
+            "a": "t0",
+            "b": "d1",
+            "material": "wood"
+          },
+          {
+            "id": "m4",
+            "a": "d1",
+            "b": "d2",
+            "material": "road"
+          },
+          {
+            "id": "m5",
+            "a": "d1",
+            "b": "t1",
+            "material": "wood"
+          },
+          {
+            "id": "m6",
+            "a": "t1",
+            "b": "d2",
+            "material": "wood"
+          },
+          {
+            "id": "m7",
+            "a": "t0",
+            "b": "t1",
+            "material": "wood"
+          },
+          {
+            "id": "m8",
+            "a": "d2",
+            "b": "d3",
+            "material": "road"
+          },
+          {
+            "id": "m9",
+            "a": "d2",
+            "b": "t2",
+            "material": "wood"
+          },
+          {
+            "id": "m10",
+            "a": "t2",
+            "b": "d3",
+            "material": "wood"
+          },
+          {
+            "id": "m11",
+            "a": "t1",
+            "b": "t2",
+            "material": "wood"
+          },
+          {
+            "id": "m12",
+            "a": "d3",
+            "b": "right",
+            "material": "road"
+          },
+          {
+            "id": "m13",
+            "a": "d3",
+            "b": "t3",
+            "material": "wood"
+          },
+          {
+            "id": "m14",
+            "a": "t3",
+            "b": "right",
+            "material": "wood"
+          },
+          {
+            "id": "m15",
+            "a": "t2",
+            "b": "t3",
+            "material": "wood"
+          }
+        ]
+      },
+      "valid": true,
+      "result": "passed",
+      "drop_cm": 4.6451,
+      "time_s": 10.975,
+      "breaks": 0,
+      "firstBreak": null,
+      "force_ratio": 0.702,
+      "usage_m": {
+        "road": 8,
+        "wood": 18.806248474865697,
+        "steel": 0,
+        "cable": 0
+      },
+      "cost": 26.8062
+    },
+    {
+      "level": 3,
+      "name": "reference",
+      "conditions": "[\"axial-v1\",240,1240,430,\"crossing\",1800,9.81,0.12]",
+      "design": {
+        "nodes": [
+          {
+            "id": "left",
+            "x": 240,
+            "y": 430,
+            "fixed": true
+          },
+          {
+            "id": "right",
+            "x": 1240,
+            "y": 430,
+            "fixed": true
+          },
+          {
+            "id": "d1",
+            "x": 440,
+            "y": 430
+          },
+          {
+            "id": "d2",
+            "x": 640,
+            "y": 430
+          },
+          {
+            "id": "d3",
+            "x": 840,
+            "y": 430
+          },
+          {
+            "id": "d4",
+            "x": 1040,
+            "y": 430
+          },
+          {
+            "id": "t0",
+            "x": 340,
+            "y": 305
+          },
+          {
+            "id": "t1",
+            "x": 540,
+            "y": 305
+          },
+          {
+            "id": "t2",
+            "x": 740,
+            "y": 305
+          },
+          {
+            "id": "t3",
+            "x": 940,
+            "y": 305
+          },
+          {
+            "id": "t4",
+            "x": 1140,
+            "y": 305
+          }
+        ],
+        "members": [
+          {
+            "id": "m1",
+            "a": "left",
+            "b": "d1",
+            "material": "road"
+          },
+          {
+            "id": "m2",
+            "a": "left",
+            "b": "t0",
+            "material": "steel"
+          },
+          {
+            "id": "m3",
+            "a": "t0",
+            "b": "d1",
+            "material": "wood"
+          },
+          {
+            "id": "m4",
+            "a": "d1",
+            "b": "d2",
+            "material": "road"
+          },
+          {
+            "id": "m5",
+            "a": "d1",
+            "b": "t1",
+            "material": "wood"
+          },
+          {
+            "id": "m6",
+            "a": "t1",
+            "b": "d2",
+            "material": "wood"
+          },
+          {
+            "id": "m7",
+            "a": "t0",
+            "b": "t1",
+            "material": "steel"
+          },
+          {
+            "id": "m8",
+            "a": "d2",
+            "b": "d3",
+            "material": "road"
+          },
+          {
+            "id": "m9",
+            "a": "d2",
+            "b": "t2",
+            "material": "wood"
+          },
+          {
+            "id": "m10",
+            "a": "t2",
+            "b": "d3",
+            "material": "wood"
+          },
+          {
+            "id": "m11",
+            "a": "t1",
+            "b": "t2",
+            "material": "steel"
+          },
+          {
+            "id": "m12",
+            "a": "d3",
+            "b": "d4",
+            "material": "road"
+          },
+          {
+            "id": "m13",
+            "a": "d3",
+            "b": "t3",
+            "material": "wood"
+          },
+          {
+            "id": "m14",
+            "a": "t3",
+            "b": "d4",
+            "material": "wood"
+          },
+          {
+            "id": "m15",
+            "a": "t2",
+            "b": "t3",
+            "material": "steel"
+          },
+          {
+            "id": "m16",
+            "a": "d4",
+            "b": "right",
+            "material": "road"
+          },
+          {
+            "id": "m17",
+            "a": "d4",
+            "b": "t4",
+            "material": "wood"
+          },
+          {
+            "id": "m18",
+            "a": "t4",
+            "b": "right",
+            "material": "steel"
+          },
+          {
+            "id": "m19",
+            "a": "t3",
+            "b": "t4",
+            "material": "steel"
+          }
+        ]
+      },
+      "valid": true,
+      "result": "passed",
+      "drop_cm": 5.6385,
+      "time_s": 13.0833,
+      "breaks": 0,
+      "firstBreak": null,
+      "force_ratio": 0.7839,
+      "usage_m": {
+        "road": 10,
+        "wood": 12.806248474865697,
+        "steel": 11.201562118716424,
+        "cable": 0
+      },
+      "cost": 56.4109
+    },
+    {
+      "level": 3,
+      "name": "alternative",
+      "conditions": "[\"axial-v1\",240,1240,430,\"crossing\",1800,9.81,0.12]",
+      "design": {
+        "nodes": [
+          {
+            "id": "left",
+            "x": 240,
+            "y": 430,
+            "fixed": true
+          },
+          {
+            "id": "right",
+            "x": 1240,
+            "y": 430,
+            "fixed": true
+          },
+          {
+            "id": "d1",
+            "x": 440,
+            "y": 430
+          },
+          {
+            "id": "d2",
+            "x": 640,
+            "y": 430
+          },
+          {
+            "id": "d3",
+            "x": 840,
+            "y": 430
+          },
+          {
+            "id": "d4",
+            "x": 1040,
+            "y": 430
+          },
+          {
+            "id": "t0",
+            "x": 340,
+            "y": 330
+          },
+          {
+            "id": "t1",
+            "x": 540,
+            "y": 330
+          },
+          {
+            "id": "t2",
+            "x": 740,
+            "y": 330
+          },
+          {
+            "id": "t3",
+            "x": 940,
+            "y": 330
+          },
+          {
+            "id": "t4",
+            "x": 1140,
+            "y": 330
+          }
+        ],
+        "members": [
+          {
+            "id": "m1",
+            "a": "left",
+            "b": "d1",
+            "material": "road"
+          },
+          {
+            "id": "m2",
+            "a": "left",
+            "b": "t0",
+            "material": "steel"
+          },
+          {
+            "id": "m3",
+            "a": "t0",
+            "b": "d1",
+            "material": "wood"
+          },
+          {
+            "id": "m4",
+            "a": "d1",
+            "b": "d2",
+            "material": "road"
+          },
+          {
+            "id": "m5",
+            "a": "d1",
+            "b": "t1",
+            "material": "wood"
+          },
+          {
+            "id": "m6",
+            "a": "t1",
+            "b": "d2",
+            "material": "wood"
+          },
+          {
+            "id": "m7",
+            "a": "t0",
+            "b": "t1",
+            "material": "steel"
+          },
+          {
+            "id": "m8",
+            "a": "d2",
+            "b": "d3",
+            "material": "road"
+          },
+          {
+            "id": "m9",
+            "a": "d2",
+            "b": "t2",
+            "material": "wood"
+          },
+          {
+            "id": "m10",
+            "a": "t2",
+            "b": "d3",
+            "material": "wood"
+          },
+          {
+            "id": "m11",
+            "a": "t1",
+            "b": "t2",
+            "material": "steel"
+          },
+          {
+            "id": "m12",
+            "a": "d3",
+            "b": "d4",
+            "material": "road"
+          },
+          {
+            "id": "m13",
+            "a": "d3",
+            "b": "t3",
+            "material": "wood"
+          },
+          {
+            "id": "m14",
+            "a": "t3",
+            "b": "d4",
+            "material": "wood"
+          },
+          {
+            "id": "m15",
+            "a": "t2",
+            "b": "t3",
+            "material": "steel"
+          },
+          {
+            "id": "m16",
+            "a": "d4",
+            "b": "right",
+            "material": "road"
+          },
+          {
+            "id": "m17",
+            "a": "d4",
+            "b": "t4",
+            "material": "wood"
+          },
+          {
+            "id": "m18",
+            "a": "t4",
+            "b": "right",
+            "material": "steel"
+          },
+          {
+            "id": "m19",
+            "a": "t3",
+            "b": "t4",
+            "material": "steel"
+          }
+        ]
+      },
+      "valid": true,
+      "result": "passed",
+      "drop_cm": 7.4562,
+      "time_s": 13.0833,
+      "breaks": 0,
+      "firstBreak": null,
+      "force_ratio": 0.865,
+      "usage_m": {
+        "road": 10,
+        "wood": 11.313708498984763,
+        "steel": 10.82842712474619,
+        "cable": 0
+      },
+      "cost": 53.799
+    },
+    {
+      "level": 4,
+      "name": "reference",
+      "conditions": "[\"axial-v1\",340,1140,430,\"crossing\",1400,9.81,0.12]",
+      "design": {
+        "nodes": [
+          {
+            "id": "left",
+            "x": 340,
+            "y": 430,
+            "fixed": true
+          },
+          {
+            "id": "right",
+            "x": 1140,
+            "y": 430,
+            "fixed": true
+          },
+          {
+            "id": "d1",
+            "x": 540,
+            "y": 430
+          },
+          {
+            "id": "d2",
+            "x": 740,
+            "y": 430
+          },
+          {
+            "id": "d3",
+            "x": 940,
+            "y": 430
+          },
+          {
+            "id": "t0",
+            "x": 440,
+            "y": 555
+          },
+          {
+            "id": "t1",
+            "x": 640,
+            "y": 555
+          },
+          {
+            "id": "t2",
+            "x": 840,
+            "y": 555
+          },
+          {
+            "id": "t3",
+            "x": 1040,
+            "y": 555
+          }
+        ],
+        "members": [
+          {
+            "id": "m1",
+            "a": "left",
+            "b": "d1",
+            "material": "road"
+          },
+          {
+            "id": "m2",
+            "a": "left",
+            "b": "t0",
+            "material": "steel"
+          },
+          {
+            "id": "m3",
+            "a": "t0",
+            "b": "d1",
+            "material": "steel"
+          },
+          {
+            "id": "m4",
+            "a": "d1",
+            "b": "d2",
+            "material": "road"
+          },
+          {
+            "id": "m5",
+            "a": "d1",
+            "b": "t1",
+            "material": "steel"
+          },
+          {
+            "id": "m6",
+            "a": "t1",
+            "b": "d2",
+            "material": "steel"
+          },
+          {
+            "id": "m7",
+            "a": "t0",
+            "b": "t1",
+            "material": "cable"
+          },
+          {
+            "id": "m8",
+            "a": "d2",
+            "b": "d3",
+            "material": "road"
+          },
+          {
+            "id": "m9",
+            "a": "d2",
+            "b": "t2",
+            "material": "steel"
+          },
+          {
+            "id": "m10",
+            "a": "t2",
+            "b": "d3",
+            "material": "steel"
+          },
+          {
+            "id": "m11",
+            "a": "t1",
+            "b": "t2",
+            "material": "cable"
+          },
+          {
+            "id": "m12",
+            "a": "d3",
+            "b": "right",
+            "material": "road"
+          },
+          {
+            "id": "m13",
+            "a": "d3",
+            "b": "t3",
+            "material": "steel"
+          },
+          {
+            "id": "m14",
+            "a": "t3",
+            "b": "right",
+            "material": "steel"
+          },
+          {
+            "id": "m15",
+            "a": "t2",
+            "b": "t3",
+            "material": "cable"
+          }
+        ]
+      },
+      "valid": true,
+      "result": "passed",
+      "drop_cm": 3.7076,
+      "time_s": 10.975,
+      "breaks": 0,
+      "firstBreak": null,
+      "force_ratio": 0.6014,
+      "usage_m": {
+        "road": 8,
+        "wood": 0,
+        "steel": 12.806248474865697,
+        "cable": 6
+      },
+      "cost": 53.6187
+    },
+    {
+      "level": 4,
+      "name": "alternative",
+      "conditions": "[\"axial-v1\",340,1140,430,\"crossing\",1400,9.81,0.12]",
+      "design": {
+        "nodes": [
+          {
+            "id": "left",
+            "x": 340,
+            "y": 430,
+            "fixed": true
+          },
+          {
+            "id": "right",
+            "x": 1140,
+            "y": 430,
+            "fixed": true
+          },
+          {
+            "id": "d1",
+            "x": 540,
+            "y": 430
+          },
+          {
+            "id": "d2",
+            "x": 740,
+            "y": 430
+          },
+          {
+            "id": "d3",
+            "x": 940,
+            "y": 430
+          },
+          {
+            "id": "t0",
+            "x": 440,
+            "y": 580
+          },
+          {
+            "id": "t1",
+            "x": 640,
+            "y": 580
+          },
+          {
+            "id": "t2",
+            "x": 840,
+            "y": 580
+          },
+          {
+            "id": "t3",
+            "x": 1040,
+            "y": 580
+          }
+        ],
+        "members": [
+          {
+            "id": "m1",
+            "a": "left",
+            "b": "d1",
+            "material": "road"
+          },
+          {
+            "id": "m2",
+            "a": "left",
+            "b": "t0",
+            "material": "steel"
+          },
+          {
+            "id": "m3",
+            "a": "t0",
+            "b": "d1",
+            "material": "steel"
+          },
+          {
+            "id": "m4",
+            "a": "d1",
+            "b": "d2",
+            "material": "road"
+          },
+          {
+            "id": "m5",
+            "a": "d1",
+            "b": "t1",
+            "material": "steel"
+          },
+          {
+            "id": "m6",
+            "a": "t1",
+            "b": "d2",
+            "material": "steel"
+          },
+          {
+            "id": "m7",
+            "a": "t0",
+            "b": "t1",
+            "material": "cable"
+          },
+          {
+            "id": "m8",
+            "a": "d2",
+            "b": "d3",
+            "material": "road"
+          },
+          {
+            "id": "m9",
+            "a": "d2",
+            "b": "t2",
+            "material": "steel"
+          },
+          {
+            "id": "m10",
+            "a": "t2",
+            "b": "d3",
+            "material": "steel"
+          },
+          {
+            "id": "m11",
+            "a": "t1",
+            "b": "t2",
+            "material": "cable"
+          },
+          {
+            "id": "m12",
+            "a": "d3",
+            "b": "right",
+            "material": "road"
+          },
+          {
+            "id": "m13",
+            "a": "d3",
+            "b": "t3",
+            "material": "steel"
+          },
+          {
+            "id": "m14",
+            "a": "t3",
+            "b": "right",
+            "material": "steel"
+          },
+          {
+            "id": "m15",
+            "a": "t2",
+            "b": "t3",
+            "material": "cable"
+          }
+        ]
+      },
+      "valid": true,
+      "result": "passed",
+      "drop_cm": 2.8202,
+      "time_s": 10.975,
+      "breaks": 0,
+      "firstBreak": null,
+      "force_ratio": 0.5154,
+      "usage_m": {
+        "road": 8,
+        "wood": 0,
+        "steel": 14.422205101855955,
+        "cable": 6
+      },
+      "cost": 58.4666
+    },
+    {
+      "level": 5,
+      "name": "reference",
+      "conditions": "[\"axial-v1\",200,1400,430,\"crossing\",2400,9.81,0.12,[\"supports\",[800,430]]]",
+      "design": {
+        "nodes": [
+          {
+            "id": "left",
+            "x": 200,
+            "y": 430,
+            "fixed": true
+          },
+          {
+            "id": "right",
+            "x": 1400,
+            "y": 430,
+            "fixed": true
+          },
+          {
+            "id": "pier",
+            "x": 800,
+            "y": 430,
+            "fixed": true
+          },
+          {
+            "id": "d1",
+            "x": 400,
+            "y": 430
+          },
+          {
+            "id": "d2",
+            "x": 600,
+            "y": 430
+          },
+          {
+            "id": "d4",
+            "x": 1000,
+            "y": 430
+          },
+          {
+            "id": "d5",
+            "x": 1200,
+            "y": 430
+          },
+          {
+            "id": "t0",
+            "x": 300,
+            "y": 305
+          },
+          {
+            "id": "t1",
+            "x": 500,
+            "y": 305
+          },
+          {
+            "id": "t2",
+            "x": 700,
+            "y": 305
+          },
+          {
+            "id": "t3",
+            "x": 900,
+            "y": 305
+          },
+          {
+            "id": "t4",
+            "x": 1100,
+            "y": 305
+          },
+          {
+            "id": "t5",
+            "x": 1300,
+            "y": 305
+          }
+        ],
+        "members": [
+          {
+            "id": "m1",
+            "a": "left",
+            "b": "d1",
+            "material": "road"
+          },
+          {
+            "id": "m2",
+            "a": "left",
+            "b": "t0",
+            "material": "wood"
+          },
+          {
+            "id": "m3",
+            "a": "t0",
+            "b": "d1",
+            "material": "wood"
+          },
+          {
+            "id": "m4",
+            "a": "d1",
+            "b": "d2",
+            "material": "road"
+          },
+          {
+            "id": "m5",
+            "a": "d1",
+            "b": "t1",
+            "material": "wood"
+          },
+          {
+            "id": "m6",
+            "a": "t1",
+            "b": "d2",
+            "material": "wood"
+          },
+          {
+            "id": "m7",
+            "a": "t0",
+            "b": "t1",
+            "material": "wood"
+          },
+          {
+            "id": "m8",
+            "a": "d2",
+            "b": "pier",
+            "material": "road"
+          },
+          {
+            "id": "m9",
+            "a": "d2",
+            "b": "t2",
+            "material": "wood"
+          },
+          {
+            "id": "m10",
+            "a": "t2",
+            "b": "pier",
+            "material": "wood"
+          },
+          {
+            "id": "m11",
+            "a": "t1",
+            "b": "t2",
+            "material": "wood"
+          },
+          {
+            "id": "m12",
+            "a": "pier",
+            "b": "d4",
+            "material": "road"
+          },
+          {
+            "id": "m13",
+            "a": "pier",
+            "b": "t3",
+            "material": "wood"
+          },
+          {
+            "id": "m14",
+            "a": "t3",
+            "b": "d4",
+            "material": "wood"
+          },
+          {
+            "id": "m15",
+            "a": "t2",
+            "b": "t3",
+            "material": "wood"
+          },
+          {
+            "id": "m16",
+            "a": "d4",
+            "b": "d5",
+            "material": "road"
+          },
+          {
+            "id": "m17",
+            "a": "d4",
+            "b": "t4",
+            "material": "wood"
+          },
+          {
+            "id": "m18",
+            "a": "t4",
+            "b": "d5",
+            "material": "wood"
+          },
+          {
+            "id": "m19",
+            "a": "t3",
+            "b": "t4",
+            "material": "wood"
+          },
+          {
+            "id": "m20",
+            "a": "d5",
+            "b": "right",
+            "material": "road"
+          },
+          {
+            "id": "m21",
+            "a": "d5",
+            "b": "t5",
+            "material": "wood"
+          },
+          {
+            "id": "m22",
+            "a": "t5",
+            "b": "right",
+            "material": "wood"
+          },
+          {
+            "id": "m23",
+            "a": "t4",
+            "b": "t5",
+            "material": "wood"
+          }
+        ]
+      },
+      "valid": true,
+      "result": "passed",
+      "drop_cm": 3.8701,
+      "time_s": 15.1917,
+      "breaks": 0,
+      "firstBreak": null,
+      "force_ratio": 0.8095,
+      "usage_m": {
+        "road": 12,
+        "wood": 29.209372712298546,
+        "steel": 0,
+        "cable": 0
+      },
+      "cost": 41.2094
+    },
+    {
+      "level": 5,
+      "name": "alternative",
+      "conditions": "[\"axial-v1\",200,1400,430,\"crossing\",2400,9.81,0.12,[\"supports\",[800,430]]]",
+      "design": {
+        "nodes": [
+          {
+            "id": "left",
+            "x": 200,
+            "y": 430,
+            "fixed": true
+          },
+          {
+            "id": "right",
+            "x": 1400,
+            "y": 430,
+            "fixed": true
+          },
+          {
+            "id": "pier",
+            "x": 800,
+            "y": 430,
+            "fixed": true
+          },
+          {
+            "id": "d1",
+            "x": 400,
+            "y": 430
+          },
+          {
+            "id": "d2",
+            "x": 600,
+            "y": 430
+          },
+          {
+            "id": "d4",
+            "x": 1000,
+            "y": 430
+          },
+          {
+            "id": "d5",
+            "x": 1200,
+            "y": 430
+          },
+          {
+            "id": "t0",
+            "x": 300,
+            "y": 330
+          },
+          {
+            "id": "t1",
+            "x": 500,
+            "y": 330
+          },
+          {
+            "id": "t2",
+            "x": 700,
+            "y": 330
+          },
+          {
+            "id": "t3",
+            "x": 900,
+            "y": 330
+          },
+          {
+            "id": "t4",
+            "x": 1100,
+            "y": 330
+          },
+          {
+            "id": "t5",
+            "x": 1300,
+            "y": 330
+          }
+        ],
+        "members": [
+          {
+            "id": "m1",
+            "a": "left",
+            "b": "d1",
+            "material": "road"
+          },
+          {
+            "id": "m2",
+            "a": "left",
+            "b": "t0",
+            "material": "wood"
+          },
+          {
+            "id": "m3",
+            "a": "t0",
+            "b": "d1",
+            "material": "wood"
+          },
+          {
+            "id": "m4",
+            "a": "d1",
+            "b": "d2",
+            "material": "road"
+          },
+          {
+            "id": "m5",
+            "a": "d1",
+            "b": "t1",
+            "material": "wood"
+          },
+          {
+            "id": "m6",
+            "a": "t1",
+            "b": "d2",
+            "material": "wood"
+          },
+          {
+            "id": "m7",
+            "a": "t0",
+            "b": "t1",
+            "material": "wood"
+          },
+          {
+            "id": "m8",
+            "a": "d2",
+            "b": "pier",
+            "material": "road"
+          },
+          {
+            "id": "m9",
+            "a": "d2",
+            "b": "t2",
+            "material": "wood"
+          },
+          {
+            "id": "m10",
+            "a": "t2",
+            "b": "pier",
+            "material": "wood"
+          },
+          {
+            "id": "m11",
+            "a": "t1",
+            "b": "t2",
+            "material": "wood"
+          },
+          {
+            "id": "m12",
+            "a": "pier",
+            "b": "d4",
+            "material": "road"
+          },
+          {
+            "id": "m13",
+            "a": "pier",
+            "b": "t3",
+            "material": "wood"
+          },
+          {
+            "id": "m14",
+            "a": "t3",
+            "b": "d4",
+            "material": "wood"
+          },
+          {
+            "id": "m15",
+            "a": "t2",
+            "b": "t3",
+            "material": "wood"
+          },
+          {
+            "id": "m16",
+            "a": "d4",
+            "b": "d5",
+            "material": "road"
+          },
+          {
+            "id": "m17",
+            "a": "d4",
+            "b": "t4",
+            "material": "wood"
+          },
+          {
+            "id": "m18",
+            "a": "t4",
+            "b": "d5",
+            "material": "wood"
+          },
+          {
+            "id": "m19",
+            "a": "t3",
+            "b": "t4",
+            "material": "wood"
+          },
+          {
+            "id": "m20",
+            "a": "d5",
+            "b": "right",
+            "material": "road"
+          },
+          {
+            "id": "m21",
+            "a": "d5",
+            "b": "t5",
+            "material": "wood"
+          },
+          {
+            "id": "m22",
+            "a": "t5",
+            "b": "right",
+            "material": "wood"
+          },
+          {
+            "id": "m23",
+            "a": "t4",
+            "b": "t5",
+            "material": "wood"
+          }
+        ]
+      },
+      "valid": true,
+      "result": "passed",
+      "drop_cm": 4.9629,
+      "time_s": 15.1917,
+      "breaks": 0,
+      "firstBreak": null,
+      "force_ratio": 0.9822,
+      "usage_m": {
+        "road": 12,
+        "wood": 26.970562748477146,
+        "steel": 0,
+        "cable": 0
+      },
+      "cost": 38.9706
+    },
+    {
+      "level": 6,
+      "name": "reference",
+      "conditions": "[\"axial-v1\",240,1240,430,\"crossing\",2200,9.81,0.12]",
+      "design": {
+        "nodes": [
+          {
+            "id": "left",
+            "x": 240,
+            "y": 430,
+            "fixed": true
+          },
+          {
+            "id": "right",
+            "x": 1240,
+            "y": 430,
+            "fixed": true
+          },
+          {
+            "id": "d1",
+            "x": 440,
+            "y": 430
+          },
+          {
+            "id": "d2",
+            "x": 640,
+            "y": 430
+          },
+          {
+            "id": "d3",
+            "x": 840,
+            "y": 430
+          },
+          {
+            "id": "d4",
+            "x": 1040,
+            "y": 430
+          },
+          {
+            "id": "t0",
+            "x": 340,
+            "y": 565
+          },
+          {
+            "id": "t1",
+            "x": 540,
+            "y": 565
+          },
+          {
+            "id": "t2",
+            "x": 740,
+            "y": 565
+          },
+          {
+            "id": "t3",
+            "x": 940,
+            "y": 565
+          },
+          {
+            "id": "t4",
+            "x": 1140,
+            "y": 565
+          }
+        ],
+        "members": [
+          {
+            "id": "m1",
+            "a": "left",
+            "b": "d1",
+            "material": "road"
+          },
+          {
+            "id": "m2",
+            "a": "left",
+            "b": "t0",
+            "material": "steel"
+          },
+          {
+            "id": "m3",
+            "a": "t0",
+            "b": "d1",
+            "material": "steel"
+          },
+          {
+            "id": "m4",
+            "a": "d1",
+            "b": "d2",
+            "material": "road"
+          },
+          {
+            "id": "m5",
+            "a": "d1",
+            "b": "t1",
+            "material": "steel"
+          },
+          {
+            "id": "m6",
+            "a": "t1",
+            "b": "d2",
+            "material": "steel"
+          },
+          {
+            "id": "m7",
+            "a": "t0",
+            "b": "t1",
+            "material": "cable"
+          },
+          {
+            "id": "m8",
+            "a": "d2",
+            "b": "d3",
+            "material": "road"
+          },
+          {
+            "id": "m9",
+            "a": "d2",
+            "b": "t2",
+            "material": "steel"
+          },
+          {
+            "id": "m10",
+            "a": "t2",
+            "b": "d3",
+            "material": "steel"
+          },
+          {
+            "id": "m11",
+            "a": "t1",
+            "b": "t2",
+            "material": "cable"
+          },
+          {
+            "id": "m12",
+            "a": "d3",
+            "b": "d4",
+            "material": "road"
+          },
+          {
+            "id": "m13",
+            "a": "d3",
+            "b": "t3",
+            "material": "steel"
+          },
+          {
+            "id": "m14",
+            "a": "t3",
+            "b": "d4",
+            "material": "steel"
+          },
+          {
+            "id": "m15",
+            "a": "t2",
+            "b": "t3",
+            "material": "cable"
+          },
+          {
+            "id": "m16",
+            "a": "d4",
+            "b": "right",
+            "material": "road"
+          },
+          {
+            "id": "m17",
+            "a": "d4",
+            "b": "t4",
+            "material": "steel"
+          },
+          {
+            "id": "m18",
+            "a": "t4",
+            "b": "right",
+            "material": "steel"
+          },
+          {
+            "id": "m19",
+            "a": "t3",
+            "b": "t4",
+            "material": "cable"
+          }
+        ]
+      },
+      "valid": true,
+      "result": "passed",
+      "drop_cm": 8.0638,
+      "time_s": 13.0833,
+      "breaks": 0,
+      "firstBreak": null,
+      "force_ratio": 0.9917,
+      "usage_m": {
+        "road": 10,
+        "wood": 0,
+        "steel": 16.80029761641144,
+        "cable": 8
+      },
+      "cost": 70.0009
+    },
+    {
+      "level": 6,
+      "name": "alternative",
+      "conditions": "[\"axial-v1\",240,1240,430,\"crossing\",2200,9.81,0.12]",
+      "design": {
+        "nodes": [
+          {
+            "id": "left",
+            "x": 240,
+            "y": 430,
+            "fixed": true
+          },
+          {
+            "id": "right",
+            "x": 1240,
+            "y": 430,
+            "fixed": true
+          },
+          {
+            "id": "d1",
+            "x": 440,
+            "y": 430
+          },
+          {
+            "id": "d2",
+            "x": 640,
+            "y": 430
+          },
+          {
+            "id": "d3",
+            "x": 840,
+            "y": 430
+          },
+          {
+            "id": "d4",
+            "x": 1040,
+            "y": 430
+          },
+          {
+            "id": "t0",
+            "x": 340,
+            "y": 580
+          },
+          {
+            "id": "t1",
+            "x": 540,
+            "y": 580
+          },
+          {
+            "id": "t2",
+            "x": 740,
+            "y": 580
+          },
+          {
+            "id": "t3",
+            "x": 940,
+            "y": 580
+          },
+          {
+            "id": "t4",
+            "x": 1140,
+            "y": 580
+          }
+        ],
+        "members": [
+          {
+            "id": "m1",
+            "a": "left",
+            "b": "d1",
+            "material": "road"
+          },
+          {
+            "id": "m2",
+            "a": "left",
+            "b": "t0",
+            "material": "steel"
+          },
+          {
+            "id": "m3",
+            "a": "t0",
+            "b": "d1",
+            "material": "steel"
+          },
+          {
+            "id": "m4",
+            "a": "d1",
+            "b": "d2",
+            "material": "road"
+          },
+          {
+            "id": "m5",
+            "a": "d1",
+            "b": "t1",
+            "material": "steel"
+          },
+          {
+            "id": "m6",
+            "a": "t1",
+            "b": "d2",
+            "material": "steel"
+          },
+          {
+            "id": "m7",
+            "a": "t0",
+            "b": "t1",
+            "material": "cable"
+          },
+          {
+            "id": "m8",
+            "a": "d2",
+            "b": "d3",
+            "material": "road"
+          },
+          {
+            "id": "m9",
+            "a": "d2",
+            "b": "t2",
+            "material": "steel"
+          },
+          {
+            "id": "m10",
+            "a": "t2",
+            "b": "d3",
+            "material": "steel"
+          },
+          {
+            "id": "m11",
+            "a": "t1",
+            "b": "t2",
+            "material": "cable"
+          },
+          {
+            "id": "m12",
+            "a": "d3",
+            "b": "d4",
+            "material": "road"
+          },
+          {
+            "id": "m13",
+            "a": "d3",
+            "b": "t3",
+            "material": "steel"
+          },
+          {
+            "id": "m14",
+            "a": "t3",
+            "b": "d4",
+            "material": "steel"
+          },
+          {
+            "id": "m15",
+            "a": "t2",
+            "b": "t3",
+            "material": "cable"
+          },
+          {
+            "id": "m16",
+            "a": "d4",
+            "b": "right",
+            "material": "road"
+          },
+          {
+            "id": "m17",
+            "a": "d4",
+            "b": "t4",
+            "material": "steel"
+          },
+          {
+            "id": "m18",
+            "a": "t4",
+            "b": "right",
+            "material": "steel"
+          },
+          {
+            "id": "m19",
+            "a": "t3",
+            "b": "t4",
+            "material": "cable"
+          }
+        ]
+      },
+      "valid": true,
+      "result": "passed",
+      "drop_cm": 6.8696,
+      "time_s": 13.0833,
+      "breaks": 0,
+      "firstBreak": null,
+      "force_ratio": 0.9092,
+      "usage_m": {
+        "road": 10,
+        "wood": 0,
+        "steel": 18.027756377319943,
+        "cable": 8
+      },
+      "cost": 73.6833
+    },
+    {
+      "level": 7,
+      "name": "reference",
+      "conditions": "[\"axial-v1\",340,1140,430,\"crossing\",4800,9.81,0.12]",
+      "design": {
+        "nodes": [
+          {
+            "id": "left",
+            "x": 340,
+            "y": 430,
+            "fixed": true
+          },
+          {
+            "id": "right",
+            "x": 1140,
+            "y": 430,
+            "fixed": true
+          },
+          {
+            "id": "d1",
+            "x": 540,
+            "y": 430
+          },
+          {
+            "id": "d2",
+            "x": 740,
+            "y": 430
+          },
+          {
+            "id": "d3",
+            "x": 940,
+            "y": 430
+          },
+          {
+            "id": "t0",
+            "x": 440,
+            "y": 300
+          },
+          {
+            "id": "t1",
+            "x": 640,
+            "y": 300
+          },
+          {
+            "id": "t2",
+            "x": 840,
+            "y": 300
+          },
+          {
+            "id": "t3",
+            "x": 1040,
+            "y": 300
+          }
+        ],
+        "members": [
+          {
+            "id": "m1",
+            "a": "left",
+            "b": "d1",
+            "material": "road"
+          },
+          {
+            "id": "m2",
+            "a": "left",
+            "b": "t0",
+            "material": "steel"
+          },
+          {
+            "id": "m3",
+            "a": "t0",
+            "b": "d1",
+            "material": "steel"
+          },
+          {
+            "id": "m4",
+            "a": "d1",
+            "b": "d2",
+            "material": "road"
+          },
+          {
+            "id": "m5",
+            "a": "d1",
+            "b": "t1",
+            "material": "steel"
+          },
+          {
+            "id": "m6",
+            "a": "t1",
+            "b": "d2",
+            "material": "steel"
+          },
+          {
+            "id": "m7",
+            "a": "t0",
+            "b": "t1",
+            "material": "steel"
+          },
+          {
+            "id": "m8",
+            "a": "d2",
+            "b": "d3",
+            "material": "road"
+          },
+          {
+            "id": "m9",
+            "a": "d2",
+            "b": "t2",
+            "material": "steel"
+          },
+          {
+            "id": "m10",
+            "a": "t2",
+            "b": "d3",
+            "material": "steel"
+          },
+          {
+            "id": "m11",
+            "a": "t1",
+            "b": "t2",
+            "material": "steel"
+          },
+          {
+            "id": "m12",
+            "a": "d3",
+            "b": "right",
+            "material": "road"
+          },
+          {
+            "id": "m13",
+            "a": "d3",
+            "b": "t3",
+            "material": "steel"
+          },
+          {
+            "id": "m14",
+            "a": "t3",
+            "b": "right",
+            "material": "steel"
+          },
+          {
+            "id": "m15",
+            "a": "t2",
+            "b": "t3",
+            "material": "steel"
+          }
+        ]
+      },
+      "valid": true,
+      "result": "passed",
+      "drop_cm": 4.352,
+      "time_s": 10.975,
+      "breaks": 0,
+      "firstBreak": null,
+      "force_ratio": 0.7239,
+      "usage_m": {
+        "road": 8,
+        "wood": 0,
+        "steel": 19.12097557348538,
+        "cable": 0
+      },
+      "cost": 65.3629
+    },
+    {
+      "level": 7,
+      "name": "alternative",
+      "conditions": "[\"axial-v1\",340,1140,430,\"crossing\",4800,9.81,0.12]",
+      "design": {
+        "nodes": [
+          {
+            "id": "left",
+            "x": 340,
+            "y": 430,
+            "fixed": true
+          },
+          {
+            "id": "right",
+            "x": 1140,
+            "y": 430,
+            "fixed": true
+          },
+          {
+            "id": "d1",
+            "x": 540,
+            "y": 430
+          },
+          {
+            "id": "d2",
+            "x": 740,
+            "y": 430
+          },
+          {
+            "id": "d3",
+            "x": 940,
+            "y": 430
+          },
+          {
+            "id": "t0",
+            "x": 440,
+            "y": 330
+          },
+          {
+            "id": "t1",
+            "x": 640,
+            "y": 330
+          },
+          {
+            "id": "t2",
+            "x": 840,
+            "y": 330
+          },
+          {
+            "id": "t3",
+            "x": 1040,
+            "y": 330
+          }
+        ],
+        "members": [
+          {
+            "id": "m1",
+            "a": "left",
+            "b": "d1",
+            "material": "road"
+          },
+          {
+            "id": "m2",
+            "a": "left",
+            "b": "t0",
+            "material": "steel"
+          },
+          {
+            "id": "m3",
+            "a": "t0",
+            "b": "d1",
+            "material": "steel"
+          },
+          {
+            "id": "m4",
+            "a": "d1",
+            "b": "d2",
+            "material": "road"
+          },
+          {
+            "id": "m5",
+            "a": "d1",
+            "b": "t1",
+            "material": "steel"
+          },
+          {
+            "id": "m6",
+            "a": "t1",
+            "b": "d2",
+            "material": "steel"
+          },
+          {
+            "id": "m7",
+            "a": "t0",
+            "b": "t1",
+            "material": "steel"
+          },
+          {
+            "id": "m8",
+            "a": "d2",
+            "b": "d3",
+            "material": "road"
+          },
+          {
+            "id": "m9",
+            "a": "d2",
+            "b": "t2",
+            "material": "steel"
+          },
+          {
+            "id": "m10",
+            "a": "t2",
+            "b": "d3",
+            "material": "steel"
+          },
+          {
+            "id": "m11",
+            "a": "t1",
+            "b": "t2",
+            "material": "steel"
+          },
+          {
+            "id": "m12",
+            "a": "d3",
+            "b": "right",
+            "material": "road"
+          },
+          {
+            "id": "m13",
+            "a": "d3",
+            "b": "t3",
+            "material": "steel"
+          },
+          {
+            "id": "m14",
+            "a": "t3",
+            "b": "right",
+            "material": "steel"
+          },
+          {
+            "id": "m15",
+            "a": "t2",
+            "b": "t3",
+            "material": "steel"
+          }
+        ]
+      },
+      "valid": true,
+      "result": "passed",
+      "drop_cm": 6.5199,
+      "time_s": 10.975,
+      "breaks": 0,
+      "firstBreak": null,
+      "force_ratio": 0.9443,
+      "usage_m": {
+        "road": 8,
+        "wood": 0,
+        "steel": 17.313708498984763,
+        "cable": 0
+      },
+      "cost": 59.9411
+    },
+    {
+      "level": 8,
+      "name": "reference",
+      "conditions": "[\"axial-v1\",200,1400,430,\"crossing\",5000,9.81,0.12,[\"supports\",[800,430]]]",
+      "design": {
+        "nodes": [
+          {
+            "id": "left",
+            "x": 200,
+            "y": 430,
+            "fixed": true
+          },
+          {
+            "id": "right",
+            "x": 1400,
+            "y": 430,
+            "fixed": true
+          },
+          {
+            "id": "pier",
+            "x": 800,
+            "y": 430,
+            "fixed": true
+          },
+          {
+            "id": "d1",
+            "x": 400,
+            "y": 430
+          },
+          {
+            "id": "d2",
+            "x": 600,
+            "y": 430
+          },
+          {
+            "id": "d4",
+            "x": 1000,
+            "y": 430
+          },
+          {
+            "id": "d5",
+            "x": 1200,
+            "y": 430
+          },
+          {
+            "id": "t0",
+            "x": 300,
+            "y": 570
+          },
+          {
+            "id": "t1",
+            "x": 500,
+            "y": 570
+          },
+          {
+            "id": "t2",
+            "x": 700,
+            "y": 570
+          },
+          {
+            "id": "t3",
+            "x": 900,
+            "y": 570
+          },
+          {
+            "id": "t4",
+            "x": 1100,
+            "y": 570
+          },
+          {
+            "id": "t5",
+            "x": 1300,
+            "y": 570
+          }
+        ],
+        "members": [
+          {
+            "id": "m1",
+            "a": "left",
+            "b": "d1",
+            "material": "road"
+          },
+          {
+            "id": "m2",
+            "a": "left",
+            "b": "t0",
+            "material": "steel"
+          },
+          {
+            "id": "m3",
+            "a": "t0",
+            "b": "d1",
+            "material": "steel"
+          },
+          {
+            "id": "m4",
+            "a": "d1",
+            "b": "d2",
+            "material": "road"
+          },
+          {
+            "id": "m5",
+            "a": "d1",
+            "b": "t1",
+            "material": "steel"
+          },
+          {
+            "id": "m6",
+            "a": "t1",
+            "b": "d2",
+            "material": "steel"
+          },
+          {
+            "id": "m7",
+            "a": "t0",
+            "b": "t1",
+            "material": "cable"
+          },
+          {
+            "id": "m8",
+            "a": "d2",
+            "b": "pier",
+            "material": "road"
+          },
+          {
+            "id": "m9",
+            "a": "d2",
+            "b": "t2",
+            "material": "steel"
+          },
+          {
+            "id": "m10",
+            "a": "t2",
+            "b": "pier",
+            "material": "steel"
+          },
+          {
+            "id": "m11",
+            "a": "t1",
+            "b": "t2",
+            "material": "cable"
+          },
+          {
+            "id": "m12",
+            "a": "pier",
+            "b": "d4",
+            "material": "road"
+          },
+          {
+            "id": "m13",
+            "a": "pier",
+            "b": "t3",
+            "material": "steel"
+          },
+          {
+            "id": "m14",
+            "a": "t3",
+            "b": "d4",
+            "material": "steel"
+          },
+          {
+            "id": "m15",
+            "a": "t2",
+            "b": "t3",
+            "material": "cable"
+          },
+          {
+            "id": "m16",
+            "a": "d4",
+            "b": "d5",
+            "material": "road"
+          },
+          {
+            "id": "m17",
+            "a": "d4",
+            "b": "t4",
+            "material": "steel"
+          },
+          {
+            "id": "m18",
+            "a": "t4",
+            "b": "d5",
+            "material": "steel"
+          },
+          {
+            "id": "m19",
+            "a": "t3",
+            "b": "t4",
+            "material": "cable"
+          },
+          {
+            "id": "m20",
+            "a": "d5",
+            "b": "right",
+            "material": "road"
+          },
+          {
+            "id": "m21",
+            "a": "d5",
+            "b": "t5",
+            "material": "steel"
+          },
+          {
+            "id": "m22",
+            "a": "t5",
+            "b": "right",
+            "material": "steel"
+          },
+          {
+            "id": "m23",
+            "a": "t4",
+            "b": "t5",
+            "material": "cable"
+          }
+        ]
+      },
+      "valid": true,
+      "result": "passed",
+      "drop_cm": 3.4248,
+      "time_s": 15.1917,
+      "breaks": 0,
+      "firstBreak": null,
+      "force_ratio": 0.9836,
+      "usage_m": {
+        "road": 12,
+        "wood": 0,
+        "steel": 20.6455806409023,
+        "cable": 10
+      },
+      "cost": 85.9367
+    },
+    {
+      "level": 8,
+      "name": "alternative",
+      "conditions": "[\"axial-v1\",200,1400,430,\"crossing\",5000,9.81,0.12,[\"supports\",[800,430]]]",
+      "design": {
+        "nodes": [
+          {
+            "id": "left",
+            "x": 200,
+            "y": 430,
+            "fixed": true
+          },
+          {
+            "id": "right",
+            "x": 1400,
+            "y": 430,
+            "fixed": true
+          },
+          {
+            "id": "pier",
+            "x": 800,
+            "y": 430,
+            "fixed": true
+          },
+          {
+            "id": "d1",
+            "x": 400,
+            "y": 430
+          },
+          {
+            "id": "d2",
+            "x": 600,
+            "y": 430
+          },
+          {
+            "id": "d4",
+            "x": 1000,
+            "y": 430
+          },
+          {
+            "id": "d5",
+            "x": 1200,
+            "y": 430
+          },
+          {
+            "id": "t0",
+            "x": 300,
+            "y": 580
+          },
+          {
+            "id": "t1",
+            "x": 500,
+            "y": 580
+          },
+          {
+            "id": "t2",
+            "x": 700,
+            "y": 580
+          },
+          {
+            "id": "t3",
+            "x": 900,
+            "y": 580
+          },
+          {
+            "id": "t4",
+            "x": 1100,
+            "y": 580
+          },
+          {
+            "id": "t5",
+            "x": 1300,
+            "y": 580
+          }
+        ],
+        "members": [
+          {
+            "id": "m1",
+            "a": "left",
+            "b": "d1",
+            "material": "road"
+          },
+          {
+            "id": "m2",
+            "a": "left",
+            "b": "t0",
+            "material": "steel"
+          },
+          {
+            "id": "m3",
+            "a": "t0",
+            "b": "d1",
+            "material": "steel"
+          },
+          {
+            "id": "m4",
+            "a": "d1",
+            "b": "d2",
+            "material": "road"
+          },
+          {
+            "id": "m5",
+            "a": "d1",
+            "b": "t1",
+            "material": "steel"
+          },
+          {
+            "id": "m6",
+            "a": "t1",
+            "b": "d2",
+            "material": "steel"
+          },
+          {
+            "id": "m7",
+            "a": "t0",
+            "b": "t1",
+            "material": "cable"
+          },
+          {
+            "id": "m8",
+            "a": "d2",
+            "b": "pier",
+            "material": "road"
+          },
+          {
+            "id": "m9",
+            "a": "d2",
+            "b": "t2",
+            "material": "steel"
+          },
+          {
+            "id": "m10",
+            "a": "t2",
+            "b": "pier",
+            "material": "steel"
+          },
+          {
+            "id": "m11",
+            "a": "t1",
+            "b": "t2",
+            "material": "cable"
+          },
+          {
+            "id": "m12",
+            "a": "pier",
+            "b": "d4",
+            "material": "road"
+          },
+          {
+            "id": "m13",
+            "a": "pier",
+            "b": "t3",
+            "material": "steel"
+          },
+          {
+            "id": "m14",
+            "a": "t3",
+            "b": "d4",
+            "material": "steel"
+          },
+          {
+            "id": "m15",
+            "a": "t2",
+            "b": "t3",
+            "material": "cable"
+          },
+          {
+            "id": "m16",
+            "a": "d4",
+            "b": "d5",
+            "material": "road"
+          },
+          {
+            "id": "m17",
+            "a": "d4",
+            "b": "t4",
+            "material": "steel"
+          },
+          {
+            "id": "m18",
+            "a": "t4",
+            "b": "d5",
+            "material": "steel"
+          },
+          {
+            "id": "m19",
+            "a": "t3",
+            "b": "t4",
+            "material": "cable"
+          },
+          {
+            "id": "m20",
+            "a": "d5",
+            "b": "right",
+            "material": "road"
+          },
+          {
+            "id": "m21",
+            "a": "d5",
+            "b": "t5",
+            "material": "steel"
+          },
+          {
+            "id": "m22",
+            "a": "t5",
+            "b": "right",
+            "material": "steel"
+          },
+          {
+            "id": "m23",
+            "a": "t4",
+            "b": "t5",
+            "material": "cable"
+          }
+        ]
+      },
+      "valid": true,
+      "result": "passed",
+      "drop_cm": 3.1228,
+      "time_s": 15.1917,
+      "breaks": 0,
+      "firstBreak": null,
+      "force_ratio": 0.9211,
+      "usage_m": {
+        "road": 12,
+        "wood": 0,
+        "steel": 21.63330765278393,
+        "cable": 10
+      },
+      "cost": 88.8999
+    }
+  ],
+  "failures": [
+    {
+      "level": 1,
+      "name": "unsupported-road",
+      "explanation": "A continuous pin-jointed roadway alone does not meet the delivery criterion; inspect deformation and support paths.",
+      "design": {
+        "nodes": [
+          {
+            "id": "left",
+            "x": 440,
+            "y": 430,
+            "fixed": true
+          },
+          {
+            "id": "right",
+            "x": 1040,
+            "y": 430,
+            "fixed": true
+          },
+          {
+            "id": "d1",
+            "x": 640,
+            "y": 430
+          },
+          {
+            "id": "d2",
+            "x": 840,
+            "y": 430
+          },
+          {
+            "id": "t0",
+            "x": 540,
+            "y": 330
+          },
+          {
+            "id": "t1",
+            "x": 740,
+            "y": 330
+          },
+          {
+            "id": "t2",
+            "x": 940,
+            "y": 330
+          }
+        ],
+        "members": [
+          {
+            "id": "m1",
+            "a": "left",
+            "b": "d1",
+            "material": "road"
+          },
+          {
+            "id": "m4",
+            "a": "d1",
+            "b": "d2",
+            "material": "road"
+          },
+          {
+            "id": "m8",
+            "a": "d2",
+            "b": "right",
+            "material": "road"
+          }
+        ]
+      },
+      "valid": true,
+      "result": "failed",
+      "drop_cm": 24.9207,
+      "time_s": 8.875,
+      "breaks": 0,
+      "firstBreak": null,
+      "force_ratio": 0.4042,
+      "usage_m": {
+        "road": 6,
+        "wood": 0,
+        "steel": 0,
+        "cable": 0
+      },
+      "cost": 6
+    },
+    {
+      "level": 2,
+      "name": "unsupported-road",
+      "explanation": "A continuous pin-jointed roadway alone does not meet the delivery criterion; inspect deformation and support paths.",
+      "design": {
+        "nodes": [
+          {
+            "id": "left",
+            "x": 340,
+            "y": 430,
+            "fixed": true
+          },
+          {
+            "id": "right",
+            "x": 1140,
+            "y": 430,
+            "fixed": true
+          },
+          {
+            "id": "d1",
+            "x": 540,
+            "y": 430
+          },
+          {
+            "id": "d2",
+            "x": 740,
+            "y": 430
+          },
+          {
+            "id": "d3",
+            "x": 940,
+            "y": 430
+          },
+          {
+            "id": "t0",
+            "x": 440,
+            "y": 330
+          },
+          {
+            "id": "t1",
+            "x": 640,
+            "y": 330
+          },
+          {
+            "id": "t2",
+            "x": 840,
+            "y": 330
+          },
+          {
+            "id": "t3",
+            "x": 1040,
+            "y": 330
+          }
+        ],
+        "members": [
+          {
+            "id": "m1",
+            "a": "left",
+            "b": "d1",
+            "material": "road"
+          },
+          {
+            "id": "m4",
+            "a": "d1",
+            "b": "d2",
+            "material": "road"
+          },
+          {
+            "id": "m8",
+            "a": "d2",
+            "b": "d3",
+            "material": "road"
+          },
+          {
+            "id": "m12",
+            "a": "d3",
+            "b": "right",
+            "material": "road"
+          }
+        ]
+      },
+      "valid": true,
+      "result": "failed",
+      "drop_cm": 42.3782,
+      "time_s": 10.975,
+      "breaks": 0,
+      "firstBreak": null,
+      "force_ratio": 0.5723,
+      "usage_m": {
+        "road": 8,
+        "wood": 0,
+        "steel": 0,
+        "cable": 0
+      },
+      "cost": 8
+    },
+    {
+      "level": 3,
+      "name": "unsupported-road",
+      "explanation": "A continuous pin-jointed roadway alone does not meet the delivery criterion; inspect deformation and support paths.",
+      "design": {
+        "nodes": [
+          {
+            "id": "left",
+            "x": 240,
+            "y": 430,
+            "fixed": true
+          },
+          {
+            "id": "right",
+            "x": 1240,
+            "y": 430,
+            "fixed": true
+          },
+          {
+            "id": "d1",
+            "x": 440,
+            "y": 430
+          },
+          {
+            "id": "d2",
+            "x": 640,
+            "y": 430
+          },
+          {
+            "id": "d3",
+            "x": 840,
+            "y": 430
+          },
+          {
+            "id": "d4",
+            "x": 1040,
+            "y": 430
+          },
+          {
+            "id": "t0",
+            "x": 340,
+            "y": 305
+          },
+          {
+            "id": "t1",
+            "x": 540,
+            "y": 305
+          },
+          {
+            "id": "t2",
+            "x": 740,
+            "y": 305
+          },
+          {
+            "id": "t3",
+            "x": 940,
+            "y": 305
+          },
+          {
+            "id": "t4",
+            "x": 1140,
+            "y": 305
+          }
+        ],
+        "members": [
+          {
+            "id": "m1",
+            "a": "left",
+            "b": "d1",
+            "material": "road"
+          },
+          {
+            "id": "m4",
+            "a": "d1",
+            "b": "d2",
+            "material": "road"
+          },
+          {
+            "id": "m8",
+            "a": "d2",
+            "b": "d3",
+            "material": "road"
+          },
+          {
+            "id": "m12",
+            "a": "d3",
+            "b": "d4",
+            "material": "road"
+          },
+          {
+            "id": "m16",
+            "a": "d4",
+            "b": "right",
+            "material": "road"
+          }
+        ]
+      },
+      "valid": true,
+      "result": "failed",
+      "drop_cm": 61.9926,
+      "time_s": 13.0833,
+      "breaks": 0,
+      "firstBreak": null,
+      "force_ratio": 0.8184,
+      "usage_m": {
+        "road": 10,
+        "wood": 0,
+        "steel": 0,
+        "cable": 0
+      },
+      "cost": 10
+    },
+    {
+      "level": 4,
+      "name": "unsupported-road",
+      "explanation": "A continuous pin-jointed roadway alone does not meet the delivery criterion; inspect deformation and support paths.",
+      "design": {
+        "nodes": [
+          {
+            "id": "left",
+            "x": 340,
+            "y": 430,
+            "fixed": true
+          },
+          {
+            "id": "right",
+            "x": 1140,
+            "y": 430,
+            "fixed": true
+          },
+          {
+            "id": "d1",
+            "x": 540,
+            "y": 430
+          },
+          {
+            "id": "d2",
+            "x": 740,
+            "y": 430
+          },
+          {
+            "id": "d3",
+            "x": 940,
+            "y": 430
+          },
+          {
+            "id": "t0",
+            "x": 440,
+            "y": 555
+          },
+          {
+            "id": "t1",
+            "x": 640,
+            "y": 555
+          },
+          {
+            "id": "t2",
+            "x": 840,
+            "y": 555
+          },
+          {
+            "id": "t3",
+            "x": 1040,
+            "y": 555
+          }
+        ],
+        "members": [
+          {
+            "id": "m1",
+            "a": "left",
+            "b": "d1",
+            "material": "road"
+          },
+          {
+            "id": "m4",
+            "a": "d1",
+            "b": "d2",
+            "material": "road"
+          },
+          {
+            "id": "m8",
+            "a": "d2",
+            "b": "d3",
+            "material": "road"
+          },
+          {
+            "id": "m12",
+            "a": "d3",
+            "b": "right",
+            "material": "road"
+          }
+        ]
+      },
+      "valid": true,
+      "result": "failed",
+      "drop_cm": 46.7126,
+      "time_s": 10.975,
+      "breaks": 0,
+      "firstBreak": null,
+      "force_ratio": 0.6924,
+      "usage_m": {
+        "road": 8,
+        "wood": 0,
+        "steel": 0,
+        "cable": 0
+      },
+      "cost": 8
+    },
+    {
+      "level": 5,
+      "name": "unsupported-road",
+      "explanation": "A continuous pin-jointed roadway alone does not meet the delivery criterion; inspect deformation and support paths.",
+      "design": {
+        "nodes": [
+          {
+            "id": "left",
+            "x": 200,
+            "y": 430,
+            "fixed": true
+          },
+          {
+            "id": "right",
+            "x": 1400,
+            "y": 430,
+            "fixed": true
+          },
+          {
+            "id": "pier",
+            "x": 800,
+            "y": 430,
+            "fixed": true
+          },
+          {
+            "id": "d1",
+            "x": 400,
+            "y": 430
+          },
+          {
+            "id": "d2",
+            "x": 600,
+            "y": 430
+          },
+          {
+            "id": "d4",
+            "x": 1000,
+            "y": 430
+          },
+          {
+            "id": "d5",
+            "x": 1200,
+            "y": 430
+          },
+          {
+            "id": "t0",
+            "x": 300,
+            "y": 305
+          },
+          {
+            "id": "t1",
+            "x": 500,
+            "y": 305
+          },
+          {
+            "id": "t2",
+            "x": 700,
+            "y": 305
+          },
+          {
+            "id": "t3",
+            "x": 900,
+            "y": 305
+          },
+          {
+            "id": "t4",
+            "x": 1100,
+            "y": 305
+          },
+          {
+            "id": "t5",
+            "x": 1300,
+            "y": 305
+          }
+        ],
+        "members": [
+          {
+            "id": "m1",
+            "a": "left",
+            "b": "d1",
+            "material": "road"
+          },
+          {
+            "id": "m4",
+            "a": "d1",
+            "b": "d2",
+            "material": "road"
+          },
+          {
+            "id": "m8",
+            "a": "d2",
+            "b": "pier",
+            "material": "road"
+          },
+          {
+            "id": "m12",
+            "a": "pier",
+            "b": "d4",
+            "material": "road"
+          },
+          {
+            "id": "m16",
+            "a": "d4",
+            "b": "d5",
+            "material": "road"
+          },
+          {
+            "id": "m20",
+            "a": "d5",
+            "b": "right",
+            "material": "road"
+          }
+        ]
+      },
+      "valid": true,
+      "result": "failed",
+      "drop_cm": 37.6137,
+      "time_s": 15.1917,
+      "breaks": 0,
+      "firstBreak": null,
+      "force_ratio": 0.9079,
+      "usage_m": {
+        "road": 12,
+        "wood": 0,
+        "steel": 0,
+        "cable": 0
+      },
+      "cost": 12
+    },
+    {
+      "level": 6,
+      "name": "unsupported-road",
+      "explanation": "A continuous pin-jointed roadway alone does not meet the delivery criterion; inspect deformation and support paths.",
+      "design": {
+        "nodes": [
+          {
+            "id": "left",
+            "x": 240,
+            "y": 430,
+            "fixed": true
+          },
+          {
+            "id": "right",
+            "x": 1240,
+            "y": 430,
+            "fixed": true
+          },
+          {
+            "id": "d1",
+            "x": 440,
+            "y": 430
+          },
+          {
+            "id": "d2",
+            "x": 640,
+            "y": 430
+          },
+          {
+            "id": "d3",
+            "x": 840,
+            "y": 430
+          },
+          {
+            "id": "d4",
+            "x": 1040,
+            "y": 430
+          },
+          {
+            "id": "t0",
+            "x": 340,
+            "y": 565
+          },
+          {
+            "id": "t1",
+            "x": 540,
+            "y": 565
+          },
+          {
+            "id": "t2",
+            "x": 740,
+            "y": 565
+          },
+          {
+            "id": "t3",
+            "x": 940,
+            "y": 565
+          },
+          {
+            "id": "t4",
+            "x": 1140,
+            "y": 565
+          }
+        ],
+        "members": [
+          {
+            "id": "m1",
+            "a": "left",
+            "b": "d1",
+            "material": "road"
+          },
+          {
+            "id": "m4",
+            "a": "d1",
+            "b": "d2",
+            "material": "road"
+          },
+          {
+            "id": "m8",
+            "a": "d2",
+            "b": "d3",
+            "material": "road"
+          },
+          {
+            "id": "m12",
+            "a": "d3",
+            "b": "d4",
+            "material": "road"
+          },
+          {
+            "id": "m16",
+            "a": "d4",
+            "b": "right",
+            "material": "road"
+          }
+        ]
+      },
+      "valid": true,
+      "result": "failed",
+      "drop_cm": 65.6745,
+      "time_s": 6.8833,
+      "breaks": 0,
+      "firstBreak": null,
+      "force_ratio": 0.9141,
+      "usage_m": {
+        "road": 10,
+        "wood": 0,
+        "steel": 0,
+        "cable": 0
+      },
+      "cost": 10
+    },
+    {
+      "level": 7,
+      "name": "unsupported-road",
+      "explanation": "A continuous pin-jointed roadway alone does not meet the delivery criterion; inspect deformation and support paths.",
+      "design": {
+        "nodes": [
+          {
+            "id": "left",
+            "x": 340,
+            "y": 430,
+            "fixed": true
+          },
+          {
+            "id": "right",
+            "x": 1140,
+            "y": 430,
+            "fixed": true
+          },
+          {
+            "id": "d1",
+            "x": 540,
+            "y": 430
+          },
+          {
+            "id": "d2",
+            "x": 740,
+            "y": 430
+          },
+          {
+            "id": "d3",
+            "x": 940,
+            "y": 430
+          },
+          {
+            "id": "t0",
+            "x": 440,
+            "y": 300
+          },
+          {
+            "id": "t1",
+            "x": 640,
+            "y": 300
+          },
+          {
+            "id": "t2",
+            "x": 840,
+            "y": 300
+          },
+          {
+            "id": "t3",
+            "x": 1040,
+            "y": 300
+          }
+        ],
+        "members": [
+          {
+            "id": "m1",
+            "a": "left",
+            "b": "d1",
+            "material": "road"
+          },
+          {
+            "id": "m4",
+            "a": "d1",
+            "b": "d2",
+            "material": "road"
+          },
+          {
+            "id": "m8",
+            "a": "d2",
+            "b": "d3",
+            "material": "road"
+          },
+          {
+            "id": "m12",
+            "a": "d3",
+            "b": "right",
+            "material": "road"
+          }
+        ]
+      },
+      "valid": true,
+      "result": "failed",
+      "drop_cm": 213.5827,
+      "time_s": 4.075,
+      "breaks": 1,
+      "firstBreak": {
+        "id": "m1",
+        "material": "road",
+        "force": 92906.74723533416,
+        "time": 3.383333333333324,
+        "ratio": 1.032297191503713,
+        "a": "left",
+        "b": "d1"
+      },
+      "force_ratio": 1.0323,
+      "usage_m": {
+        "road": 8,
+        "wood": 0,
+        "steel": 0,
+        "cable": 0
+      },
+      "cost": 8
+    },
+    {
+      "level": 8,
+      "name": "unsupported-road",
+      "explanation": "A continuous pin-jointed roadway alone does not meet the delivery criterion; inspect deformation and support paths.",
+      "design": {
+        "nodes": [
+          {
+            "id": "left",
+            "x": 200,
+            "y": 430,
+            "fixed": true
+          },
+          {
+            "id": "right",
+            "x": 1400,
+            "y": 430,
+            "fixed": true
+          },
+          {
+            "id": "pier",
+            "x": 800,
+            "y": 430,
+            "fixed": true
+          },
+          {
+            "id": "d1",
+            "x": 400,
+            "y": 430
+          },
+          {
+            "id": "d2",
+            "x": 600,
+            "y": 430
+          },
+          {
+            "id": "d4",
+            "x": 1000,
+            "y": 430
+          },
+          {
+            "id": "d5",
+            "x": 1200,
+            "y": 430
+          },
+          {
+            "id": "t0",
+            "x": 300,
+            "y": 570
+          },
+          {
+            "id": "t1",
+            "x": 500,
+            "y": 570
+          },
+          {
+            "id": "t2",
+            "x": 700,
+            "y": 570
+          },
+          {
+            "id": "t3",
+            "x": 900,
+            "y": 570
+          },
+          {
+            "id": "t4",
+            "x": 1100,
+            "y": 570
+          },
+          {
+            "id": "t5",
+            "x": 1300,
+            "y": 570
+          }
+        ],
+        "members": [
+          {
+            "id": "m1",
+            "a": "left",
+            "b": "d1",
+            "material": "road"
+          },
+          {
+            "id": "m4",
+            "a": "d1",
+            "b": "d2",
+            "material": "road"
+          },
+          {
+            "id": "m8",
+            "a": "d2",
+            "b": "pier",
+            "material": "road"
+          },
+          {
+            "id": "m12",
+            "a": "pier",
+            "b": "d4",
+            "material": "road"
+          },
+          {
+            "id": "m16",
+            "a": "d4",
+            "b": "d5",
+            "material": "road"
+          },
+          {
+            "id": "m20",
+            "a": "d5",
+            "b": "right",
+            "material": "road"
+          }
+        ]
+      },
+      "valid": true,
+      "result": "failed",
+      "drop_cm": 203.7969,
+      "time_s": 3.9667,
+      "breaks": 1,
+      "firstBreak": {
+        "id": "m1",
+        "material": "road",
+        "force": 93294.01283569963,
+        "time": 3.2666666666666577,
+        "ratio": 1.0366001426188847,
+        "a": "left",
+        "b": "d1"
+      },
+      "force_ratio": 1.0366,
+      "usage_m": {
+        "road": 12,
+        "wood": 0,
+        "steel": 0,
+        "cable": 0
+      },
+      "cost": 12
+    }
+  ],
+  "roleProbes": [
+    {
+      "level": 4,
+      "name": "cable-in-compression-role",
+      "valid": true,
+      "result": "failed",
+      "drop_cm": 50.4783,
+      "time_s": 10.975,
+      "breaks": 0,
+      "firstBreak": null,
+      "force_ratio": 0.8252,
+      "usage_m": {
+        "road": 8,
+        "wood": 0,
+        "steel": 12.806248474865697,
+        "cable": 6
+      },
+      "cost": 53.6187
+    },
+    {
+      "level": 5,
+      "name": "fixed-pier-not-connected-offset-joint",
+      "valid": true,
+      "result": "failed",
+      "drop_cm": 266.3216,
+      "time_s": 4.5,
+      "breaks": 5,
+      "firstBreak": {
+        "id": "m11",
+        "material": "wood",
+        "force": -30826.763982944707,
+        "time": 3.516666666666657,
+        "ratio": 1.0275587994314903,
+        "a": "t1",
+        "b": "t2"
+      },
+      "force_ratio": 1.3004,
+      "usage_m": {
+        "road": 12,
+        "wood": 29.233315520259815,
+        "steel": 0,
+        "cable": 0
+      },
+      "cost": 41.2333
+    },
+    {
+      "level": 6,
+      "name": "cable-in-compression-role",
+      "valid": true,
+      "result": "failed",
+      "drop_cm": 226.6642,
+      "time_s": 6.1083,
+      "breaks": 1,
+      "firstBreak": {
+        "id": "m1",
+        "material": "road",
+        "force": 90494.02362641807,
+        "time": 5.408333333333392,
+        "ratio": 1.0054891514046453,
+        "a": "left",
+        "b": "d1"
+      },
+      "force_ratio": 1.0562,
+      "usage_m": {
+        "road": 10,
+        "wood": 0,
+        "steel": 16.80029761641144,
+        "cable": 8
+      },
+      "cost": 70.0009
+    },
+    {
+      "level": 8,
+      "name": "fixed-pier-not-connected-offset-joint",
+      "valid": true,
+      "result": "failed",
+      "drop_cm": 269.4882,
+      "time_s": 4.3667,
+      "breaks": 6,
+      "firstBreak": {
+        "id": "m7",
+        "material": "cable",
+        "force": 49663.503688010605,
+        "time": 3.57499999999999,
+        "ratio": 1.0346563268335542,
+        "a": "t0",
+        "b": "t1"
+      },
+      "force_ratio": 1.9868,
+      "usage_m": {
+        "road": 12,
+        "wood": 0,
+        "steel": 20.669720989424455,
+        "cable": 10
+      },
+      "cost": 86.0092
+    }
+  ],
+  "transfers": [
+    {
+      "from": 1,
+      "to": 2,
+      "variant": "reference",
+      "method": "span-scaled, same relative height and material roles, welded to actual target supports",
+      "valid": false,
+      "reason": "Road members can be at most 2.6 m long."
+    },
+    {
+      "from": 1,
+      "to": 2,
+      "variant": "alternative",
+      "method": "span-scaled, same relative height and material roles, welded to actual target supports",
+      "valid": false,
+      "reason": "Road members can be at most 2.6 m long."
+    },
+    {
+      "from": 1,
+      "to": 3,
+      "variant": "reference",
+      "method": "span-scaled, same relative height and material roles, welded to actual target supports",
+      "valid": false,
+      "reason": "Road members can be at most 2.6 m long."
+    },
+    {
+      "from": 1,
+      "to": 3,
+      "variant": "alternative",
+      "method": "span-scaled, same relative height and material roles, welded to actual target supports",
+      "valid": false,
+      "reason": "Road members can be at most 2.6 m long."
+    },
+    {
+      "from": 1,
+      "to": 4,
+      "variant": "reference",
+      "method": "span-scaled, same relative height and material roles, welded to actual target supports",
+      "valid": false,
+      "reason": "Road members can be at most 2.6 m long."
+    },
+    {
+      "from": 1,
+      "to": 4,
+      "variant": "alternative",
+      "method": "span-scaled, same relative height and material roles, welded to actual target supports",
+      "valid": false,
+      "reason": "Road members can be at most 2.6 m long."
+    },
+    {
+      "from": 1,
+      "to": 5,
+      "variant": "reference",
+      "method": "span-scaled, same relative height and material roles, welded to actual target supports",
+      "valid": false,
+      "reason": "Road members can be at most 2.6 m long."
+    },
+    {
+      "from": 1,
+      "to": 5,
+      "variant": "alternative",
+      "method": "span-scaled, same relative height and material roles, welded to actual target supports",
+      "valid": false,
+      "reason": "Road members can be at most 2.6 m long."
+    },
+    {
+      "from": 1,
+      "to": 6,
+      "variant": "reference",
+      "method": "span-scaled, same relative height and material roles, welded to actual target supports",
+      "valid": false,
+      "reason": "Road members can be at most 2.6 m long."
+    },
+    {
+      "from": 1,
+      "to": 6,
+      "variant": "alternative",
+      "method": "span-scaled, same relative height and material roles, welded to actual target supports",
+      "valid": false,
+      "reason": "Road members can be at most 2.6 m long."
+    },
+    {
+      "from": 1,
+      "to": 7,
+      "variant": "reference",
+      "method": "span-scaled, same relative height and material roles, welded to actual target supports",
+      "valid": false,
+      "reason": "Road members can be at most 2.6 m long."
+    },
+    {
+      "from": 1,
+      "to": 7,
+      "variant": "alternative",
+      "method": "span-scaled, same relative height and material roles, welded to actual target supports",
+      "valid": false,
+      "reason": "Road members can be at most 2.6 m long."
+    },
+    {
+      "from": 1,
+      "to": 8,
+      "variant": "reference",
+      "method": "span-scaled, same relative height and material roles, welded to actual target supports",
+      "valid": false,
+      "reason": "Road members can be at most 2.6 m long."
+    },
+    {
+      "from": 1,
+      "to": 8,
+      "variant": "alternative",
+      "method": "span-scaled, same relative height and material roles, welded to actual target supports",
+      "valid": false,
+      "reason": "Road members can be at most 2.6 m long."
+    },
+    {
+      "from": 2,
+      "to": 3,
+      "variant": "reference",
+      "method": "span-scaled, same relative height and material roles, welded to actual target supports",
+      "valid": false,
+      "reason": "Not enough timber. Shorten a member or reuse material."
+    },
+    {
+      "from": 2,
+      "to": 3,
+      "variant": "alternative",
+      "method": "span-scaled, same relative height and material roles, welded to actual target supports",
+      "valid": false,
+      "reason": "Not enough timber. Shorten a member or reuse material."
+    },
+    {
+      "from": 2,
+      "to": 4,
+      "variant": "reference",
+      "method": "span-scaled, same relative height and material roles, welded to actual target supports",
+      "valid": false,
+      "reason": "Not enough timber. Shorten a member or reuse material."
+    },
+    {
+      "from": 2,
+      "to": 4,
+      "variant": "alternative",
+      "method": "span-scaled, same relative height and material roles, welded to actual target supports",
+      "valid": false,
+      "reason": "Not enough timber. Shorten a member or reuse material."
+    },
+    {
+      "from": 2,
+      "to": 5,
+      "variant": "reference",
+      "method": "span-scaled, same relative height and material roles, welded to actual target supports",
+      "valid": false,
+      "reason": "Road members can be at most 2.6 m long."
+    },
+    {
+      "from": 2,
+      "to": 5,
+      "variant": "alternative",
+      "method": "span-scaled, same relative height and material roles, welded to actual target supports",
+      "valid": false,
+      "reason": "Road members can be at most 2.6 m long."
+    },
+    {
+      "from": 2,
+      "to": 6,
+      "variant": "reference",
+      "method": "span-scaled, same relative height and material roles, welded to actual target supports",
+      "valid": false,
+      "reason": "Not enough timber. Shorten a member or reuse material."
+    },
+    {
+      "from": 2,
+      "to": 6,
+      "variant": "alternative",
+      "method": "span-scaled, same relative height and material roles, welded to actual target supports",
+      "valid": false,
+      "reason": "Not enough timber. Shorten a member or reuse material."
+    },
+    {
+      "from": 2,
+      "to": 7,
+      "variant": "reference",
+      "method": "span-scaled, same relative height and material roles, welded to actual target supports",
+      "valid": false,
+      "reason": "Not enough timber. Shorten a member or reuse material."
+    },
+    {
+      "from": 2,
+      "to": 7,
+      "variant": "alternative",
+      "method": "span-scaled, same relative height and material roles, welded to actual target supports",
+      "valid": false,
+      "reason": "Not enough timber. Shorten a member or reuse material."
+    },
+    {
+      "from": 2,
+      "to": 8,
+      "variant": "reference",
+      "method": "span-scaled, same relative height and material roles, welded to actual target supports",
+      "valid": false,
+      "reason": "Road members can be at most 2.6 m long."
+    },
+    {
+      "from": 2,
+      "to": 8,
+      "variant": "alternative",
+      "method": "span-scaled, same relative height and material roles, welded to actual target supports",
+      "valid": false,
+      "reason": "Road members can be at most 2.6 m long."
+    },
+    {
+      "from": 3,
+      "to": 4,
+      "variant": "reference",
+      "method": "span-scaled, same relative height and material roles, welded to actual target supports",
+      "valid": false,
+      "reason": "Not enough timber. Shorten a member or reuse material."
+    },
+    {
+      "from": 3,
+      "to": 4,
+      "variant": "alternative",
+      "method": "span-scaled, same relative height and material roles, welded to actual target supports",
+      "valid": false,
+      "reason": "Not enough timber. Shorten a member or reuse material."
+    },
+    {
+      "from": 3,
+      "to": 5,
+      "variant": "reference",
+      "method": "span-scaled, same relative height and material roles, welded to actual target supports",
+      "valid": false,
+      "reason": "Not enough steel. Shorten a member or reuse material."
+    },
+    {
+      "from": 3,
+      "to": 5,
+      "variant": "alternative",
+      "method": "span-scaled, same relative height and material roles, welded to actual target supports",
+      "valid": false,
+      "reason": "Not enough steel. Shorten a member or reuse material."
+    },
+    {
+      "from": 3,
+      "to": 6,
+      "variant": "reference",
+      "method": "span-scaled, same relative height and material roles, welded to actual target supports",
+      "valid": false,
+      "reason": "Not enough timber. Shorten a member or reuse material."
+    },
+    {
+      "from": 3,
+      "to": 6,
+      "variant": "alternative",
+      "method": "span-scaled, same relative height and material roles, welded to actual target supports",
+      "valid": false,
+      "reason": "Not enough timber. Shorten a member or reuse material."
+    },
+    {
+      "from": 3,
+      "to": 7,
+      "variant": "reference",
+      "method": "span-scaled, same relative height and material roles, welded to actual target supports",
+      "valid": false,
+      "reason": "Not enough timber. Shorten a member or reuse material."
+    },
+    {
+      "from": 3,
+      "to": 7,
+      "variant": "alternative",
+      "method": "span-scaled, same relative height and material roles, welded to actual target supports",
+      "valid": false,
+      "reason": "Not enough timber. Shorten a member or reuse material."
+    },
+    {
+      "from": 3,
+      "to": 8,
+      "variant": "reference",
+      "method": "span-scaled, same relative height and material roles, welded to actual target supports",
+      "valid": false,
+      "reason": "Not enough timber. Shorten a member or reuse material."
+    },
+    {
+      "from": 3,
+      "to": 8,
+      "variant": "alternative",
+      "method": "span-scaled, same relative height and material roles, welded to actual target supports",
+      "valid": false,
+      "reason": "Not enough timber. Shorten a member or reuse material."
+    },
+    {
+      "from": 4,
+      "to": 5,
+      "variant": "reference",
+      "method": "span-scaled, same relative height and material roles, welded to actual target supports",
+      "valid": false,
+      "reason": "Road members can be at most 2.6 m long."
+    },
+    {
+      "from": 4,
+      "to": 5,
+      "variant": "alternative",
+      "method": "span-scaled, same relative height and material roles, welded to actual target supports",
+      "valid": false,
+      "reason": "Road members can be at most 2.6 m long."
+    },
+    {
+      "from": 4,
+      "to": 6,
+      "variant": "reference",
+      "method": "span-scaled, same relative height and material roles, welded to actual target supports",
+      "valid": true,
+      "result": "failed",
+      "drop_cm": 290.7731,
+      "time_s": 7.525,
+      "breaks": 4,
+      "firstBreak": {
+        "id": "m11",
+        "material": "cable",
+        "force": 48485.96421181248,
+        "time": 6.71666666666679,
+        "ratio": 1.01012425441276,
+        "a": "from-t1",
+        "b": "from-t2"
+      },
+      "force_ratio": 1.4674,
+      "usage_m": {
+        "road": 10,
+        "wood": 0,
+        "steel": 14.142135623730951,
+        "cable": 7.5
+      },
+      "cost": 61.4264
+    },
+    {
+      "from": 4,
+      "to": 6,
+      "variant": "alternative",
+      "method": "span-scaled, same relative height and material roles, welded to actual target supports",
+      "valid": true,
+      "result": "passed",
+      "drop_cm": 7.2155,
+      "time_s": 13.0833,
+      "breaks": 0,
+      "firstBreak": null,
+      "force_ratio": 0.9199,
+      "usage_m": {
+        "road": 10,
+        "wood": 0,
+        "steel": 15.62049935181331,
+        "cable": 7.5
+      },
+      "cost": 65.8615
+    },
+    {
+      "from": 4,
+      "to": 7,
+      "variant": "reference",
+      "method": "span-scaled, same relative height and material roles, welded to actual target supports",
+      "valid": true,
+      "result": "failed",
+      "drop_cm": 210.685,
+      "time_s": 4.525,
+      "breaks": 5,
+      "firstBreak": {
+        "id": "m7",
+        "material": "cable",
+        "force": 49657.536308305935,
+        "time": 3.7333333333333227,
+        "ratio": 1.0345320064230403,
+        "a": "from-t0",
+        "b": "from-t1"
+      },
+      "force_ratio": 2.0821,
+      "usage_m": {
+        "road": 8,
+        "wood": 0,
+        "steel": 12.806248474865697,
+        "cable": 6
+      },
+      "cost": 53.6187
+    },
+    {
+      "from": 4,
+      "to": 7,
+      "variant": "alternative",
+      "method": "span-scaled, same relative height and material roles, welded to actual target supports",
+      "valid": true,
+      "result": "failed",
+      "drop_cm": 234.0041,
+      "time_s": 4.9833,
+      "breaks": 5,
+      "firstBreak": {
+        "id": "m7",
+        "material": "cable",
+        "force": 48385.70231423884,
+        "time": 4.216666666666666,
+        "ratio": 1.0080354648799759,
+        "a": "from-t0",
+        "b": "from-t1"
+      },
+      "force_ratio": 2.2653,
+      "usage_m": {
+        "road": 8,
+        "wood": 0,
+        "steel": 14.422205101855955,
+        "cable": 6
+      },
+      "cost": 58.4666
+    },
+    {
+      "from": 4,
+      "to": 8,
+      "variant": "reference",
+      "method": "span-scaled, same relative height and material roles, welded to actual target supports",
+      "valid": false,
+      "reason": "Road members can be at most 2.6 m long."
+    },
+    {
+      "from": 4,
+      "to": 8,
+      "variant": "alternative",
+      "method": "span-scaled, same relative height and material roles, welded to actual target supports",
+      "valid": false,
+      "reason": "Road members can be at most 2.6 m long."
+    },
+    {
+      "from": 5,
+      "to": 6,
+      "variant": "reference",
+      "method": "span-scaled, same relative height and material roles, welded to actual target supports",
+      "valid": false,
+      "reason": "Not enough timber. Shorten a member or reuse material."
+    },
+    {
+      "from": 5,
+      "to": 6,
+      "variant": "alternative",
+      "method": "span-scaled, same relative height and material roles, welded to actual target supports",
+      "valid": false,
+      "reason": "Not enough timber. Shorten a member or reuse material."
+    },
+    {
+      "from": 5,
+      "to": 7,
+      "variant": "reference",
+      "method": "span-scaled, same relative height and material roles, welded to actual target supports",
+      "valid": false,
+      "reason": "Not enough timber. Shorten a member or reuse material."
+    },
+    {
+      "from": 5,
+      "to": 7,
+      "variant": "alternative",
+      "method": "span-scaled, same relative height and material roles, welded to actual target supports",
+      "valid": false,
+      "reason": "Not enough timber. Shorten a member or reuse material."
+    },
+    {
+      "from": 5,
+      "to": 8,
+      "variant": "reference",
+      "method": "span-scaled, same relative height and material roles, welded to actual target supports",
+      "valid": false,
+      "reason": "Not enough timber. Shorten a member or reuse material."
+    },
+    {
+      "from": 5,
+      "to": 8,
+      "variant": "alternative",
+      "method": "span-scaled, same relative height and material roles, welded to actual target supports",
+      "valid": false,
+      "reason": "Not enough timber. Shorten a member or reuse material."
+    },
+    {
+      "from": 6,
+      "to": 7,
+      "variant": "reference",
+      "method": "span-scaled, same relative height and material roles, welded to actual target supports",
+      "valid": false,
+      "reason": "Not enough cable. Shorten a member or reuse material."
+    },
+    {
+      "from": 6,
+      "to": 7,
+      "variant": "alternative",
+      "method": "span-scaled, same relative height and material roles, welded to actual target supports",
+      "valid": false,
+      "reason": "Not enough cable. Shorten a member or reuse material."
+    },
+    {
+      "from": 6,
+      "to": 8,
+      "variant": "reference",
+      "method": "span-scaled, same relative height and material roles, welded to actual target supports",
+      "valid": true,
+      "result": "failed",
+      "drop_cm": 242.0522,
+      "time_s": 4.3667,
+      "breaks": 5,
+      "firstBreak": {
+        "id": "m7",
+        "material": "cable",
+        "force": 49504.60068079285,
+        "time": 3.54999999999999,
+        "ratio": 1.0313458475165178,
+        "a": "from-t0",
+        "b": "from-t1"
+      },
+      "force_ratio": 1.8126,
+      "usage_m": {
+        "road": 12,
+        "wood": 0,
+        "steel": 18.062391868188442,
+        "cable": 9.6
+      },
+      "cost": 77.7072
+    },
+    {
+      "from": 6,
+      "to": 8,
+      "variant": "alternative",
+      "method": "span-scaled, same relative height and material roles, welded to actual target supports",
+      "valid": true,
+      "result": "failed",
+      "drop_cm": 231.2892,
+      "time_s": 4.5333,
+      "breaks": 6,
+      "firstBreak": {
+        "id": "m7",
+        "material": "cable",
+        "force": 49526.553391456684,
+        "time": 3.7249999999999894,
+        "ratio": 1.0318031956553475,
+        "a": "from-t0",
+        "b": "from-t1"
+      },
+      "force_ratio": 1.9593,
+      "usage_m": {
+        "road": 12,
+        "wood": 0,
+        "steel": 19.209372712298546,
+        "cable": 9.6
+      },
+      "cost": 81.1481
+    },
+    {
+      "from": 7,
+      "to": 8,
+      "variant": "reference",
+      "method": "span-scaled, same relative height and material roles, welded to actual target supports",
+      "valid": false,
+      "reason": "Road members can be at most 2.6 m long."
+    },
+    {
+      "from": 7,
+      "to": 8,
+      "variant": "alternative",
+      "method": "span-scaled, same relative height and material roles, welded to actual target supports",
+      "valid": false,
+      "reason": "Road members can be at most 2.6 m long."
+    }
+  ],
+  "interpretation": "Internal deterministic model checks. Two passing geometries do not prove multiple strategies, optimality, engineering calibration or learning. Transfer outcomes describe legal scaled designs only; resource invalidity is not structural failure. Interface playability and learner reasoning require separate evidence."
+}

@@ -1,0 +1,38 @@
+{
+  "version": "0.6.0",
+  "date": "2026-11-06",
+  "accepted_candidate_sha256": "9fb7a4f64369d712208fc4942c5cd26c451ecff5d923535928d9943ab36a63ac",
+  "final_zip": "riverbend-v0.6-offline-2026-11-06.zip",
+  "final_sha256": "7845b083dd18dcfc131f866915624938fa2dadf46ef62f69cd020b23899a31f8",
+  "bytes": 3787778,
+  "entries": 35,
+  "runtime_files_byte_identical_to_independently_accepted_candidate": 22,
+  "final_relocated_smoke": {
+    "result": "PASS",
+    "zip": "/Users/lunar/Documents/Codex/2026-11-04/wo-xian-za/outputs/riverbend-v0.6-offline-2026-11-06.zip",
+    "relocated": "/Users/lunar/.codex/worktrees/stem-education-game/wo-xian-za/work/Final Relocated Package/Riverbend v0.6",
+    "entries": 35,
+    "campaignCards": 8,
+    "sandboxCards": 1,
+    "storyImages": 4,
+    "offlineRemoteRequests": 0,
+    "pageErrors": 0
+  },
+  "unit_tests": {
+    "passed": 28,
+    "failed": 0
+  },
+  "independent_standard_suites": {
+    "browser": "PASS exit 0",
+    "engine": "PASS exit 0",
+    "input": "PASS exit 0"
+  },
+  "independent_relocated_actual_eight_alternative_mouse_builds": "PASS; exact geometry/material/connectivity fingerprint; solver acceleration disclosed",
+  "human_learning_and_fun_validation": "NOT OBSERVED",
+  "editable_project_zip": {
+    "name": "riverbend-v0.6-editable-project-2026-11-06.zip",
+    "bytes": 3865265,
+    "sha256": "71dc5acacffe8b355dfddfc66662936bb9ecd72b69b49cec4051d1e6a67205df",
+    "files": 57
+  }
+}

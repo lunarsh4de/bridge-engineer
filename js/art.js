@@ -3,6 +3,144 @@
   "use strict";
   const P = root.BridgePhysics;
   class BridgeArt {
+    static community(level, connected = false) {
+      const id = Number(level?.id) || 1;
+      const place = level?.place || "Riverbend";
+      const ink = "#294c43";
+      const muted = "#8c927f";
+      const wall = connected ? "#e7d7a8" : "#c8c5ae";
+      const accent = connected ? "#d97845" : "#8e8e7c";
+      const green = connected ? "#56865a" : "#879180";
+      const shapes = [
+        { type: "rect", x: 0, y: 94, width: 176, height: 34, fill: connected ? "#86a66d" : "#929987" },
+        { type: "line", x1: 0, y1: 94, x2: 176, y2: 94, stroke: "#657763", width: 3 },
+      ];
+      const rect = (x, y, width, height, fill = wall, radius = 2) =>
+        shapes.push({ type: "rect", x, y, width, height, fill, radius });
+      const line = (x1, y1, x2, y2, stroke = ink, width = 3, dash = []) =>
+        shapes.push({ type: "line", x1, y1, x2, y2, stroke, width, dash });
+      const circle = (x, y, radius, fill = accent, stroke = null) =>
+        shapes.push({ type: "circle", x, y, radius, fill, stroke });
+      const polygon = (points, fill = wall, stroke = ink) =>
+        shapes.push({ type: "polygon", points, fill, stroke });
+      const text = (value, x, y, size = 10, fill = ink, align = "center") =>
+        shapes.push({ type: "text", text: value, x, y, size, fill, align, weight: 700 });
+
+      if (id === 1) {
+        rect(48, 47, 78, 47);
+        polygon([[42, 48], [87, 22], [132, 48]], accent);
+        rect(78, 67, 18, 27, connected ? "#6d8b75" : muted, 1);
+        rect(54, 57, 15, 12, "#b8d5d0", 1);
+        rect(105, 57, 15, 12, "#b8d5d0", 1);
+        if (connected) {
+          for (const x of [22, 35, 141, 154]) {
+            line(x, 91, x, 77, "#4f744d", 2);
+            circle(x, 75, 4, "#74a95f");
+          }
+          text("SEEDS ARRIVED", 87, 116, 9);
+        } else {
+          rect(12, 82, 22, 12, "#a77d55", 1);
+          text("SEEDS WAITING", 87, 116, 9, "#555f56");
+        }
+      } else if (id === 2) {
+        rect(108, 51, 48, 43);
+        polygon([[102, 52], [132, 32], [162, 52]], accent);
+        line(15, 61, 96, 61, muted, 2);
+        line(15, 76, 96, 76, muted, 2);
+        line(15, 91, 96, 91, muted, 2);
+        for (const x of [26, 48, 70, 92]) circle(x, 56, connected ? 5 : 3, green);
+        if (connected) {
+          rect(116, 68, 15, 12, "#d9914c", 1);
+          rect(136, 68, 15, 12, "#d9914c", 1);
+          text("HARVEST MOVING", 87, 116, 9);
+        } else text("FIELDS WAITING", 87, 116, 9, "#555f56");
+      } else if (id === 3) {
+        rect(39, 49, 100, 45);
+        polygon([[34, 50], [58, 32], [77, 50], [99, 32], [118, 50], [143, 36], [143, 50]], accent);
+        rect(52, 64, 27, 30, "#687b75", 1);
+        for (const x of [93, 116]) circle(x, 69, 7, connected ? "#d6a75c" : muted, ink);
+        if (connected) {
+          line(93, 55, 93, 83, ink, 2);
+          line(79, 69, 107, 69, ink, 2);
+          line(116, 56, 116, 82, ink, 2);
+          text("WORKSHOP OPEN", 87, 116, 9);
+        } else text("TOOLS WAITING", 87, 116, 9, "#555f56");
+      } else if (id === 4) {
+        rect(91, 45, 55, 49);
+        polygon([[86, 46], [118, 25], [151, 46]], accent);
+        circle(53, 70, 25, connected ? "#cf8b4f" : muted, ink);
+        circle(53, 70, 6, "#d9d0ab", ink);
+        for (let a = 0; a < 8; a++) {
+          const dx = Math.cos((a * Math.PI) / 4) * 22;
+          const dy = Math.sin((a * Math.PI) / 4) * 22;
+          line(53, 70, 53 + dx, 70 + dy, ink, 2);
+        }
+        if (connected) {
+          shapes.push({ type: "arc", x: 53, y: 70, radius: 32, start: 0.2, end: 1.3, stroke: "#4f949b", width: 3 });
+          text("MILL TURNING", 87, 116, 9);
+        } else text("MILL STOPPED", 87, 116, 9, "#555f56");
+      } else if (id === 5) {
+        rect(40, 42, 96, 52, "#e4e4d6");
+        polygon([[35, 43], [88, 19], [141, 43]], accent);
+        rect(77, 65, 22, 29, "#719087", 1);
+        rect(109, 55, 11, 27, connected ? "#d85c4e" : muted, 1);
+        rect(101, 63, 27, 11, connected ? "#d85c4e" : muted, 1);
+        if (connected) {
+          rect(15, 78, 23, 16, "#d9a34e", 1);
+          line(20, 78, 20, 70, ink, 2);
+          text("CLINIC SUPPLIED", 87, 116, 9);
+        } else text("SUPPLIES WAITING", 87, 116, 9, "#555f56");
+      } else if (id === 6) {
+        line(87, 24, 87, 94, ink, 5);
+        polygon([[87, 25], [58, 94], [116, 94]], "transparent", ink);
+        line(66, 70, 108, 70, ink, 3);
+        line(74, 50, 100, 50, ink, 3);
+        circle(87, 25, 5, accent);
+        if (connected) {
+          shapes.push({ type: "arc", x: 87, y: 25, radius: 18, start: -0.8, end: 0.8, stroke: "#d97845", width: 3 });
+          shapes.push({ type: "arc", x: 87, y: 25, radius: 30, start: -0.65, end: 0.65, stroke: "#d97845", width: 2 });
+          text("RADIO ONLINE", 87, 116, 9);
+        } else text("RADIO OFFLINE", 87, 116, 9, "#555f56");
+      } else if (id === 7) {
+        rect(36, 49, 106, 45, "#aaa897");
+        polygon([[31, 50], [55, 33], [73, 50], [97, 31], [116, 50], [147, 38], [147, 50]], accent);
+        rect(50, 66, 30, 28, "#596b67", 1);
+        rect(112, 19, 15, 31, "#666d67", 1);
+        if (connected) {
+          circle(92, 72, 10, "#e1b654", ink);
+          line(92, 57, 92, 87, ink, 2);
+          line(77, 72, 107, 72, ink, 2);
+          shapes.push({ type: "arc", x: 119, y: 16, radius: 8, start: 2.5, end: 5.5, stroke: "#d8e1d7", width: 4 });
+          text("FOUNDRY POWERED", 87, 116, 9);
+        } else text("GENERATOR WAITING", 87, 116, 9, "#555f56");
+      } else {
+        rect(38, 53, 62, 41);
+        polygon([[33, 54], [69, 31], [105, 54]], accent);
+        rect(64, 69, 15, 25, "#69867a", 1);
+        rect(113, 72, 43, 18, connected ? "#d97845" : muted, 2);
+        rect(139, 63, 17, 17, connected ? "#e7b765" : muted, 2);
+        circle(123, 92, 5, ink);
+        circle(149, 92, 5, ink);
+        if (connected) {
+          line(46, 53, 46, 24, ink, 2);
+          polygon([[46, 24], [66, 30], [46, 37]], "#e6b24e", null);
+          rect(103, 76, 12, 10, "#d9a34e", 1);
+          text("ALL ROUTES OPEN", 87, 116, 9);
+        } else text("CONVOY WAITING", 87, 116, 9, "#555f56");
+      }
+
+      return {
+        key: `community-${id}-${connected ? "connected" : "waiting"}`,
+        width: 176,
+        height: 128,
+        anchor: { x: (level?.right || 1040) + 52, y: (level?.deckY || 430) - 64 },
+        label: place,
+        ariaLabel: `${place}: ${connected ? "delivery complete and community restored" : "waiting for delivery"}`,
+        background: "transparent",
+        connected: Boolean(connected),
+        shapes,
+      };
+    }
     constructor(canvas) {
       this.canvas = canvas;
       this.ctx = canvas.getContext("2d");
@@ -216,22 +354,6 @@
         );
         c.restore();
       }
-      // Riverbend's destination: a small community greenhouse.
-      c.save();
-      c.translate(r + 180, d - 22);
-      this.round(-30, -37, 60, 37, 2, "#d3d8b4");
-      this.poly(
-        [
-          [-37, -37],
-          [0, -62],
-          [37, -37],
-        ],
-        "#677c5d",
-      );
-      this.line({ x: 0, y: -55 }, { x: 0, y: 0 }, "#819572", 3);
-      this.line({ x: -18, y: -36 }, { x: -18, y: 0 }, "#819572", 2);
-      this.line({ x: 18, y: -36 }, { x: 18, y: 0 }, "#819572", 2);
-      c.restore();
       for (let i = 0; i < 11; i++) {
         const x = l + 40 + ((i * 89) % Math.max(1, r - l - 80)),
           y = d + 90 + i * 26;

@@ -125,6 +125,7 @@
         .setDepth(11)
         .setVisible(false);
       this.guide = this.add.graphics().setDepth(2);
+      this.piers = this.add.graphics().setDepth(0);
       this.guideText = this.add
         .text(0, 0, "YOUR ROAD GOES HERE", {
           fontFamily: "Arial",
@@ -172,12 +173,15 @@
       document.body.dataset.engineReady = "true";
       document.getElementById("start").disabled = false;
       document.getElementById("select-level").disabled = false;
+      document.getElementById("free-build").disabled = false;
+      document.getElementById("replay-story").disabled = false;
+      document.getElementById("loading-screen").classList.add("ready");
       this.host.refreshViewport();
       this.events.once("shutdown", () => {
         this.input.removeAllListeners();
       });
     }
-    levelChanged(level, reduced) {
+    levelChanged(level, reduced, connected = false) {
       const key = "landscape-" + level.id;
       if (!this.textures.exists(key)) {
         const texture = this.textures.createCanvas(key, 3000, 2400),
@@ -193,6 +197,37 @@
         .setDepth(-20);
       this.labels.forEach((x) => x.destroy());
       this.labels = [];
+      if (this.communitySprite) this.communitySprite.destroy();
+      const community = BridgeArt.community?.(level, connected);
+      if (community) {
+        const textureKey = `community-${community.key}`;
+        if (!this.textures.exists(textureKey)) {
+          const texture = this.textures.createCanvas(textureKey, community.width, community.height), c = texture.context;
+          for (const s of community.shapes) {
+            c.save(); c.fillStyle = s.fill || "transparent"; c.strokeStyle = s.stroke || "transparent"; c.lineWidth = s.width || 1;
+            if (s.dash) c.setLineDash(s.dash);
+            if (s.type === "rect") { c.beginPath(); c.roundRect(s.x, s.y, s.width, s.height, s.radius || 0); c.fill(); if (s.stroke) c.stroke(); }
+            else if (s.type === "line") { c.beginPath(); c.moveTo(s.x1, s.y1); c.lineTo(s.x2, s.y2); c.stroke(); }
+            else if (s.type === "circle") { c.beginPath(); c.arc(s.x, s.y, s.radius, 0, Math.PI * 2); c.fill(); if (s.stroke) c.stroke(); }
+            else if (s.type === "arc") { c.beginPath(); c.arc(s.x, s.y, s.radius, s.start, s.end); c.stroke(); }
+            else if (s.type === "polygon") { c.beginPath(); s.points.forEach(([x,y], i) => i ? c.lineTo(x,y) : c.moveTo(x,y)); c.closePath(); if (s.fill && s.fill !== "transparent") c.fill(); if (s.stroke) c.stroke(); }
+            else if (s.type === "text") { c.font = `${s.weight || 400} ${s.size || 10}px Arial`; c.textAlign = s.align || "left"; c.textBaseline = "middle"; c.fillText(s.text, s.x, s.y); }
+            c.restore();
+          }
+          texture.refresh();
+        }
+        this.communitySprite = this.add.image(community.anchor.x, community.anchor.y, textureKey).setOrigin(0.5).setDepth(-1).setAlpha(0.96);
+      }
+      this.piers.clear();
+      for (const pier of level.piers || []) {
+        this.piers
+          .fillStyle(0x5e7668, 1)
+          .fillRoundedRect(pier.x - 20, pier.y + 10, 40, 150, 5)
+          .fillStyle(0x809383, 1)
+          .fillRect(pier.x - 27, pier.y + 2, 54, 12)
+          .lineStyle(2, 0x456152, 0.8)
+          .strokeRoundedRect(pier.x - 20, pier.y + 10, 40, 150, 5);
+      }
       this.clouds.forEach((x) => x.destroy());
       this.clouds = [];
       this.ripples.forEach((x) => x.destroy());
@@ -201,6 +236,17 @@
         this.labels.push(
           this.add
             .text(x, level.deckY + 49, "FIXED ANCHOR", {
+              fontFamily: "Arial",
+              fontSize: "9px",
+              color: "#eef0d7",
+            })
+            .setOrigin(0.5)
+            .setDepth(2),
+        );
+      for (const pier of level.piers || [])
+        this.labels.push(
+          this.add
+            .text(pier.x, pier.y + 49, "PIER SUPPORT", {
               fontFamily: "Arial",
               fontSize: "9px",
               color: "#eef0d7",
@@ -312,9 +358,10 @@
       const level = state.level,
         w = state.world,
         d = state.editor.design;
-      if (this.lastLevel !== level.id) {
-        this.lastLevel = level.id;
-        this.levelChanged(level, state.reduced);
+      const sceneKey = `${level.id}-${!!state.communityConnected}`;
+      if (this.lastLevel !== sceneKey) {
+        this.lastLevel = sceneKey;
+        this.levelChanged(level, state.reduced, !!state.communityConnected);
       }
       this.labels.forEach((label) =>
         label.setVisible(state.screen === "workshop"),
@@ -467,6 +514,54 @@
       this.guideText
         .setVisible(false)
         .setPosition((level.left + level.right) / 2, level.deckY + 32);
+      const trainingTarget =
+        state.training && state.tutorialStep === 1
+          ? {
+              a: { x: level.left, y: level.deckY },
+              b: { x: level.right, y: level.deckY },
+            }
+          : state.training && state.tutorialStep === 3
+            ? state.trainingTarget
+            : null;
+      if (trainingTarget && state.mode === "build") {
+        const a = trainingTarget.a,
+          b = trainingTarget.b,
+          pulse = state.reduced ? 0.7 : 0.42 + Math.sin(this.host.state.elapsed * 4) * 0.2;
+        g.lineStyle(3, 0xf0a36c, pulse)
+          .lineBetween(a.x, a.y, b.x, b.y)
+          .strokeCircle(a.x, a.y, 13)
+          .strokeCircle(b.x, b.y, 13);
+        const dx = b.x - a.x,
+          dy = b.y - a.y,
+          length = Math.max(1, Math.hypot(dx, dy)),
+          ux = dx / length,
+          uy = dy / length,
+          progress = state.reduced
+            ? 0.52
+            : 0.25 + ((this.host.state.elapsed * 0.42) % 0.5),
+          handX = a.x + dx * progress,
+          handY = a.y + dy * progress;
+        g.fillStyle(0xffd09f, 0.95)
+          .fillCircle(handX, handY, 8)
+          .fillTriangle(
+            b.x,
+            b.y,
+            b.x - ux * 22 - uy * 9,
+            b.y - uy * 22 + ux * 9,
+            b.x - ux * 22 + uy * 9,
+            b.y - uy * 22 - ux * 9,
+          );
+        g.lineStyle(2, 0xf4d19c, 0.72)
+          .lineBetween(a.x, a.y, a.x + (b.x - a.x) * 0.24, a.y + (b.y - a.y) * 0.24);
+        this.guideText
+          .setText(
+            state.tutorialStep === 1
+              ? "DRAG, OR TAP BOTH ORANGE ANCHORS"
+              : "CONNECT THE HIGHLIGHTED JOINTS",
+          )
+          .setVisible(true)
+          .setPosition((a.x + b.x) / 2, Math.min(a.y, b.y) - 23);
+      }
       if (empty) {
         g.lineStyle(2, 0x718658, 0.7);
         for (let x = level.left; x < level.right; x += 16)

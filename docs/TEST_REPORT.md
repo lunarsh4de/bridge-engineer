@@ -1,58 +1,52 @@
-# Verification record — Riverbend v0.4
+# Verification record — Riverbend v0.6
 
-Date: 2026-11-05. Local macOS host, Node.js v24.14.0, Playwright Chromium 153.0.8010.12. This report covers local v0.4 development, not the existing public website. No deployment was performed.
+Date: 2026-11-06. This record concerns the local v0.6 candidate. The frozen runtime has passed independent source and relocated-package acceptance. Final archive metadata is recorded in the release verification JSON. No public deployment was performed.
 
-## Numerical/editor/evidence checks
+## G0: preserved baseline
 
-`node --test tests/physics.test.cjs tests/model.test.cjs tests/progress.test.cjs`: **21 passed**.
+Before new implementation, the existing modified/untracked working tree was recorded and source files were copied into `work/v06-baseline/source-snapshot.zip`. Git status, a binary diff and file hashes were saved alongside it. No reset, clean or bulk formatting was performed. The frozen v0.5 snapshot was extracted and tested separately from the changing v0.6 source.
 
-The original editor and physics checks remain: placement/welding, atomic rejected edits, fixed supports, move/remove/undo/redo, validation fallback, self-weight and gravity, cable slack/tension, break evidence, road connectivity, deterministic fixed steps, and material differences. All **four** reference designs fit inventory and pass.
+The frozen baseline passed 27 numerical/editor/save tests, the eight-crossing browser suite, the Canvas/reduced-motion engine suite and the touch/keyboard/onboarding input suite. The first browser attempts exposed missing development dependencies, not a gameplay failure. The installed npm/npx shim points to a missing application resource; the bundled Playwright library and official Chromium installer were used, then package.json-equivalent `node` commands with `NODE_PATH`.
 
-New checks verify migration from a three-level save, independent immutable evidence snapshots, geometry identity independent of generated node IDs, exclusion of mismatched conditions, cost rewards only for comparable successful designs, bounded records and recomputed import cost. The new lower cable chord passes in tension; reflecting the same structure above the deck fails. A separate numerical probe also confirmed a mixed timber/steel diagonal variant passes the fourth level.
+## New numerical content audit
 
-These checks establish modeled behavior and internal consistency. They do not validate the solver against real bridges or establish student learning outcomes.
+`node scripts/audit-v06.cjs` produced `LEVEL_AUDIT_v06.json`: 16 inventory-valid passing geometries across eight crossings; eight unsupported-road failures; four role probes (compression-role cables in levels 4/6 and disconnected fixed piers in levels 5/8) fail as expected. The solver and level numerical parameters were not changed. Alternative designs use the actual editor grid.
 
-## Full browser regression
+The audit also checks 56 forward transfers by span-scaling earlier designs while keeping material roles and relative height. Six are legal under target geometry/material limits; one, a deeper level-4 design transferred to level 6, passes. Legal reuse is not prohibited: the test distinguishes transferable principles from a claim that eight differently named levels necessarily teach eight strategies. Invalid inventory is not recorded as structural failure. See `V06_LEVEL_DIVERSITY_zh.md`.
 
-`tests/browser.e2e.cjs`: **passed** using the local file entry point. Its fresh primary context is offline.
+## Independent browser construction
 
-- Home shows only the game title, Start, Select level and About; workshop controls are hidden/inert and no automatic dialog opens.
-- Selection has four crossings, locked previews and explicit return.
-- Start opens a clean editable scene with Help accessible and no initial instruction bar.
-- Actual mouse gestures construct the first bridge; duplicate members reject atomically, and outside release cancels.
-- A road-only design fails; Edit design preserves the original geometry and material usage.
-- Manually adding supports, moving a joint and undoing leads to a successful crossing.
-- Prediction and reflection are stored; different designs under the same conditions produce a comparison table.
-- Repeated Test commands create one experiment; identical reruns do not add evidence records.
-- Opening Help pauses the experiment; closing leaves an explicit Resume.
-- All four crossings complete, including the new cable challenge. The final report is available only after the result action.
-- Reload returns to the menu; Start restores the last editable bridge without reopening help/results.
-- Real-bridge content, persistent mute, fullscreen entry/exit and JSON export/import work.
-- Active controls fit 1440×900, 1024×768, 844×390 and 390×844 viewports.
-- Blocked localStorage remains playable, and save failure is visible after an edit.
-- Old three-level progress migrates without deleting valid designs.
-- No uncaught page errors were recorded.
+GPT-6.1 independently authored and ran `tests/review-v06.e2e.cjs` with file://, offline mode, Canvas fallback, reduced motion and 1366×768. Every member of all eight alternative designs was placed with real material buttons and mouse drags. Each resulting design was validated and its ID-independent fingerprint exactly matched the audited alternative geometry, materials and connectivity. No reference was loaded and no design was assigned into runtime state. The test exercised pause/resume, completion/delivery persistence, the final report and reopening it after reload.
 
-## Canvas fallback and input
+Simulation time was explicitly advanced through solver steps after starting experiments via UI; this is not a claim of real-time campaign pacing or a learner playtime study. An initial default-WebGL run timed out under concurrent browser load; this alone was not classified as a game defect. Canvas and default-renderer coverage are reported separately.
 
-`tests/engine.e2e.cjs`: **passed** with WebGL disabled, reduced motion and an offline file entry. It verifies Phaser Canvas, no decorative Workshop tweens, force legend, a successful crossing and return to editing.
+The root agent also actually operated the interactive tutorial with pointer gestures, observed a completed crossing in normal browser time, returned to editing and entered the first mission. On a fresh source it placed road-only geometry, observed the failure diagnosis and verified first-entry task/objective presentation. This narrower check is not described as an independent eight-level playthrough.
 
-`tests/input.e2e.cjs`: **passed** with Chromium touch/mobile emulation at 390×844. It places a full-span road and a timber member through two taps, cancels an unfinished member, then constructs a member with keyboard arrows/Enter. This is input emulation, not a physical phone test.
+Evidence is in `work/review-v06/` and the independent acceptance report. Static images are reviewed for clipping and overlap; they are not a substitute for input checks.
 
-Two bugs exposed during development were fixed: unconditional outside-up cancellation rebuilt the material dock and swallowed button clicks; native lostpointercapture arrived before Phaser touchend and cancelled normal taps. The updated input tests exercise the corrected paths.
+## Defect and repair loop
 
-## Visual checks and portable package
+Independent review found success-result controls overlapped by the view toolbar. The implementation hides that toolbar while results are visible. Review also found the partial field report claiming the full route was open; title, subtitle, locked cards and consequences were made conditional on actual completion. A later 1024×600 check found a long result panel extending below the usable region and was returned for repair. Each closure must be supported by the independent report, not by this description of the change request.
 
-Inspected actual desktop and mobile home/workshop screenshots, desktop/mobile level selection and the fourth-crossing success state. Home uses the existing original landscape with an independent decorative bridge, which never enters the player's saved design. Mobile Help remains visible. The mobile result panel was moved below the bridge area and given bounded scrolling; measurements/force legend were positioned independently from controls.
+Notebook-specific checks include matched comparisons after failure, retained historical completion, saved reflection, restoring a history design and undo, and malformed JSON import without overwriting current progress. Their final scope and results are recorded by the independent reviewer.
 
-The runtime uses relative local script/style paths. No required network fetch, CDN, login or key is introduced. External URLs are optional reference links in user-opened educational content. The local Phaser MIT notice is retained. Final package extraction and relocated offline smoke verification are recorded with the release artifact.
+## Current release verification
 
-## Limits
+The current source passed 28 numerical/editor/save tests. GPT-6.1 independently ran the full browser suite to exit 0, including all eight campaign crossings, responsive states, blocked storage, export/import and migration. The engine suite and touch/keyboard/onboarding input suite independently exited 0. The implementation agent's separate browser run timed out on a final migrated-page navigation after the earlier checks; it is retained as an incomplete run, not relabeled Pass. The independent complete run supplies the full-suite result.
 
-Chromium only; no Safari/Firefox or physical touch device certification. No formal screen-reader audit, course-rubric certification, user learning study, engineering calibration, plagiarism assessment or subjective audio-quality evaluation. The current scenario and material cost are game presets. The delivery remains a prescribed moving load rather than full wheel-contact dynamics.
+The fixed success-card overlay and low-height sticky-action defects were independently retested at 1366×768, 1280×720, 1024×768, 1024×600, 390×844 and 319×768 where applicable. The low-height/narrow result card can scroll to a fully clickable primary action; its action surface is opaque and avoids the dock. This is a targeted screen matrix, not every-state-at-every-resolution certification.
 
-The browser tests require a development Playwright installation (or an available runtime package). The game itself does not. The host's default npm launcher pointed to an obsolete app path, so development checks used the equivalent direct Node commands and an available Playwright runtime without changing game dependencies.
+v3/v4/v5 save samples retained geometry and completion when migrated to v6. Partial report wording, locked routes, teacher exploration, first-visit persistence and malformed import were checked. Independent four-load sandbox experiments do not award campaign completion or compare mismatched loads. Eight community waiting/restored textures were checked; a floating-building/double-building issue was fixed, then the right-bank placement was visually rechecked at levels 1/4/8. Missing-vendor loading was intentionally induced, and the explanation plus real Retry restored the menu after the resource became available.
 
-## GitHub distribution layout
+The independently checked runtime candidate was `bridge-engineer-v0.6-candidate.zip`, 3,784,004 bytes / 35 entries, SHA-256 `9fb7a4f64369d712208fc4942c5cd26c451ecff5d923535928d9943ab36a63ac`. A fresh relocated extraction passed package checks with zero required remote requests and zero normal-flow page errors. On that extracted top-level file:// entry, GPT-6.1 again built **all eight audited alternative geometries through actual buttons and mouse drags**, validated exact ID-independent geometry/material/connectivity fingerprints, completed deliveries and reopened the final report after reload. Notebook, damage/retry, restore/undo, four sandbox loads and narrow/low-height result actions were also rerun against the extracted runtime.
 
-The GitHub repository serves runtime files from its root. The verified site files are copied unchanged from the local site directory; test entry points and README paths are adapted to the root layout. GitHub synchronization is a subsequent user-authorized action; the numerical and browser checks above describe the preceding v0.4 validation.
+Evidence: `work/review-v06/` (standard and specialist logs/screenshots), its `offline-eight/` evidence and `offline-eight.log`; implementation evidence: `work/v06-final-logs/`. These are development-workspace evidence paths, not required runtime resources. See `V06_INDEPENDENT_ACCEPTANCE_61_zh.md` for independent scope and exclusions. After teacher/report documents are finalized, the release archive is rebuilt; its runtime entries must match this accepted candidate byte-for-byte, and the final archive is relocated and smoke-tested again. Final archive size/hash belong to its external release verification JSON to avoid a self-referential archive hash.
+
+
+## Boundaries
+
+The structural model is an idealized axial-member system with a prescribed moving load. It omits beam bending, realistic buckling shapes, joint failure, fatigue, wind and full wheel contact. Game material presets and the 12 cm rule are not engineering standards or calibration.
+
+Chromium/Canvas and emulated touch coverage do not certify Safari, Firefox, screen-reader usability or every physical device. No target-age learner study, classroom validation, measured 45–75-minute pacing, fun score, learning gain, rubric grade guarantee or originality certification is claimed. Completion, a saved reflection and Material saver are not mastery scores.
+
+Original story art and community markers are project-authored code/vector visuals. No new image-service output or remote media dependency is required. The runtime includes Phaser's MIT notice and contains no API credentials.

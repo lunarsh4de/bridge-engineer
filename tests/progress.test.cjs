@@ -1,8 +1,8 @@
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
-const E = require("../js/progress.js"),
-  L = require("../js/levels.js"),
-  P = require("../js/physics.js");
+const E = require("../site/js/progress.js"),
+  L = require("../site/js/levels.js"),
+  P = require("../site/js/physics.js");
 const l = L.levels[0];
 function world() {
   return {
@@ -13,7 +13,7 @@ function world() {
     firstBreak: null,
   };
 }
-test("three-level saves migrate without losing designs and corrupt entries are isolated", () => {
+test("legacy saves migrate without losing designs and corrupt entries are isolated", () => {
   const d = L.starter(l);
   const saved = E.normalize(
     {
@@ -23,9 +23,51 @@ test("three-level saves migrate without losing designs and corrupt entries are i
     },
     L.levels,
   );
-  assert.deepEqual(saved.completed, [true, true, true, false]);
+  assert.deepEqual(saved.completed, [true, true, true, false, false, false, false, false]);
   assert.deepEqual(saved.designs[0], d);
   assert.equal(saved.designs[1], undefined);
+});
+test("v5 progress keeps sandbox work separate from campaign completion", () => {
+  const data = E.empty(L.levels),
+    sandboxDesign = L.starter(L.sandbox),
+    legacy = { version: 4, level: 2, completed: [true], designs: {}, records: {} };
+  const parsed = E.normalize(
+    { ...legacy, designs: { sandbox: sandboxDesign } },
+    L.levels,
+    L.sandbox,
+  );
+  assert.equal(parsed.version, E.VERSION);
+  assert.deepEqual(parsed.designs.sandbox, sandboxDesign);
+  assert.equal(parsed.completed.length, 8);
+  assert.equal(parsed.completed[0], true);
+  assert.equal(parsed.completed[1], false);
+  assert.equal(data.completed.length, 8);
+});
+test("v6 derives route deliveries from completion and preserves first-visit state", () => {
+  const parsed = E.normalize(
+    { completed: [true, false], delivered: [false, true], visited: [true, true] },
+    L.levels,
+    L.sandbox,
+  );
+  assert.equal(parsed.version, 6);
+  assert.deepEqual(parsed.delivered.slice(0, 2), [true, false]);
+  assert.deepEqual(parsed.visited.slice(0, 2), [true, true]);
+});
+test("sandbox records preserve supported alternate loads and keep conditions distinct", () => {
+  const data = E.empty(L.levels),
+    d = L.starter(L.sandbox),
+    light = { ...L.sandbox, truckMass: 600 },
+    heavy = { ...L.sandbox, truckMass: 1800 };
+  E.record(data, "sandbox", light, d, { ...world(), status: "passed" }, "crossing", "", "Passed");
+  E.record(data, "sandbox", heavy, d, { ...world(), status: "passed" }, "crossing", "", "Passed");
+  const parsed = E.normalize(data, L.levels, L.sandbox);
+  assert.equal(parsed.records.sandbox.length, 2);
+  assert.notEqual(parsed.records.sandbox[0].conditions, parsed.records.sandbox[1].conditions);
+});
+test("support geometry is part of comparable test conditions", () => {
+  const level = L.levels[4],
+    movedPier = { ...level, piers: [{ ...level.piers[0], x: 775 }] };
+  assert.notEqual(E.conditions(level, "crossing"), E.conditions(movedPier, "crossing"));
 });
 test("evidence owns an immutable design and equivalent IDs do not generate duplicate records", () => {
   const data = E.empty(L.levels),

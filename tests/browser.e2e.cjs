@@ -2,8 +2,8 @@ const { chromium } = require("playwright");
 const assert = require("node:assert/strict");
 const path = require("node:path");
 const fs = require("node:fs");
-const { levels, starter } = require("../js/levels.js");
-const URL = process.env.BASE_URL || "file://" + path.resolve("index.html");
+const { levels, starter } = require("../site/js/levels.js");
+const URL = process.env.BASE_URL || "file://" + path.resolve("site/index.html");
 fs.mkdirSync("work", { recursive: true });
 (async () => {
   const browser = await chromium.launch({
@@ -17,7 +17,11 @@ fs.mkdirSync("work", { recursive: true });
     const ctx = await browser.newContext({
       viewport: { width: 1440, height: 900 },
       offline: URL.startsWith("file:"),
+      reducedMotion: "reduce",
     });
+    await ctx.addInitScript(() =>
+      localStorage.setItem("bridge-engineer-onboarding-v1", "complete"),
+    );
     const p = await ctx.newPage();
     p.on("pageerror", (e) => errors.push(e.message));
     const ready = async (page) => {
@@ -48,7 +52,7 @@ fs.mkdirSync("work", { recursive: true });
         e = await point(...b);
       await p.mouse.move(s.x, s.y);
       await p.mouse.down();
-      await p.mouse.move(e.x, e.y, { steps: 9 });
+      await p.mouse.move(e.x, e.y, { steps: 2 });
       await p.mouse.up();
     }
     async function example(page = p) {
@@ -63,33 +67,41 @@ fs.mkdirSync("work", { recursive: true });
       await page.locator("#test").click();
       await page.locator("#speed").click();
       await page.locator("#speed").click();
+      await page.evaluate(() => {
+        const host = BridgeRuntime.game.scene.getScene("Workshop").host;
+        for (let i = 0; i < 4000 && host.state.world.status === "running"; i++)
+          host.state.world.step();
+      });
       await page
         .locator("#feedback-panel." + result)
-        .waitFor({ timeout: 30000 });
+        .waitFor({ timeout: 10000 });
     }
     await ready(p);
     assert.equal(await p.locator("dialog[open]").count(), 0);
     const buttons = await p.locator("button:visible").allTextContents();
     assert.deepEqual(
       buttons.map((s) => s.replace(/\s+/g, " ").trim()),
-      ["About", "Start →", "Select level"],
+      ["About", "Start →", "Select level", "Free build", "Replay story"],
     );
     assert.equal(await p.locator("#play-ui").isVisible(), false);
     await p.screenshot({ path: "work/v4-home-desktop.png" });
     await p.locator("#about").click();
-    assert.match(await p.locator("#modal-body").innerText(), /Learning goals/);
-    assert.match(await p.locator("#modal-body").innerText(), /STEM Education/);
+    assert.match(await p.locator("#modal-body").innerText(), /learning goals/i);
+    assert.match(await p.locator("#modal-body").innerText(), /STEM EDUCATION/i);
     await p.keyboard.press("Escape");
     await p.locator("#select-level").click();
-    assert.equal(await p.locator("[data-mission]").count(), 4);
+    assert.equal(await p.locator("[data-mission]").count(), levels.length);
+    assert.equal(await p.locator("[data-sandbox]").count(), 1);
     await p.locator('[data-mission="3"]').click();
     assert.match(
       await p.locator("#modal-body").innerText(),
       /Complete crossing 3/,
     );
-    await p.keyboard.press("Escape");
+    await p.locator("#close-modal").click();
     await p.locator("#selection-back").click();
     await p.locator("#start").click();
+    assert.match(await p.locator("#modal-body").innerText(), /New constraint/i);
+    await p.locator("#begin-building").click();
     assert.equal(await p.locator("#instruction").isVisible(), false);
     assert.equal(await p.locator("#help").isVisible(), true);
     await p.locator("#test").click();
@@ -163,6 +175,7 @@ fs.mkdirSync("work", { recursive: true });
       330,
     );
     await p.locator("#notebook").click();
+    await p.locator(".notebook-prediction summary").click();
     await p.locator("#prediction").fill("The triangles will reduce deck drop.");
     await p.locator("#save-prediction").click();
     await crossing();
@@ -171,11 +184,11 @@ fs.mkdirSync("work", { recursive: true });
     await p.locator("#result-compare").click();
     assert.match(await p.locator("#modal-body").innerText(), /Same conditions/);
     assert.equal(await p.locator(".compare-table tbody tr").count(), 4);
-    await p.locator(".evidence-record").last().locator("summary").click();
     await p
       .locator("#reflection-1")
       .fill("The same load passed after adding connected diagonals.");
     await p.locator('[data-reflect-save="1"]').click();
+    assert.equal(await p.locator(".view-controls").isVisible(), false);
     await p.locator("#result-edit").click();
     for (let i = 0; i < 20; i++)
       await p.locator("#test").dispatchEvent("click");
@@ -201,19 +214,30 @@ fs.mkdirSync("work", { recursive: true });
     console.log(
       "PASS: menu, manual construction, failure/retry, evidence, comparison, duplicate tests and modal pause",
     );
-    for (let i = 1; i < 4; i++) {
+    for (let i = 1; i < levels.length; i++) {
+      console.log(`CHECK: entering campaign level ${i + 1}/${levels.length}`);
       await p.locator("#next").click();
+      if (await p.locator("#begin-building").count())
+        await p.locator("#begin-building").click();
+      const ends = await p.evaluate(() => {
+        const h = BridgeRuntime.game.scene.getScene("Workshop").host;
+        return [h.state.level.left, h.state.level.right, h.state.level.deckY];
+      });
+      await drag([ends[0], ends[2]], [ends[1], ends[2]]);
+      await crossing(p, "failure");
+      await p.locator("#result-edit").click();
       await example();
       await crossing();
       assert.equal((await read()).completed[i], true);
+      console.log(`PASS: campaign level ${i + 1}/${levels.length}`);
     }
     await p.screenshot({ path: "work/v4-cable-success.png" });
     await p.locator("#next").click();
-    assert.match(
-      await p.locator("#modal-body").innerText(),
-      /Riverbend, reconnected/,
-    );
-    await p.keyboard.press("Escape");
+    assert.equal(await p.locator("#final-report-screen").isVisible(), true);
+    assert.match(await p.locator("#final-report-title").innerText(), /reconnected/i);
+    assert.equal(await p.locator(".report-crossing").count(), levels.length);
+    await p.locator("#report-menu").click();
+    console.log("CHECK: campaign completion and reload");
     await p.reload();
     await p.waitForFunction(() => document.body.dataset.engineReady === "true");
     assert.equal(await p.locator("#main-menu").isVisible(), true);
@@ -235,7 +259,7 @@ fs.mkdirSync("work", { recursive: true });
     const exported = await download;
     await exported.saveAs("work/v4-export.json");
     const exportData = JSON.parse(fs.readFileSync("work/v4-export.json"));
-    assert.equal(exportData.data.completed.length, 4);
+    assert.equal(exportData.data.completed.length, levels.length);
     await p.locator("#fullscreen").click();
     await p.waitForFunction(() => !!document.fullscreenElement);
     await p.locator("#fullscreen").click();
@@ -246,6 +270,7 @@ fs.mkdirSync("work", { recursive: true });
       { width: 1024, height: 768 },
       { width: 844, height: 390 },
       { width: 390, height: 844 },
+      { width: 319, height: 700 },
     ]) {
       await p.setViewportSize(size);
       await p.waitForFunction(
@@ -295,6 +320,8 @@ fs.mkdirSync("work", { recursive: true });
     await p.screenshot({ path: "work/v4-select-mobile.png" });
     await p.setViewportSize({ width: 1440, height: 900 });
     await p.screenshot({ path: "work/v4-select-desktop.png" });
+    console.log("CHECK: responsive layouts complete");
+    await ctx.close();
     // Storage failure remains playable and can be exported; importing is validated and confirmed.
     const blocked = await browser.newContext({
       offline: URL.startsWith("file:"),
@@ -310,18 +337,40 @@ fs.mkdirSync("work", { recursive: true });
     bp.on("pageerror", (e) => errors.push(e.message));
     await ready(bp);
     await bp.locator("#start").click();
-    await example(bp);
+    await bp.locator("#story-skip").click();
+    await bp.locator("#tutorial-skip").click();
+    await bp.locator("#begin-building").click();
+    const blockedEnds = await bp.evaluate(() => {
+      const h = BridgeRuntime.game.scene.getScene("Workshop").host;
+      const r = document.querySelector("#scene").getBoundingClientRect();
+      const toScreen = (x, y) => ({
+        x: r.left + h.view.x + x * h.view.scale,
+        y: r.top + h.view.y + y * h.view.scale,
+      });
+      return [
+        toScreen(h.state.level.left, h.state.level.deckY),
+        toScreen(h.state.level.right, h.state.level.deckY),
+      ];
+    });
+    await bp.mouse.move(blockedEnds[0].x, blockedEnds[0].y);
+    await bp.mouse.down();
+    await bp.mouse.move(blockedEnds[1].x, blockedEnds[1].y, { steps: 8 });
+    await bp.mouse.up();
     assert.equal(await bp.locator("#storage-status").isVisible(), true);
     await bp.locator("#gravity").click();
     assert.equal(await bp.locator("#simulation-panel").isVisible(), true);
+    console.log("CHECK: blocked-storage flow complete");
+    await blocked.close();
     // Old saved progress must survive the additional mission.
     const migrated = await browser.newContext();
     await migrated.addInitScript(
-      (data) =>
+      (data) => {
         localStorage.setItem(
           "bridge-engineer-workshop-v2",
           JSON.stringify(data),
-        ),
+        );
+        localStorage.setItem("bridge-engineer-onboarding-v1", "complete");
+      },
       {
         level: 1,
         completed: [true, false, false],
@@ -336,9 +385,10 @@ fs.mkdirSync("work", { recursive: true });
           JSON.parse(localStorage.getItem("bridge-engineer-workshop-v2"))
             .completed,
       ),
-      [true, false, false, false],
+      [true, false, false, false, false, false, false, false],
     );
     await mp.locator("#start").click();
+    if (await mp.locator("#begin-building").count()) await mp.locator("#begin-building").click();
     await mp.locator("#help").click();
     await mp.locator('[data-guide="settings"]').click();
     await mp
@@ -347,16 +397,17 @@ fs.mkdirSync("work", { recursive: true });
     await mp.locator("#confirm-import").click();
     assert.equal(
       await mp.locator("#mission-label").innerText(),
-      "04 / Millwater Reach",
+      "08 / Riverbend Crossing",
     );
     assert.deepEqual(errors, []);
+    await migrated.close();
     console.log(
       JSON.stringify(
         {
           status: "PASS",
           browser: await browser.version(),
           checks: [
-            "four crossings",
+            "eight campaign crossings and sandbox",
             "offline local files",
             "responsive home/select/workshop",
             "old-save migration",

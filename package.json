@@ -1,14 +1,17 @@
 {
   "name": "bridge-engineer-workshop",
-  "version": "0.4.0",
+  "version": "0.6.0",
   "private": true,
   "description": "An offline STEM bridge game powered by Phaser with an independent structural solver.",
   "scripts": {
     "test": "node --test tests/physics.test.cjs tests/model.test.cjs tests/progress.test.cjs",
     "test:browser": "node tests/browser.e2e.cjs",
-    "format": "prettier --write index.html styles.css js tests README.md docs",
+    "format": "prettier --write site tests README.md docs/TEST_REPORT.md docs/research/bridge-workshop-architecture.md",
     "test:engine": "node tests/engine.e2e.cjs",
-    "test:input": "node tests/input.e2e.cjs"
+    "test:input": "node tests/input.e2e.cjs",
+    "test:package": "node tests/package.e2e.cjs",
+    "test:review": "node tests/review-v06.e2e.cjs",
+    "audit": "node scripts/audit-v06.cjs"
   },
   "engines": {
     "node": ">=20"

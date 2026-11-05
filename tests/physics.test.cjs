@@ -1,8 +1,8 @@
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
-const P = require("../js/physics.js");
-const { levels, starter } = require("../js/levels.js");
-const M = require("../js/model.js");
+const P = require("../site/js/physics.js");
+const { levels, sandbox, starter } = require("../site/js/levels.js");
+const M = require("../site/js/model.js");
 function run(world, seconds = 23) {
   for (let i = 0; i < seconds / P.STEP && world.status === "running"; i++)
     world.step();
@@ -19,7 +19,7 @@ function floating(material = "wood") {
     members: [{ id: "float", a: "a", b: "b", material }],
   };
 }
-test("all four starter structures fit inventory and carry their delivery under gravity", () => {
+test("all eight reference structures fit inventory and carry their delivery under gravity", () => {
   for (const l of levels) {
     const design = starter(l);
     assert.equal(M.validate(design, l), null);
@@ -28,6 +28,35 @@ test("all four starter structures fit inventory and carry their delivery under g
     assert.ok(world.maxSag < 0.12);
     assert.equal(world.breakCount, 0);
   }
+});
+test("every campaign level has a distinct second passing design within the same budget", () => {
+  const targetGuideY = [355, 305, 330, 580, 330, 580, 330, 580];
+  levels.forEach((level, index) => {
+    const reference = starter(level),
+      alternative = structuredClone(reference);
+    alternative.nodes
+      .filter((n) => n.id.startsWith("t"))
+      .forEach((n) => (n.y = targetGuideY[index]));
+    assert.notDeepEqual(alternative, reference, level.name);
+    assert.equal(
+      Math.abs((targetGuideY[index] - level.deckY) % 25),
+      0,
+      level.name,
+    );
+    assert.equal(M.validate(alternative, level), null, level.name);
+    const world = run(new P.World(alternative, level, { vehicle: true }));
+    assert.equal(world.status, "passed", level.name);
+    assert.ok(world.maxSag < 0.12, level.name);
+    assert.equal(world.breakCount, 0, level.name);
+  });
+});
+test("the sandbox uses the same solver and accepts its reference as an optional experiment", () => {
+  const design = starter(sandbox);
+  assert.equal(M.validate(design, sandbox), null);
+  assert.equal(
+    run(new P.World(design, sandbox, { vehicle: true })).status,
+    "passed",
+  );
 });
 test("a floating member falls under gravity while both bank anchors remain fixed", () => {
   const l = levels[0],
@@ -84,7 +113,7 @@ test("a heavily overloaded bridge breaks and records the first member and force"
   assert.ok(w.firstBreak.time > 0);
   assert.ok(w.firstBreak.ratio > 1);
 });
-test("material choice matters in the final crossing", () => {
+test("material choice matters after stronger materials are introduced", () => {
   const l = levels[2],
     d = starter(l);
   d.members = d.members.map((e) => ({

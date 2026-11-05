@@ -1,0 +1,26 @@
+{
+  "generated": "2026-11-05",
+  "solver": "BridgePhysics axial-v1",
+  "step_s": 0.008333333333333333,
+  "pass_rule": "delivery complete, zero broken members, maximum road sag < 0.12 m",
+  "method": "Reference is BridgeLevels.starter(level). Alternative is a distinct, editor-grid-buildable design with every t-joint placed at target_guide_y_px; each target differs from deckY=430 by a multiple of the editor's 25 px snap. Both were validated against inventory and simulated for 23 seconds or until terminal status.",
+  "rows": [
+    {"level":1,"design":"reference","truck_kg":600,"span_m":6,"target_guide_y_px":330,"result":"passed","sag_m":0.018189,"time_s":8.875,"breaks":0,"max_force_ratio":0.3651,"cost":18.4853,"usage_m":{"road":6,"wood":12.4853,"steel":0,"cable":0}},
+    {"level":1,"design":"alternative","truck_kg":600,"span_m":6,"target_guide_y_px":355,"result":"passed","sag_m":0.028007,"time_s":8.875,"breaks":0,"max_force_ratio":0.4839,"cost":17.5,"usage_m":{"road":6,"wood":11.5,"steel":0,"cable":0}},
+    {"level":2,"design":"reference","truck_kg":1000,"span_m":8,"target_guide_y_px":330,"result":"passed","sag_m":0.064499,"time_s":10.975,"breaks":0,"max_force_ratio":0.8767,"cost":25.3137,"usage_m":{"road":8,"wood":17.3137,"steel":0,"cable":0}},
+    {"level":2,"design":"alternative","truck_kg":1000,"span_m":8,"target_guide_y_px":305,"result":"passed","sag_m":0.046451,"time_s":10.975,"breaks":0,"max_force_ratio":0.702,"cost":26.8062,"usage_m":{"road":8,"wood":18.8062,"steel":0,"cable":0}},
+    {"level":3,"design":"reference","truck_kg":1800,"span_m":10,"target_guide_y_px":305,"result":"passed","sag_m":0.056385,"time_s":13.0833,"breaks":0,"max_force_ratio":0.7839,"cost":56.4109,"usage_m":{"road":10,"wood":12.8062,"steel":11.2016,"cable":0}},
+    {"level":3,"design":"alternative","truck_kg":1800,"span_m":10,"target_guide_y_px":330,"result":"passed","sag_m":0.074562,"time_s":13.0833,"breaks":0,"max_force_ratio":0.865,"cost":53.799,"usage_m":{"road":10,"wood":11.3137,"steel":10.8284,"cable":0}},
+    {"level":4,"design":"reference","truck_kg":1400,"span_m":8,"target_guide_y_px":555,"result":"passed","sag_m":0.037076,"time_s":10.975,"breaks":0,"max_force_ratio":0.6014,"cost":53.6187,"usage_m":{"road":8,"wood":0,"steel":12.8062,"cable":6}},
+    {"level":4,"design":"alternative","truck_kg":1400,"span_m":8,"target_guide_y_px":580,"result":"passed","sag_m":0.028202,"time_s":10.975,"breaks":0,"max_force_ratio":0.5154,"cost":58.4666,"usage_m":{"road":8,"wood":0,"steel":14.4222,"cable":6}},
+    {"level":5,"design":"reference","truck_kg":2400,"span_m":12,"target_guide_y_px":305,"result":"passed","sag_m":0.038701,"time_s":15.1917,"breaks":0,"max_force_ratio":0.8095,"cost":41.2094,"usage_m":{"road":12,"wood":29.2094,"steel":0,"cable":0}},
+    {"level":5,"design":"alternative","truck_kg":2400,"span_m":12,"target_guide_y_px":330,"result":"passed","sag_m":0.049629,"time_s":15.1917,"breaks":0,"max_force_ratio":0.9822,"cost":38.9706,"usage_m":{"road":12,"wood":26.9706,"steel":0,"cable":0}},
+    {"level":6,"design":"reference","truck_kg":2200,"span_m":10,"target_guide_y_px":565,"result":"passed","sag_m":0.080638,"time_s":13.0833,"breaks":0,"max_force_ratio":0.9917,"cost":70.0009,"usage_m":{"road":10,"wood":0,"steel":16.8003,"cable":8}},
+    {"level":6,"design":"alternative","truck_kg":2200,"span_m":10,"target_guide_y_px":580,"result":"passed","sag_m":0.068696,"time_s":13.0833,"breaks":0,"max_force_ratio":0.9092,"cost":73.6833,"usage_m":{"road":10,"wood":0,"steel":18.0278,"cable":8}},
+    {"level":7,"design":"reference","truck_kg":4800,"span_m":8,"target_guide_y_px":300,"result":"passed","sag_m":0.04352,"time_s":10.975,"breaks":0,"max_force_ratio":0.7239,"cost":65.3629,"usage_m":{"road":8,"wood":0,"steel":19.121,"cable":0}},
+    {"level":7,"design":"alternative","truck_kg":4800,"span_m":8,"target_guide_y_px":330,"result":"passed","sag_m":0.065199,"time_s":10.975,"breaks":0,"max_force_ratio":0.9443,"cost":59.9411,"usage_m":{"road":8,"wood":0,"steel":17.3137,"cable":0}},
+    {"level":8,"design":"reference","truck_kg":5000,"span_m":12,"target_guide_y_px":570,"result":"passed","sag_m":0.034248,"time_s":15.1917,"breaks":0,"max_force_ratio":0.9836,"cost":85.9367,"usage_m":{"road":12,"wood":0,"steel":20.6456,"cable":10}},
+    {"level":8,"design":"alternative","truck_kg":5000,"span_m":12,"target_guide_y_px":580,"result":"passed","sag_m":0.031228,"time_s":15.1917,"breaks":0,"max_force_ratio":0.9211,"cost":88.8999,"usage_m":{"road":12,"wood":0,"steel":21.6333,"cable":10}}
+  ],
+  "interpretation": "These are internal numerical checks of the game model. They do not calibrate real bridges, prove mathematical optimality, or establish learning outcomes. The axial solver omits beam bending, realistic buckling, joint failure, fatigue, wind and full wheel contact."
+}

@@ -14,6 +14,26 @@
     <title>Bridge Engineer — Riverbend</title>
     <link rel="icon" href="favicon.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="styles.css" />
+    <script>
+      (() => {
+        let failed = false;
+        const fail = () => {
+          if (failed || document.body?.dataset.engineReady === "true") return;
+          const box = document.getElementById("loading-screen");
+          if (!box) { addEventListener("DOMContentLoaded", fail, { once: true }); return; }
+          failed = true;
+          box.classList.add("failed");
+          box.innerHTML = '<strong>Could not open Riverbend</strong><small>Keep the js, vendor, and assets folders beside index.html.</small><button type="button" onclick="location.reload()">Retry</button>';
+        };
+        addEventListener("error", (event) => { if (event.target?.tagName === "SCRIPT") fail(); }, true);
+        addEventListener("DOMContentLoaded", () => {
+          const timer = setTimeout(fail, 12000);
+          const check = setInterval(() => {
+            if (document.body.dataset.engineReady === "true") { clearTimeout(timer); clearInterval(check); }
+          }, 100);
+        });
+      })();
+    </script>
     <script src="vendor/phaser-3.90.0.min.js" defer></script>
     <script src="js/physics.js" defer></script>
     <script src="js/levels.js" defer></script>
@@ -25,6 +45,14 @@
     <script src="js/app.js" defer></script>
   </head>
   <body data-screen="home">
+    <div id="loading-screen" class="loading-screen" role="status">
+      <span class="loading-mark" aria-hidden="true"></span>
+      <strong>Opening Riverbend</strong>
+      <small>Preparing the workshop...</small>
+    </div>
+    <div id="scene-transition" class="scene-transition" hidden aria-live="polite">
+      <span></span><strong id="transition-label">Loading crossing...</strong>
+    </div>
     <div class="app-shell">
       <main class="workshop" id="workshop">
         <canvas
@@ -61,6 +89,15 @@
               <button id="select-level" class="menu-select" disabled>
                 Select level
               </button>
+              <button id="free-build" class="menu-select" disabled>
+                Free build
+              </button>
+              <button id="field-report" class="menu-story" hidden>
+                View field report
+              </button>
+              <button id="replay-story" class="menu-story" disabled>
+                Replay story
+              </button>
             </div>
           </div>
         </section>
@@ -78,9 +115,10 @@
             </div>
             <button id="selection-back" class="small-button">← Back</button>
           </div>
+          <section id="route-progress" class="route-progress" aria-label="Riverbend route progress"></section>
           <div id="level-cards" class="level-cards"></div>
           <div class="selection-footer">
-            <p>Start with timber. Build further. Discover new materials.</p>
+            <p>Campaign crossings unlock in order. Sandbox is always open.</p>
             <button
               id="explore-toggle"
               class="text-button"
@@ -94,7 +132,20 @@
           <div class="task-status" aria-label="Crossing conditions">
             <span id="span-value">6 m</span><span id="load-value">600 kg</span
             ><span id="drop-limit">Drop &lt; 12 cm</span>
+            <label id="sandbox-load-wrap" class="sandbox-load" hidden>
+              Load
+              <select id="sandbox-load" aria-label="Sandbox test load">
+                <option value="600">600 kg</option>
+                <option value="1800">1,800 kg</option>
+                <option value="3200" selected>3,200 kg</option>
+                <option value="4800">4,800 kg</option>
+              </select>
+            </label>
           </div>
+          <section class="mission-objective panel" id="mission-objective" aria-label="Current mission objective">
+            <div><span class="eyebrow">CURRENT OBJECTIVE</span><strong id="objective-text">Connect both banks.</strong></div>
+            <button id="hint" class="small-button">Hint</button>
+          </section>
           <div id="storage-status" class="storage-status" role="status" hidden>
             Not saved on this device
           </div>
@@ -143,6 +194,8 @@
               <button class="primary" id="result-edit">Edit design</button
               ><button class="small-button" id="result-compare">
                 Compare tests</button
+              ><button class="small-button" id="result-reference" hidden>
+                View reference</button
               ><button class="small-button" id="next" hidden>
                 Next crossing →
               </button>
@@ -195,10 +248,10 @@
               ><button
                 id="clear"
                 class="edit-button"
-                aria-label="Restart this design"
-                title="Restart this design"
+                aria-label="Restart this bridge"
+                title="Restart this bridge"
               >
-                ↺</button
+                ↺ <span>Restart</span></button
               ><button id="cancel-placement" class="edit-button" hidden>
                 Cancel
               </button>
@@ -211,8 +264,74 @@
             </div>
           </div>
         </div>
+        <section
+          id="tutorial-coach"
+          class="tutorial-coach"
+          hidden
+          aria-labelledby="tutorial-title"
+          aria-live="polite"
+        >
+          <div class="tutorial-progress" id="tutorial-progress">1 / 6</div>
+          <div>
+            <p class="eyebrow">NEW ENGINEER TRAINING</p>
+            <h2 id="tutorial-title">Choose Road.</h2>
+            <p id="tutorial-copy">Select the Road material in the toolkit.</p>
+          </div>
+          <div class="tutorial-actions">
+            <button id="tutorial-skip" class="text-button">Skip training</button>
+            <button id="tutorial-continue" class="primary" hidden>
+              Start mission →
+            </button>
+          </div>
+        </section>
       </main>
     </div>
+    <section
+      id="story"
+      class="story"
+      hidden
+      inert
+      aria-labelledby="story-title"
+    >
+      <header class="story-heading">
+        <div>
+          <p class="eyebrow">RIVERBEND · THE MORNING AFTER THE STORM</p>
+          <h1 id="story-title">Eight crossings. One valley waiting.</h1>
+        </div>
+        <button id="story-skip" class="small-button">Skip story</button>
+      </header>
+      <div class="story-panels">
+        <figure class="story-panel">
+          <img src="assets/story-panel-1.png" alt="A bridge is missing its middle section while seedlings wait on the near bank." />
+          <figcaption><b>1</b><span>Overnight, the river changed course.</span></figcaption>
+        </figure>
+        <figure class="story-panel">
+          <img src="assets/story-panel-2.png" alt="Two apprentices and their guide investigate a triangular tabletop bridge model." />
+          <figcaption><b>2</b><span>Food, tools, and school supplies cannot get through.</span></figcaption>
+        </figure>
+        <figure class="story-panel">
+          <img src="assets/story-panel-3.png" alt="Apprentices begin building half a bridge from the safe riverbank." />
+          <figcaption><b>3</b><span>You have materials, a test rig, and room to experiment.</span></figcaption>
+        </figure>
+        <figure class="story-panel">
+          <img src="assets/story-panel-4.png" alt="An orange cart carries seedlings across the completed bridge." />
+          <figcaption><b>4</b><span>Build, test, and reconnect Riverbend.</span></figcaption>
+        </figure>
+      </div>
+      <footer class="story-footer">
+        <span>Swipe or scroll to inspect each panel.</span>
+        <button id="story-continue" class="primary">Enter workshop →</button>
+      </footer>
+    </section>
+    <section id="final-report-screen" class="final-report-screen" hidden inert aria-labelledby="final-report-title">
+      <header class="report-heading">
+        <div><p class="eyebrow">ENGINEERING REVIEW</p><h1 id="final-report-title">Riverbend, reconnected.</h1><p id="final-report-subtitle">Your tested structures opened the full community route.</p></div>
+        <button id="report-menu" class="small-button">Menu</button>
+      </header>
+      <div id="report-route-summary" class="report-route-summary"></div>
+      <div id="report-crossings" class="report-crossings"></div>
+      <footer class="report-actions"><button id="report-improve" class="primary">Improve a crossing</button><button id="report-free-build" class="small-button">Free build</button></footer>
+    </section>
     <dialog id="modal" aria-labelledby="modal-title">
       <button id="close-modal" class="close" aria-label="Close dialog">
         ×

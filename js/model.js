@@ -5,12 +5,16 @@
     typeof module !== "undefined" && module.exports
       ? require("./physics.js")
       : root.BridgePhysics;
+  function supports(level) {
+    return [
+      { id: "left", x: level.left, y: level.deckY },
+      { id: "right", x: level.right, y: level.deckY },
+      ...(level.piers || []),
+    ];
+  }
   function fresh(level) {
     return {
-      nodes: [
-        { id: "left", x: level.left, y: level.deckY, fixed: true },
-        { id: "right", x: level.right, y: level.deckY, fixed: true },
-      ],
+      nodes: supports(level).map((n) => ({ ...n, fixed: true })),
       members: [],
     };
   }
@@ -33,7 +37,8 @@
       design.members.length > 130
     )
       return "This design is too large or invalid.";
-    const ids = new Set(),
+    const fixed = new Map(supports(level).map((n) => [n.id, n])),
+      ids = new Set(),
       memberIds = new Set(),
       edges = new Set();
     for (const n of design.nodes) {
@@ -49,13 +54,13 @@
       )
         return "Keep joints inside the build area.";
       ids.add(n.id);
-      if (n.fixed && n.id !== "left" && n.id !== "right")
-        return "Only the orange bank anchors are fixed.";
+      if (n.fixed && !fixed.has(n.id))
+        return "Only the orange supports are fixed.";
     }
-    for (const key of ["left", "right"]) {
-      const n = design.nodes.find((n) => n.id === key);
-      if (!n?.fixed || n.x !== level[key] || n.y !== level.deckY)
-        return "The riverbank anchors must stay in place.";
+    for (const support of fixed.values()) {
+      const n = design.nodes.find((n) => n.id === support.id);
+      if (!n?.fixed || n.x !== support.x || n.y !== support.y)
+        return "The orange supports must stay in place.";
     }
     for (const e of design.members) {
       if (
@@ -158,7 +163,7 @@
       return true;
     }
   }
-  const api = { fresh, usage, validate, Editor };
+  const api = { supports, fresh, usage, validate, Editor };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   root.BridgeModel = api;
 })(typeof window !== "undefined" ? window : globalThis);

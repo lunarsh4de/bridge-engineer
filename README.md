@@ -1,81 +1,83 @@
 # Bridge Engineer — Riverbend
 
-An English-language STEM bridge-building game built with **Phaser 3.90.0**, HTML, CSS and JavaScript. Version 0.4 adds a full-screen main menu, four crossings and an engineering notebook. Source and offline release for the v0.4 update.
+An English-language, offline STEM bridge-building game. **v0.6** connects an eight-crossing campaign, an interactive training yard, a separate Free Build laboratory and a personal engineering field report. Build a bridge, test a delivery, follow the evidence and revise your own design.
 
-**Play:** https://lunarsh4de.github.io/bridge-engineer/
+**Play online:** https://lunarsh4de.github.io/bridge-engineer/
 
-[Download the offline game](outputs/bridge-engineer-v0.4-offline-2026-11-05.zip).
+[Download v0.6 offline](outputs/riverbend-v0.6-offline-2026-11-06.zip) · [Editable project](outputs/riverbend-v0.6-editable-project-2026-11-06.zip)
 
-## Play offline
+## Play
 
-Open `index.html`. In the portable game ZIP, open the top-level `index.html`. Keep its `js/` and `vendor/` folders alongside it. No build, server, account, network or API key is required.
+Open `site/index.html`. In the portable game ZIP, open its top-level `index.html`. Keep `js/`, `vendor/` and `assets/` alongside it. No build, server, account, API key, CDN or connection is needed. Optional reading links work only when opened online.
 
-The opening screen contains **Start**, **Select level** and a top-right **About** course-project overview. Start opens the last saved crossing in edit mode. Refresh returns to this menu without opening instructions or results. Select level follows campaign progression; **Explore all levels** allows independent practice and teacher inspection.
+The main menu provides **Start**, **Select level**, **Free build**, **Replay story** and **About**. Start introduces Riverbend through four illustrated panels and an actual-control tutorial; both can be skipped or replayed. Returning players resume their saved campaign. Each new crossing has a short briefing, a persistent objective and two optional hints. Teacher **Explore all levels** enables inspection without awarding completion.
 
-In a crossing, select **Road** and drag between endpoints, then use **Timber**, **Steel** or **Cable** to add supports. Two taps/clicks can also place endpoints. Nearby endpoints join; mid-member intersections do not. **Move**, **Erase**, **Undo** and **Redo** keep edits reversible. An unfinished drag can be cancelled, including by releasing outside the canvas. **Self-weight** observes gravity without a delivery; **Test crossing** applies the prescribed moving delivery load.
+Select **Road** and drag between endpoints, or tap/click both ends. Add **Timber**, **Steel** or **Cable** supports. Nearby endpoints join; intersecting lines do not join unless they share a joint. Use **Move**, **Erase**, **Undo**, **Redo** and the reversible **Restart** to experiment. **Self-weight** observes gravity; **Test crossing** runs a moving delivery. **Edit design** restores the original construction after a test.
 
-**Task** provides the scenario and limits. **Help** contains controls, structure notes, reversible starter designs, two sourced real-bridge cases, sound/fullscreen controls and progress export/import. No help panel opens automatically. **About** explains the STEM topic, learning goals, methods, evidence and model boundaries. The original course rubric, target age and assessment devices remain unconfirmed.
+Failure presents measured evidence and makes editing the main action. Success connects the community route and makes advancing the main action. The final **Field report** reviews the eight communities with the player's retained successful bridge designs and measurements. It can be reopened from the menu; partial reports distinguish finished deliveries from those still waiting.
 
-## Four crossings
+## Eight decisions
 
-| Crossing        | Span / delivery | Materials and question                                              |
-| --------------- | --------------- | ------------------------------------------------------------------- |
-| Willow Creek    | 6 m / 600 kg    | Limited timber: what makes a connected frame stable?                |
-| Fern Valley     | 8 m / 1,000 kg  | More timber: where does the load reach the banks?                   |
-| The high pass   | 10 m / 1,800 kg | Steel and cables: which material suits each role?                   |
-| Millwater Reach | 8 m / 1,400 kg  | Transfer: give cables a pulling job within a tighter timber supply. |
+| Crossing | Span / delivery | Main engineering decision |
+| --- | --- | --- |
+| Willow Creek | 6 m / 600 kg | Stabilize a timber frame |
+| Fern Valley | 8 m / 1,000 kg | Trace a continuous load path |
+| The high pass | 10 m / 1,800 kg | Assign mixed materials to force roles |
+| Millwater Reach | 8 m / 1,400 kg | Give cable a tensile role |
+| Alder Ford | 12 m / 2,400 kg | Connect a genuine fixed centre pier |
+| Glen Echo | 10 m / 2,200 kg | Complete a cable-and-steel system without a pier |
+| Foundry Bend | 8 m / 4,800 kg | Identify the limiting member under heavier load |
+| Riverbend Crossing | 12 m / 5,000 kg | Combine supports, materials and prior evidence |
 
-Crossing success requires a usable road, a completed delivery, no broken members and maximum deck drop below 12 cm. This is a game criterion, not a real bridge standard. Multiple designs can pass; a cable is not mandatory just for the sake of using every material.
+A campaign crossing requires a usable road, completed delivery, zero broken members and maximum road drop below 12 cm. That is a game rule, not a real bridge standard. Every crossing has two numerically verified, inventory-valid designs and an unsupported-road failure example. Multiple geometries do not prove optimality or wholly different strategies.
 
-## Evidence and progress
+## Learning and evidence
 
-The **Notebook** keeps up to eight distinct recent tests per crossing, with immutable design snapshots, conditions, maximum drop, breaks, material cost, optional prediction and reflection. Only different designs under matching conditions are compared. Identical reruns reuse the evidence record. A lower-cost successful design can receive **Material saver**, using explicit game credits per metre (Road 1, Timber 1, Steel 3, Cable 1.2); no speed or retry penalties apply. A saved reflection is not automatically graded.
+**About** identifies the STEM branches and measurable learning goals. **Help** contains controls, structure principles, sourced real-bridge cases and settings. Hints first invite observation, then explain a principle. The game does not require written answers to advance.
 
-Tests run on a copy. **Edit design** restores the original construction after a failure. Three-level v0.3 saves migrate to four levels without discarding valid designs or completions. Browser storage failures leave the current session playable; the next attempted save shows a status. Help → Settings offers local JSON export/import for migration and backup. Imported progress replaces current progress only after confirmation.
+**Notebook** retains up to eight distinct experiments per crossing, including immutable designs, conditions, drop, failure, material cost and optional prediction/reflection. Its comparison uses different designs under matching test conditions. Identical reruns do not farm rewards. **Material saver** compares two successful designs under the same conditions; it does not reward speed or avoiding failure.
+
+Free Build keeps its own design and evidence and offers 600/1,800/3,200/4,800 kg delivery loads. It does not change campaign completion. Changing a load cannot create a matched comparison with an earlier load. Stored v0.3/v0.4/v0.5 progress migrates; browser storage failures leave the current session playable. Help → Settings exports/imports local JSON for moving progress to another computer.
+
+Suggested ages 11–14 with adult facilitation and 45–75 minutes are design estimates, not observed classroom results. Completion and reflections are not automatically scored as mastery. See [teaching design](docs/RIVERBEND_v06_LEARNING_DESIGN_zh.md), [Chinese play guide](docs/RUNNING_zh.md), [numerical audit explanation](docs/V06_LEVEL_DIVERSITY_zh.md) and [verification record](docs/TEST_REPORT.md).
 
 ## Architecture
 
-| File                                 | Responsibility                                                                          |
-| ------------------------------------ | --------------------------------------------------------------------------------------- |
-| `index.html`, `styles.css` | Main menu, level selection, responsive workshop and accessible DOM controls             |
-| `js/levels.js`                  | Crossing conditions and optional independently authored examples                        |
-| `js/model.js`                   | Editable geometry, validation, inventory, endpoint welding, undo/redo                   |
-| `js/physics.js`                 | Fixed-step compliant axial-member simulation                                            |
-| `js/progress.js`                | Save migration, immutable test evidence, condition matching and material cost           |
-| `js/content.js`                 | On-demand course overview, instructions, structure notes and sourced cases              |
-| `js/app.js`                     | Screen transitions, editor commands, simulation advancement and UI orchestration        |
-| `js/engine.js`                  | Phaser scenes, native objects, cached viewport layout, input, camera, effects and sound |
-| `js/art.js`                     | Original procedural textures generated once at boot                                     |
-| `vendor/`                       | Offline Phaser distribution and its MIT license                                         |
+Phaser **3.90.0**, bundled locally under MIT, handles rendering, scenes, cameras, sound and input. The structural simulation and editable design are independent modules.
 
-The app explicitly tracks home/selection/workshop separately from editing/testing. Inactive screens are hidden and inert. Help pauses a running experiment; closing it leaves it paused for an explicit Resume. Visibility changes cancel unfinished gestures. Phaser supplies rendering and input; the independent structural solver is not Phaser Arcade or Matter physics.
+| Module | Responsibility |
+| --- | --- |
+| `index.html`, `styles.css` | Menu, route selection, workshop, dialogs and field report |
+| `levels.js`, `content.js` | Eight conditions, supports, reference designs, story and layered teaching content |
+| `model.js` | Editable geometry, validation, welding, inventory and undo/redo |
+| `physics.js` | Fixed-step axial-member simulation |
+| `progress.js` | Save migration, immutable evidence, condition matching and material cost |
+| `app.js` | Commands, screen transitions, experiments, reports and evidence views |
+| `engine.js`, `art.js` | Phaser objects, input, camera, effects and original procedural visuals |
 
-## Physics scope
+The model uses metres, kilograms and seconds, gravity, self-weight, axial compliance, damping, simplified capacities and tension-only cables. Fixed centre piers are real solver supports. The delivery is a prescribed moving load, not full wheel-contact dynamics. Ideal pin joints omit beam bending, realistic buckling shapes, joint failure, fatigue, wind and real material variability. This is educational software, not a tool for designing safe real bridges.
 
-The educational model includes gravity, member self-weight, axial compliance, damping, simplified tensile/compressive capacity, a length-dependent compression limit and tension-only cables. Unsupported pieces fall. A prescribed moving load follows a usable road; it falls when the road becomes unusable. This is **not** complete rigid-body wheel-contact dynamics.
+## Development checks
 
-Units are metres, kilograms and seconds. Material properties are game presets, not product specifications. Ideal pin joints omit beam bending, realistic buckling shapes, joint failure, member self-collision, fatigue, wind and real material variability. Numerical tests establish internal behavior, not structural-engineering calibration or student learning efficacy.
-
-## Development verification
-
-Node.js 20+:
+Node.js 20+ and Playwright are development tools only; the delivered game requires neither. After installing development dependencies and Chromium:
 
 ```sh
-node --test tests/physics.test.cjs tests/model.test.cjs tests/progress.test.cjs
-```
-
-Optional browser checks use Playwright:
-
-```sh
-npm install
-npx playwright install chromium
+npm test
 npm run test:browser
 npm run test:engine
 npm run test:input
+node scripts/audit-v06.cjs
+node tests/review-v06.e2e.cjs
+python3 scripts/package-release.py --output work/candidates/riverbend-v0.6-offline.zip
+PACKAGE_ZIP=work/candidates/riverbend-v0.6-offline.zip npm run test:package
 ```
 
-The browser suite defaults to local `file://` operation. `BASE_URL` can point to a local development server; `BROWSER_EXECUTABLE` can specify an installed Chromium. The engine suite explicitly verifies offline Canvas fallback and reduced motion. Screenshots and temporary exports go to ignored `work/`. See [verification record](docs/TEST_REPORT.md) and [Chinese teaching/run guide](docs/RUNNING_zh.md).
+The test record names the commands actually executed and environment workarounds. Browser checks default to local `file://`; `BASE_URL` and `BROWSER_EXECUTABLE` can select a development server or installed Chromium. Numerical tests establish internal behavior only. Automated and agent-operated paths do not replace real learner observation.
 
-## Sources and originality
+## Sources and original work
 
-[Architecture research](docs/research/bridge-workshop-architecture.md) and [v0.4 implementation decisions](docs/research/riverbend-v04-decisions.md) distinguish external ideas, project choices and verified behavior. The bridge-building loop has existing precedents; no claim of worldwide novelty or academic originality certification is made. Runtime code, levels and art from other games were not imported. Phaser is bundled under MIT with its license intact. Real-world facts are summarized with links; no third-party bridge photographs or plans are embedded.
+[Architecture research](docs/research/bridge-workshop-architecture.md), [game comparison](docs/research/bridge-games-comparison.md) and [design decisions](docs/research/riverbend-v04-decisions.md) record precedents and project choices. Bridge-building, limited materials and iteration have established precedents. No global novelty or academic originality certification is claimed. Other games' levels, source and art were not repackaged.
+
+Original story PNGs are local rasterizations of editable project SVG art; they are not successful API-generated images. See [art provenance](site/assets/ART-PROVENANCE.md). The earlier image service returned HTTP 401; no credential or text-model configuration is included. Phaser's MIT notice is in `site/vendor/PHASER-LICENSE.md`. Real-bridge summaries include optional source links; no third-party bridge photos or plans are embedded.
+
+The v0.6 release is published through GitHub Pages at the link above. `site/` is the editable source used by tests and packaging; the repository root contains its byte-identical Pages copy. After editing, run `python3 scripts/sync-pages.py` before publishing, or `python3 scripts/sync-pages.py --check` to verify that copy. The historical test records describe the local acceptance before this publication.

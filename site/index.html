@@ -1,0 +1,349 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#142b27" />
+    <meta
+      name="description"
+      content="Build your own bridges. Test an idea, follow the forces, and connect Riverbend."
+    />
+    <title>Bridge Engineer — Riverbend</title>
+    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="styles.css" />
+    <script>
+      (() => {
+        let failed = false;
+        const fail = () => {
+          if (failed || document.body?.dataset.engineReady === "true") return;
+          const box = document.getElementById("loading-screen");
+          if (!box) { addEventListener("DOMContentLoaded", fail, { once: true }); return; }
+          failed = true;
+          box.classList.add("failed");
+          box.innerHTML = '<strong>Could not open Riverbend</strong><small>Keep the js, vendor, and assets folders beside index.html.</small><button type="button" onclick="location.reload()">Retry</button>';
+        };
+        addEventListener("error", (event) => { if (event.target?.tagName === "SCRIPT") fail(); }, true);
+        addEventListener("DOMContentLoaded", () => {
+          const timer = setTimeout(fail, 12000);
+          const check = setInterval(() => {
+            if (document.body.dataset.engineReady === "true") { clearTimeout(timer); clearInterval(check); }
+          }, 100);
+        });
+      })();
+    </script>
+    <script src="vendor/phaser-3.90.0.min.js" defer></script>
+    <script src="js/physics.js" defer></script>
+    <script src="js/levels.js" defer></script>
+    <script src="js/model.js" defer></script>
+    <script src="js/progress.js" defer></script>
+    <script src="js/content.js" defer></script>
+    <script src="js/art.js" defer></script>
+    <script src="js/engine.js" defer></script>
+    <script src="js/app.js" defer></script>
+  </head>
+  <body data-screen="home">
+    <div id="loading-screen" class="loading-screen" role="status">
+      <span class="loading-mark" aria-hidden="true"></span>
+      <strong>Opening Riverbend</strong>
+      <small>Preparing the workshop...</small>
+    </div>
+    <div id="scene-transition" class="scene-transition" hidden aria-live="polite">
+      <span></span><strong id="transition-label">Loading crossing...</strong>
+    </div>
+    <div class="app-shell">
+      <main class="workshop" id="workshop">
+        <canvas
+          id="scene"
+          tabindex="-1"
+          aria-label="Bridge building canvas. Use arrow keys and Enter to place endpoints. H opens help."
+        ></canvas>
+        <header class="topbar">
+          <div id="workshop-nav" class="workshop-nav" hidden inert>
+            <button id="home" class="nav-button" title="Return to main menu">
+              ← Menu
+            </button>
+            <button id="missions" class="mission-select">
+              <span id="mission-label">01 / Willow Creek</span> <span>⌄</span>
+            </button>
+            <button id="task" class="nav-button">Task</button>
+          </div>
+          <div class="topbar-right">
+            <nav id="play-nav" aria-label="Workshop navigation" hidden inert>
+              <button id="notebook" class="nav-button">Notebook</button>
+              <button id="help" class="nav-button">Help</button>
+            </nav>
+            <button id="about" class="nav-button about-button">About</button>
+          </div>
+        </header>
+        <section id="main-menu" class="main-menu" aria-labelledby="game-title">
+          <div class="menu-content">
+            <p class="menu-location">RIVERBEND</p>
+            <h1 id="game-title">BRIDGE<br /><span>ENGINEER</span></h1>
+            <div class="menu-actions">
+              <button id="start" class="menu-start" disabled>
+                Start <span aria-hidden="true">→</span>
+              </button>
+              <button id="select-level" class="menu-select" disabled>
+                Select level
+              </button>
+              <button id="free-build" class="menu-select" disabled>
+                Free build
+              </button>
+              <button id="field-report" class="menu-story" hidden>
+                View field report
+              </button>
+              <button id="replay-story" class="menu-story" disabled>
+                Replay story
+              </button>
+            </div>
+          </div>
+        </section>
+        <section
+          id="level-select"
+          class="level-select"
+          hidden
+          inert
+          aria-labelledby="select-title"
+        >
+          <div class="selection-heading">
+            <div>
+              <p class="eyebrow">YOUR ROUTE THROUGH RIVERBEND</p>
+              <h1 id="select-title">Choose a crossing.</h1>
+            </div>
+            <button id="selection-back" class="small-button">← Back</button>
+          </div>
+          <section id="route-progress" class="route-progress" aria-label="Riverbend route progress"></section>
+          <div id="level-cards" class="level-cards"></div>
+          <div class="selection-footer">
+            <p>Campaign crossings unlock in order. Sandbox is always open.</p>
+            <button
+              id="explore-toggle"
+              class="text-button"
+              aria-pressed="false"
+            >
+              Explore all levels
+            </button>
+          </div>
+        </section>
+        <div id="play-ui" class="play-ui" hidden inert>
+          <div class="task-status" aria-label="Crossing conditions">
+            <span id="span-value">6 m</span><span id="load-value">600 kg</span
+            ><span id="drop-limit">Drop &lt; 12 cm</span>
+            <label id="sandbox-load-wrap" class="sandbox-load" hidden>
+              Load
+              <select id="sandbox-load" aria-label="Sandbox test load">
+                <option value="600">600 kg</option>
+                <option value="1800">1,800 kg</option>
+                <option value="3200" selected>3,200 kg</option>
+                <option value="4800">4,800 kg</option>
+              </select>
+            </label>
+          </div>
+          <section class="mission-objective panel" id="mission-objective" aria-label="Current mission objective">
+            <div><span class="eyebrow">CURRENT OBJECTIVE</span><strong id="objective-text">Connect both banks.</strong></div>
+            <button id="hint" class="small-button">Hint</button>
+          </section>
+          <div id="storage-status" class="storage-status" role="status" hidden>
+            Not saved on this device
+          </div>
+          <aside
+            class="simulation-panel panel"
+            id="simulation-panel"
+            hidden
+            aria-label="Simulation measurements"
+          >
+            <div class="simulation-heading">
+              <span class="eyebrow" id="mode-text">CROSSING TEST</span
+              ><button id="back-build" class="text-button">Edit design</button>
+            </div>
+            <div class="live-measurements">
+              <div>
+                <span>TIME</span
+                ><strong id="time-value">0.0 <small>s</small></strong>
+              </div>
+              <div>
+                <span>MAX. DROP</span
+                ><strong id="sag-value">0 <small>cm</small></strong>
+              </div>
+              <div><span>BROKEN</span><strong id="broken-value">0</strong></div>
+            </div>
+            <div class="simulation-controls">
+              <button id="pause" class="small-button">Pause</button
+              ><button id="speed" class="small-button">Speed 1×</button>
+            </div>
+          </aside>
+          <section
+            class="feedback panel"
+            id="feedback-panel"
+            hidden
+            aria-label="Experiment result"
+          >
+            <div class="feedback-heading">
+              <span class="eyebrow" id="feedback-label">TEST RESULT</span
+              ><button id="dismiss-feedback" aria-label="Dismiss result">
+                ×
+              </button>
+            </div>
+            <h2 id="feedback-title"></h2>
+            <p id="feedback-body" role="status"></p>
+            <p id="result-reward" class="result-reward" hidden></p>
+            <div class="feedback-actions">
+              <button class="primary" id="result-edit">Edit design</button
+              ><button class="small-button" id="result-compare">
+                Compare tests</button
+              ><button class="small-button" id="result-reference" hidden>
+                View reference</button
+              ><button class="small-button" id="next" hidden>
+                Next crossing →
+              </button>
+            </div>
+          </section>
+          <div class="view-controls panel" aria-label="View options">
+            <button id="grid" class="view-button active" aria-pressed="true">
+              Grid</button
+            ><button id="stress" class="view-button" aria-pressed="false">
+              Forces</button
+            ><button id="zoom-out" class="view-button" aria-label="Zoom out">
+              −</button
+            ><button id="zoom-in" class="view-button" aria-label="Zoom in">
+              +
+            </button>
+          </div>
+          <div
+            class="instruction"
+            id="instruction"
+            role="status"
+            aria-live="polite"
+            hidden
+          ></div>
+          <div class="materials-dock panel" id="materials-dock">
+            <div
+              id="materials"
+              class="material-list"
+              role="group"
+              aria-label="Construction materials"
+            ></div>
+            <div class="dock-tools">
+              <button id="move" class="edit-button" aria-pressed="false">
+                Move</button
+              ><button id="erase" class="edit-button" aria-pressed="false">
+                Erase</button
+              ><button
+                id="undo"
+                class="edit-button"
+                aria-label="Undo"
+                title="Undo (Ctrl/Cmd Z)"
+              >
+                ↶</button
+              ><button
+                id="redo"
+                class="edit-button"
+                aria-label="Redo"
+                title="Redo (Ctrl/Cmd Shift Z)"
+              >
+                ↷</button
+              ><button
+                id="clear"
+                class="edit-button"
+                aria-label="Restart this bridge"
+                title="Restart this bridge"
+              >
+                ↺ <span>Restart</span></button
+              ><button id="cancel-placement" class="edit-button" hidden>
+                Cancel
+              </button>
+            </div>
+            <div class="test-actions">
+              <button id="gravity" class="gravity-button">Self-weight</button
+              ><button id="test" class="primary">
+                Test crossing <span aria-hidden="true">→</span>
+              </button>
+            </div>
+          </div>
+        </div>
+        <section
+          id="tutorial-coach"
+          class="tutorial-coach"
+          hidden
+          aria-labelledby="tutorial-title"
+          aria-live="polite"
+        >
+          <div class="tutorial-progress" id="tutorial-progress">1 / 6</div>
+          <div>
+            <p class="eyebrow">NEW ENGINEER TRAINING</p>
+            <h2 id="tutorial-title">Choose Road.</h2>
+            <p id="tutorial-copy">Select the Road material in the toolkit.</p>
+          </div>
+          <div class="tutorial-actions">
+            <button id="tutorial-skip" class="text-button">Skip training</button>
+            <button id="tutorial-continue" class="primary" hidden>
+              Start mission →
+            </button>
+          </div>
+        </section>
+      </main>
+    </div>
+    <section
+      id="story"
+      class="story"
+      hidden
+      inert
+      aria-labelledby="story-title"
+    >
+      <header class="story-heading">
+        <div>
+          <p class="eyebrow">RIVERBEND · THE MORNING AFTER THE STORM</p>
+          <h1 id="story-title">Eight crossings. One valley waiting.</h1>
+        </div>
+        <button id="story-skip" class="small-button">Skip story</button>
+      </header>
+      <div class="story-panels">
+        <figure class="story-panel">
+          <img src="assets/story-panel-1.png" alt="A bridge is missing its middle section while seedlings wait on the near bank." />
+          <figcaption><b>1</b><span>Overnight, the river changed course.</span></figcaption>
+        </figure>
+        <figure class="story-panel">
+          <img src="assets/story-panel-2.png" alt="Two apprentices and their guide investigate a triangular tabletop bridge model." />
+          <figcaption><b>2</b><span>Food, tools, and school supplies cannot get through.</span></figcaption>
+        </figure>
+        <figure class="story-panel">
+          <img src="assets/story-panel-3.png" alt="Apprentices begin building half a bridge from the safe riverbank." />
+          <figcaption><b>3</b><span>You have materials, a test rig, and room to experiment.</span></figcaption>
+        </figure>
+        <figure class="story-panel">
+          <img src="assets/story-panel-4.png" alt="An orange cart carries seedlings across the completed bridge." />
+          <figcaption><b>4</b><span>Build, test, and reconnect Riverbend.</span></figcaption>
+        </figure>
+      </div>
+      <footer class="story-footer">
+        <span>Swipe or scroll to inspect each panel.</span>
+        <button id="story-continue" class="primary">Enter workshop →</button>
+      </footer>
+    </section>
+    <section id="final-report-screen" class="final-report-screen" hidden inert aria-labelledby="final-report-title">
+      <header class="report-heading">
+        <div><p class="eyebrow">ENGINEERING REVIEW</p><h1 id="final-report-title">Riverbend, reconnected.</h1><p id="final-report-subtitle">Your tested structures opened the full community route.</p></div>
+        <button id="report-menu" class="small-button">Menu</button>
+      </header>
+      <div id="report-route-summary" class="report-route-summary"></div>
+      <div id="report-crossings" class="report-crossings"></div>
+      <footer class="report-actions"><button id="report-improve" class="primary">Improve a crossing</button><button id="report-free-build" class="small-button">Free build</button></footer>
+    </section>
+    <dialog id="modal" aria-labelledby="modal-title">
+      <button id="close-modal" class="close" aria-label="Close dialog">
+        ×
+      </button>
+      <div id="modal-body"></div>
+    </dialog>
+    <input
+      id="import-file"
+      type="file"
+      accept=".json,application/json"
+      hidden
+    />
+    <noscript>This game needs JavaScript. Enable it to play.</noscript>
+  </body>
+</html>

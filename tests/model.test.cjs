@@ -1,7 +1,7 @@
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
-const { Editor, usage, validate, fresh } = require("../js/model.js");
-const { levels, starter } = require("../js/levels.js");
+const { Editor, usage, validate, fresh } = require("../site/js/model.js");
+const { levels, sandbox, starter } = require("../site/js/levels.js");
 const l = levels[0];
 test("free placement creates joints anywhere and nearby endpoints weld", () => {
   const e = new Editor(l);
@@ -61,4 +61,16 @@ test("invalid saved designs fall back to a safe blank design", () => {
   const e = new Editor(l, { nodes: [], members: [] });
   assert.equal(e.design.nodes.length, 2);
   assert.equal(validate(e.design, l), null);
+});
+test("pier levels include an immutable fixed support while sandbox uses campaign-independent limits", () => {
+  const pierLevel = levels[4],
+    editor = new Editor(pierLevel),
+    pier = editor.design.nodes.find((n) => n.id === "pier");
+  assert.deepEqual(pier, { id: "pier", x: 800, y: 430, fixed: true });
+  assert.match(editor.move("pier", { x: 825, y: 430 }), /fixed/);
+  const changed = structuredClone(editor.design);
+  changed.nodes.find((n) => n.id === "pier").x += 25;
+  assert.match(validate(changed, pierLevel), /supports/);
+  assert.equal(validate(starter(sandbox), sandbox), null);
+  assert.equal(sandbox.sandbox, true);
 });

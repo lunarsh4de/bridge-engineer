@@ -5,19 +5,25 @@
     typeof module !== "undefined" && module.exports
       ? require("./model.js")
       : root.BridgeModel;
+  const VERSION = 6;
   const COST = { road: 1, wood: 1, steel: 3, cable: 1.2 };
   const clone = (value) => structuredClone(value);
   function empty(levels) {
     return {
-      version: 4,
+      version: VERSION,
       level: 0,
       completed: levels.map(() => false),
+      visited: levels.map(() => false),
+      delivered: levels.map(() => false),
       designs: {},
       records: {},
     };
   }
   function conditions(level, mode) {
-    return JSON.stringify([
+    const supports = (level.piers || [])
+      .map((p) => [p.x, p.y])
+      .sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+    const signature = [
       "axial-v1",
       level.left,
       level.right,
@@ -26,7 +32,9 @@
       mode === "crossing" ? level.truckMass : 0,
       9.81,
       0.12,
-    ]);
+    ];
+    if (supports.length) signature.push(["supports", ...supports]);
+    return JSON.stringify(signature);
   }
   function fingerprint(design) {
     const points = new Map(
@@ -44,27 +52,57 @@
       0,
     );
   }
-  function normalize(value, levels) {
+  function normalize(value, levels, sandbox) {
     const data = empty(levels);
     if (!value || typeof value !== "object") return data;
     data.level = Number.isInteger(value.level)
       ? Math.max(0, Math.min(levels.length - 1, value.level))
       : 0;
-    levels.forEach((level, i) => {
-      data.completed[i] = value.completed?.[i] === true;
-      const design = value.designs?.[i];
+    const normalizeKey = (key, level, variableSandboxLoad = false) => {
+      const design = value.designs?.[key];
       try {
         if (design && !M.validate(design, level))
-          data.designs[i] = clone(design);
+          data.designs[key] = clone(design);
       } catch {}
-      const records = Array.isArray(value.records?.[i]) ? value.records[i] : [];
-      data.records[i] = records.slice(-8).flatMap((r) => {
+      const records = Array.isArray(value.records?.[key])
+        ? value.records[key]
+        : [];
+      data.records[key] = records.slice(-8).flatMap((r) => {
         try {
+          let validConditions = r.conditions === conditions(level, r.mode);
+          if (variableSandboxLoad && typeof r.conditions === "string") {
+            try {
+              const parsed = JSON.parse(r.conditions),
+                expectedSupports = (level.piers || [])
+                  .map((p) => [p.x, p.y])
+                  .sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+              validConditions =
+                Array.isArray(parsed) &&
+                parsed[0] === "axial-v1" &&
+                parsed[1] === level.left &&
+                parsed[2] === level.right &&
+                parsed[3] === level.deckY &&
+                parsed[4] === r.mode &&
+                (parsed[4] === "gravity"
+                  ? parsed[5] === 0
+                  : (level.truckMassOptions || [level.truckMass]).includes(
+                      parsed[5],
+                    )) &&
+                parsed[6] === 9.81 &&
+                parsed[7] === 0.12 &&
+                (expectedSupports.length === 0
+                  ? parsed.length === 8
+                  : JSON.stringify(parsed[8]) ===
+                    JSON.stringify(["supports", ...expectedSupports]));
+            } catch {
+              validConditions = false;
+            }
+          }
           if (
             !r ||
             M.validate(r.design, level) ||
             !["crossing", "gravity"].includes(r.mode) ||
-            r.conditions !== conditions(level, r.mode) ||
+            !validConditions ||
             !["passed", "failed", "observed"].includes(r.result) ||
             ![r.drop, r.time, r.broken].every(
               (n) => Number.isFinite(n) && n >= 0,
@@ -100,7 +138,14 @@
           return [];
         }
       });
+    };
+    levels.forEach((level, i) => {
+      data.completed[i] = value.completed?.[i] === true;
+      data.visited[i] = value.visited?.[i] === true || data.completed[i];
+      data.delivered[i] = data.completed[i];
+      normalizeKey(i, level);
     });
+    if (sandbox) normalizeKey("sandbox", sandbox, true);
     return data;
   }
   function record(data, index, level, design, world, mode, prediction, reason) {
@@ -164,6 +209,7 @@
     cost,
     record,
     comparison,
+    VERSION,
     COST,
   };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
