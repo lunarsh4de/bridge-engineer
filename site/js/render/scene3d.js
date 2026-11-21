@@ -5,6 +5,7 @@
   const S = { level:null, design:null, sim:null, mode:"edit", tool:"road", forces:true, inspect:null, highlight:-1, hover:-1, cursor:null, pending:null, drag:null, trace:[], guide:[] };
   let renderer, scene, camera, orbit, stage, hooks={}, raf=0, last=0, active=false, lost=false, observer, elapsed=0, shaking=0, nav=false;
   let terrain, bridge, vehicle, input, grid, fx, label, notice, dimension, bar;
+  let blocked=false,introSeen=false,introPending=false,intro=null;
   const reduced = () => root.matchMedia("(prefers-reduced-motion: reduce)").matches;
   function dispose(group) {
     if (!group) return;
@@ -25,7 +26,7 @@
   function fit(front=false) {
     if(!camera||!S.level||!stage.clientWidth||!stage.clientHeight)return;
     const l=S.level, center=new T.Vector3(l.span/2,(l.yMin+l.yMax)*G/2,0);
-    const height=(l.yMax-l.yMin)*G+1.8, width=l.span+3.5;
+    const height=(l.yMax-l.yMin)*G+1.8, width=l.span+(stage.clientWidth<=1024?2.0:3.5);
     const distance=Math.max(height,width/camera.aspect)/(2*Math.tan(camera.fov*Math.PI/360))*1.16;
     const damping=orbit.enableDamping; orbit.enableDamping=false; orbit.update();
     camera.position.copy(center).add(new T.Vector3(front?0:distance*.14,front?0:distance*.30,distance));
@@ -58,9 +59,21 @@
     const button=bar.querySelector("[data-view=orbit]"); button.setAttribute("aria-pressed",String(nav));
     input&&input.cancel();
   }
+  function stopIntro(){intro=null;introPending=false;if(bar)bar.classList.remove("show-orbit-hint");}
+  function userCameraInput(){if(active){introSeen=true;stopIntro();}}
+  function setBlocked(on){blocked=!!on;if(orbit)orbit.enabled=!blocked&&(S.mode==="edit"||S.mode==="inspect");input&&input.cancel();}
+  function introFrame(dt){
+    if(!orbit||blocked||S.mode!=="edit")return;
+    if(reduced()){stopIntro();return;}
+    if(introPending&&!introSeen){introPending=false;introSeen=true;intro={time:0,offset:camera.position.clone().sub(orbit.target)};bar.classList.add("show-orbit-hint");}
+    if(!intro)return;
+    intro.time+=dt;const t=Math.min(1,intro.time/3.2),theta=Math.sin(Math.PI*t)*.16;
+    camera.position.copy(intro.offset.clone().applyAxisAngle(up,theta)).add(orbit.target);camera.lookAt(orbit.target);camera.updateMatrixWorld();
+    if(t===1){intro=null;bar.classList.remove("show-orbit-hint");}
+  }
   function setMode(mode) {
-    S.mode=mode; input&&input.cancel();
-    if(orbit){ orbit.enabled=mode==="edit"||mode==="inspect"; setNavigation(false); }
+    S.mode=mode; if(mode!=="edit")stopIntro(); input&&input.cancel();
+    if(orbit){ orbit.enabled=!blocked&&(mode==="edit"||mode==="inspect"); setNavigation(false); }
     if(bar)bar.hidden=mode!=="edit"&&mode!=="inspect";
     if(grid)grid.visible=mode==="edit";
     if(mode==="edit"||mode==="inspect")fit();
@@ -80,8 +93,9 @@
     input&&input.update();
     if(grid)grid.position.z=editingPlaneZ();
     if(grid)grid.visible=S.mode==="edit";
+    introFrame(dt);
     if(orbit.enabled)orbit.update();
-    else if(S.sim) {
+    else if(S.sim&&!blocked) {
       const l=S.level, center=l.span/2, distance=Math.max((l.yMax-l.yMin)*G+1.8,(l.span+4)/camera.aspect)/(2*Math.tan(camera.fov*Math.PI/360))*1.16;
       const targetX=center+Math.max(-l.span*.22,Math.min(l.span*.22,(S.sim.vehicle.front-center)*.22));
       const y=(l.yMax+l.yMin)*G/2;
@@ -98,7 +112,9 @@
     notice=document.createElement("div");notice.className="render-notice";notice.hidden=true;notice.setAttribute("role","status");stage.append(notice);
     label=document.createElement("div");label.className="build-preview";label.hidden=true;stage.append(label);
     dimension=document.createElement("div");dimension.className="scene-dimension";stage.append(dimension);
-    bar=document.createElement("div");bar.className="camera-tools";bar.innerHTML='<button class="btn small" data-view="orbit" aria-pressed="false">Orbit view</button><button class="btn small" data-view="front">Front view</button><button class="btn small" data-view="reset">Reset view</button><span>Right-drag to orbit · wheel to zoom · two fingers to orbit / zoom</span>';stage.append(bar);
+    bar=document.createElement("div");bar.className="camera-tools";const V=root.VisualGuide;
+    bar.innerHTML=`<button class="btn small" data-view="orbit" aria-label="Orbit view" title="Orbit view: drag with one finger" aria-pressed="false">${V.icon('orbit')}<span class="view-label">Orbit view</span></button><button class="btn small" data-view="front" aria-label="Front view" title="Front view">${V.icon('front')}<span class="view-label">Front view</span></button><button class="btn small" data-view="reset" aria-label="Reset view" title="Reset view">${V.icon('reset')}<span class="view-label">Reset view</span></button><span class="orbit-cue">${V.icon('orbit')}<span class="gesture-touch">2 fingers · turn</span><span class="gesture-mouse">Right-drag · turn</span></span>`;stage.append(bar);
+    stage.addEventListener('pointerdown',userCameraInput,true);stage.addEventListener('wheel',userCameraInput,{capture:true,passive:true});stage.addEventListener('keydown',userCameraInput,true);
     try {renderer=new T.WebGLRenderer({canvas,antialias:true,alpha:false,powerPreference:"high-performance"});}
     catch(err){notice.textContent="3D needs WebGL 2. Enable hardware acceleration in your browser, then reload.";notice.hidden=false;return{loop:{wake(){},sleep(){}},destroy};}
     renderer.setPixelRatio(Math.min(root.devicePixelRatio||1,1.75)); renderer.shadowMap.enabled=true; renderer.shadowMap.type=T.PCFSoftShadowMap;
@@ -109,23 +125,24 @@
     const sun=new T.DirectionalLight(0xffefd5,2.2);sun.position.set(-3,14,9);sun.castShadow=true;sun.shadow.mapSize.set(1024,1024);sun.shadow.camera.left=-18;sun.shadow.camera.right=18;sun.shadow.camera.top=14;sun.shadow.camera.bottom=-14;sun.shadow.normalBias=.04;scene.add(sun);
     orbit=new root.OrbitControls(camera,canvas);orbit.enableDamping=true;orbit.dampingFactor=.12;orbit.minPolarAngle=Math.PI/36;orbit.maxPolarAngle=Math.PI*85/180;orbit.enablePan=false;
     orbit.mouseButtons.RIGHT=T.MOUSE.ROTATE;orbit.mouseButtons.MIDDLE=T.MOUSE.DOLLY;orbit.touches.TWO=T.TOUCH.DOLLY_ROTATE;setNavigation(false);
-    bar.addEventListener("click",e=>{const action=e.target.dataset.view;if(action==="orbit")setNavigation(!nav);else if(action){setNavigation(false);fit(action==="front");}});
+    bar.addEventListener("click",e=>{const action=e.target.closest("[data-view]")?.dataset.view;stopIntro();if(action==="orbit")setNavigation(!nav);else if(action){setNavigation(false);fit(action==="front");}});
     vehicle=root.Vehicle3D.create(scene);fx=new T.Group();scene.add(fx);
-    input=root.Controls3D.init({camera,canvas,state:S,project,label,getPlaneZ:editingPlaneZ,isNavigating:()=>nav,onChange:()=>{}});
+    input=root.Controls3D.init({camera,canvas,state:S,project,label,getPlaneZ:editingPlaneZ,isNavigating:()=>nav||blocked,onChange:()=>{}});
     canvas.addEventListener("webglcontextlost",onLost);canvas.addEventListener("webglcontextrestored",onRestored);
+    introPending=!introSeen;
     observer=new ResizeObserver(resize);observer.observe(stage);rebuild();resize();setMode(S.mode);wake();hooks.ready&&hooks.ready();
     return{loop:{wake,sleep},destroy,renderer};
   }
-  function onLost(e){e.preventDefault();lost=true;cancelAnimationFrame(raf);raf=0;input.cancel();notice.textContent="3D view paused while graphics recover…";notice.hidden=false;}
+  function onLost(e){e.preventDefault();stopIntro();lost=true;cancelAnimationFrame(raf);raf=0;input.cancel();notice.textContent="3D view paused while graphics recover…";notice.hidden=false;}
   function onRestored(){lost=false;notice.hidden=true;last=0;if(active&&!raf)raf=requestAnimationFrame(tick);}
-  function destroy(){sleep();observer&&observer.disconnect();input&&input.destroy();orbit&&orbit.dispose();if(renderer){renderer.domElement.removeEventListener("webglcontextlost",onLost);renderer.domElement.removeEventListener("webglcontextrestored",onRestored);}dispose(scene);renderer&&renderer.dispose();stage&&stage.replaceChildren();renderer=scene=camera=orbit=null;}
+  function destroy(){sleep();stopIntro();stage&&stage.removeEventListener("pointerdown",userCameraInput,true);stage&&stage.removeEventListener("wheel",userCameraInput,true);stage&&stage.removeEventListener("keydown",userCameraInput,true);observer&&observer.disconnect();input&&input.destroy();orbit&&orbit.dispose();if(renderer){renderer.domElement.removeEventListener("webglcontextlost",onLost);renderer.domElement.removeEventListener("webglcontextrestored",onRestored);}dispose(scene);renderer&&renderer.dispose();stage&&stage.replaceChildren();renderer=scene=camera=orbit=null;}
   function burst(x,y,color,n,speed){if(!fx||reduced())return;for(let k=0;k<n;k++){const a=k*2.4;const p=mesh(fx,new T.BoxGeometry(.045,.045,.045),mat(color),x,y,.08);p.userData={life:.65,v:new T.Vector3(Math.cos(a),Math.abs(Math.sin(a))*2,Math.sin(a)*.5).multiplyScalar(speed/120)};}}
-  const api={state:S,mount,setMode,render,destroy,refresh:resize,
-    setLevel(l,d){S.level=l;S.design=d;S.sim=null;S.inspect=null;S.highlight=S.hover=-1;S.trace=[];S.guide=[];S.mode="edit";rebuild();},
+  const api={state:S,mount,setMode,setBlocked,stopIntro,interact:userCameraInput,render,destroy,refresh:resize,
+    setLevel(l,d){stopIntro();introPending=!introSeen;S.level=l;S.design=d;S.sim=null;S.inspect=null;S.highlight=S.hover=-1;S.trace=[];S.guide=[];S.mode="edit";rebuild();},
     setDesign(d){S.design=d;rebuildBridge();},setSim(s){S.sim=s;root.Vehicle3D&&root.Vehicle3D.reset(vehicle);},
     setTool(t){S.tool=t;input&&input.cancel();},setForces(on){S.forces=on;},setInspect(list){S.inspect=list;},setHighlight(i){S.highlight=i;},setTrace(indices){S.trace=indices||[];},setGuide(points){S.guide=points||[];},
     cancel(){input&&input.cancel();},burst,shake(){shaking=.15;},toScreen:project,colorFor:(type,r)=>root.Stress3D.color(r),
-    get editingPlaneZ(){return editingPlaneZ();},get scene(){return scene;},get camera(){return camera;},get renderer(){return renderer;},get controls(){return orbit;},get bridge(){return bridge;},get vehicle(){return vehicle;},get input(){return input;},get active(){return active;},get contextLost(){return lost;}
+    get introActive(){return !!intro;},get introPending(){return introPending;},get blocked(){return blocked;},get editingPlaneZ(){return editingPlaneZ();},get scene(){return scene;},get camera(){return camera;},get renderer(){return renderer;},get controls(){return orbit;},get bridge(){return bridge;},get vehicle(){return vehicle;},get input(){return input;},get active(){return active;},get contextLost(){return lost;}
   };
   root.BridgeScene=root.Scene3D=api;
 })(typeof self!=="undefined"?self:this);

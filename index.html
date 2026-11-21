@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Riverbend: Bridge Engineer</title>
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="css/styles.css">
@@ -44,7 +44,7 @@
     <div class="choice-card">
       <p class="eyebrow">Decision</p>
       <h2 id="choice-title"></h2>
-      <p id="choice-text" class="lead"></p>
+      <div id="choice-text" class="lead"></div>
       <div id="choice-options" class="choice-options"></div>
       <p class="small muted">Choices change which materials, supports and credits you have later. Every path can reach Riverbend.</p>
     </div>
@@ -60,25 +60,27 @@
       <button class="btn ghost small" id="btn-notebook">Notebook</button><button class="btn ghost small" data-open="brief">Task</button>
       <button class="btn ghost small" data-open="help">Help</button>
     </header>
+    <div id="instruction-rail" class="instruction-rail">
+      <div id="coach" class="coach" hidden aria-live="polite"></div>
+      <div id="test-hud" class="test-hud" hidden></div>
+    </div>
     <div class="stage-wrap">
       <div id="stage" aria-label="3D bridge building area. Drag between dots to build. Right-drag or use Orbit view to rotate. Scroll to zoom."></div>
       <span id="keyboard-build-help" class="sr-only">Arrow keys move the grid cursor. Enter selects each end. Escape cancels. Space tests the bridge. P pauses a test. F toggles force colors.</span><span id="construction-status" class="sr-only" aria-live="polite"></span>
-      <div id="coach" class="coach" hidden aria-live="polite"></div>
       <div id="toast" class="toast" role="status" aria-live="polite"></div>
       <div id="inspect-tip" class="inspect-tip" hidden></div>
-      <div id="test-hud" class="test-hud" hidden></div>
       <div id="result" class="result" hidden role="dialog" aria-labelledby="result-title"></div>
     </div>
     <footer class="toolbar" id="toolbar">
       <div class="tool-group" id="materials" role="radiogroup" aria-label="Materials"></div>
-      <div class="tool-group">
+      <div class="tool-group edit-tools">
         <button class="tool" id="tool-erase" data-tool="erase" title="Erase (X)" aria-label="Erase"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 3 6 6-11 11H6l-4-4L15 3Z"/><path d="m8 10 6 6M10 20h12"/></svg><span class="tool-label">Erase</span></button>
         <button class="tool" id="btn-undo" title="Undo (Ctrl+Z)" aria-label="Undo"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5 3 11l6 6M3 11h10a7 7 0 0 1 7 7"/></svg><span class="tool-label">Undo</span></button>
         <button class="tool" id="btn-redo" title="Redo (Ctrl+Shift+Z)" aria-label="Redo"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 5 6 6-6 6M21 11H11a7 7 0 0 0-7 7"/></svg><span class="tool-label">Redo</span></button>
         <button class="tool" id="btn-clear" title="Remove supports; keep the road" aria-label="Clear design"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M9 6V3h6v3M6 6l1 15h10l1-15M10 10v7M14 10v7"/></svg><span class="tool-label">Clear</span></button>
       </div>
       <div class="budget" id="budget" aria-live="polite"></div>
-      <div class="tool-group">
+      <div class="tool-group run-tools">
         <button class="tool" id="btn-hint"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18h6M10 22h4M8.5 15a6 6 0 1 1 7 0L15 18H9l-.5-3Z"/></svg>Hint</button>
         <button class="tool" id="btn-forces" aria-pressed="false" title="Show forces during tests (F)"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 19 7-14 7 14H5ZM12 5v9"/><circle cx="5" cy="19" r="2"/><circle cx="19" cy="19" r="2"/><circle cx="12" cy="5" r="2"/></svg>Forces</button>
         <button class="btn primary" id="btn-test"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m8 4 12 8-12 8V4Z" fill="currentColor" stroke="none"/></svg>Test crossing</button>
@@ -111,6 +113,7 @@
 <script src="js/core/progress.js"></script>
 <script src="js/core/scoring.js"></script>
 <script src="js/ui/bus.js"></script>
+<script src="js/ui/visual-guide.js"></script>
 <script src="js/ui/content.js"></script>
 <script src="js/learning/inquiry.js"></script>
 <script src="js/learning/engineering.js"></script>

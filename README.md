@@ -1,4 +1,4 @@
-# Riverbend: Bridge Engineer — 3D update 1.3.1
+# Riverbend: Bridge Engineer — 3D update 1.3.2
 
 Offline STEM bridge-building game for ages 11–14. Open `index.html` (or
 `site/index.html`) in a browser with WebGL 2. No server, install, build step,
@@ -9,6 +9,7 @@ The workshop uses local Three.js r165 for a real 3D valley, bridge members,
 shadows and delivery truck. The structural simulation remains the original 2D
 fixed-step XPBD model. Level rules, teaching concepts and version-1 saves are unchanged.
 
+- Mobile: pictorial controls and mission cards, compact touch tools, an instruction strip outside the scene, and expandable explanations. First workshop entry gently turns once to reveal the 3D view; touch stops it immediately and reduced-motion settings disable it. See `docs/MOBILE-UPDATE_zh.md`.
 - First crossing: a real controls practice teaches orbit/front view, two-end construction, undo/redo, pause and force reading before the first scored crossing.
 - Build: the road is prelaid, budgeted and locked. Drag between grid dots, tap two points, or use Arrow keys + Enter to build support members.
 - Camera: right-drag to orbit; wheel to zoom. Use **Orbit view** for left-drag or
@@ -30,6 +31,7 @@ fixed-step XPBD model. Level rules, teaching concepts and version-1 saves are un
 - Saves use browser localStorage. Help → Settings exports/imports version-1 JSON.
   Export before moving folders because browsers can separate local-file storage.
 - Teaching update and acceptance: `docs/TEACHING-UPDATE_zh.md`.
+- Optional touch/layout checks: `node scripts/verify-mobile.cjs [project-directory]`.
 - Optional teaching browser checks: `node scripts/verify-pedagogy.cjs [project-directory]`.
 - Upgrade, acceptance and limitations: `docs/3D-UPGRADE_zh.md`.
 - Teacher guide: `docs/TEACHER_PLAYTEST_zh.md`; learning evidence map: `docs/STEM_ALIGNMENT_zh.md`.

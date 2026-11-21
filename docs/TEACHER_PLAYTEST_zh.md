@@ -1,4 +1,4 @@
-# Riverbend Bridge Engineer 1.3.1 教师课堂试玩指南
+# Riverbend Bridge Engineer 1.3.2 教师课堂试玩指南
 
 ## 课堂目标
 
@@ -6,7 +6,7 @@
 
 ## 三阶段课堂提示
 
-进入关卡先看叙事、约束和蓝色 Skill 标签。让学生先预测并测试；首次失败才自动出现角色的结构解释。成功后出现现实连接和多解提示。主动 Hint 可随时请求帮助，Task 会保留本次工作台会话已经释放的内容。
+进入关卡先看车辆、支座和跨度示意图，以及载荷、跨度、预算三个关键数字。Story, goal & rules 可展开完整叙事、约束和 Skill 标签。让学生先预测并测试；首次失败后的 What happened 可展开图示、角色解释，成功后可展开现实连接和多解提示。主动 Hint 可随时请求帮助，Task 会保留本次工作台会话已经释放的内容。
 
 Notebook 在下一次测试前填写 Predict；测试开始后该预测保留，结果后填写 Claim/Evidence/Reasoning。每次测试独立编号，500ms自动保存，Previous test 可回看。不要用测试后的解释改写当时的预测。
 
@@ -33,8 +33,10 @@ Notebook 在下一次测试前填写 Predict；测试开始后该预测保留，
 
 ## 操作提醒
 
-道路显示为 **Road ready · locked**，仍占预算并可能在仿真中下落。支持材料通过拖动或点击两个端点添加；Arrow keys + Enter 提供键盘路径。右拖或 Orbit view 旋转，Front view 回到可搭建立面，双指操作会取消当前连杆。Pause test 可冻结证据观察；打开 Notebook 或 Help 时仿真也会暂停。
+道路显示为 **Road ready · locked**（手机用锁图标），仍占预算并可能在仿真中下落。支持材料通过拖动或点击两个端点添加；Arrow keys + Enter 提供键盘路径。右拖或 Orbit view 旋转，Front view 回到可搭建立面，双指操作会取消当前连杆。Pause test 可冻结证据观察；打开 Notebook 或 Help 时仿真也会暂停。
 
 ## 交付与限制
 
-入口是根目录或 `site/index.html`，均可离线 `file://` 打开。浏览器需要 WebGL 2。Notebook 是可选学习记录，不是评分系统。实体触屏、Firefox、Safari 和正式无障碍评估仍需单独进行。
+入口是根目录或 `site/index.html`，均可离线 `file://` 打开。浏览器需要 WebGL 2。Notebook 是可选学习记录，不是评分系统。手机布局、真实浏览器触控事件及双指手势已自动验证；实体触屏设备、Firefox、Safari 和正式无障碍评估仍需单独进行。
+
+手机上的操作提示在场景外显示，不覆盖支座。首次工坊会轻微转动一次并显示双指转动图示；触碰或选择 Front view 即停止。系统设置减少动态效果时不自动转动。手机 Hint 与地图入口位于 Help。详见 `MOBILE-UPDATE_zh.md`。

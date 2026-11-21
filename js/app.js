@@ -5,6 +5,7 @@
   const P = root.BridgePhysics, L = root.BridgeLevels, M = root.BridgeModel, Pr = root.BridgeProgress, Sc = root.BridgeScoring;
   const Bus = root.BridgeBus, E = root.BridgeEvents, C = root.BridgeConstants, T = root.BridgeContent, R = root.BridgeScene;
   const $ = (id) => document.getElementById(id);
+  const V=root.VisualGuide;
   const esc = T.esc, Lab = root.EngineeringLab, Notes=root.InquiryNotes;
   let notebook = Lab.blank(), inquiry={}, storageVolatile = false;
 
@@ -84,10 +85,10 @@
   function advance(fromId) { goNode(L.NODES[fromId].next); }
   function renderChoice(id) {
     const n = L.NODES[id], w = world();
-    $("choice-title").textContent = n.title; $("choice-text").textContent = n.text(w);
+    $("choice-title").textContent = n.title; $("choice-text").innerHTML = `<p class="choice-short">${esc(({route:"Choose who to reach first.",share:"Trade savings for materials and trust?",support:"Choose the supports for your final bridge."})[id])}</p><details class="choice-story"><summary>The valley’s request</summary><p>${esc(n.text(w))}</p></details>`;
     $("choice-options").innerHTML = n.options.map((o) => {
       const ok = !o.requires || o.requires(w);
-      return `<button class="choice-opt" data-opt="${o.id}" ${ok ? "" : "disabled aria-disabled=true"}><strong>${esc(o.label)}</strong><span>${esc(ok ? o.detail : o.lockedText)}</span></button>`;
+      return `<button class="choice-opt" data-opt="${o.id}" ${ok ? "" : "disabled aria-disabled=true"}>${V.icon(({clinic:"cable",mill:"steel",share:"credits",keep:"credits",pier:"span",towers:"cable",none:"span"})[o.id])}<strong>${esc(o.label)}</strong><span>${esc(ok ? o.detail : o.lockedText)}</span></button>`;
     }).join("");
     $("choice-options").querySelectorAll("[data-opt]").forEach((b) => b.addEventListener("click", () => choose(id, b.dataset.opt)));
     show("choice");
@@ -134,15 +135,14 @@
   function renderCoach() {
     const c = $("coach");
     if(GS.practice){
-      const steps=["Rotate with right-drag, or choose Orbit view and drag. Front view returns to a clear building view.","Road is already laid and locked. Pick Timber. Connect the two gold rings: the lower left support and the middle road joint. Drag, or tap both ends.","Undo your new brace, then Redo it. One construction action is one undo step.","Connect the lower right support to the middle road joint. The matching truss on the far side appears automatically.","Test crossing. Try Pause test to freeze the load, read the colors, then Resume. Green/yellow/red = utilization; blue/red end bands = pull/push."];
-      c.hidden=false;c.innerHTML=`<strong>Controls practice · ${Math.min(5,GS.practiceStep+1)} / 5</strong><br>${steps[Math.min(4,GS.practiceStep)]}<div class="tip-row">${GS.practiceStep===0?'<button class="btn small" id="practice-next">Next: connect</button>':''}<button class="btn ghost small" id="practice-skip">Skip practice</button></div>`;
+      c.hidden=false;c.innerHTML=V.coach(GS.practiceStep,true)+`<div class="tip-row">${GS.practiceStep===0?'<button class="btn small" id="practice-next">Next: connect</button>':''}<button class="btn ghost small" id="practice-skip" aria-label="Skip practice">Skip</button></div>`;
       R.setGuide(GS.practiceStep===1?[[0,-2],[4,0]]:GS.practiceStep===3?[[8,-2],[4,0]]:[]);
       if($('practice-next'))$('practice-next').onclick=()=>{GS.practiceStep=1;renderCoach();};$('practice-skip').onclick=()=>endPractice(false);return;
     }
     R.setGuide([]);
     if (GS.coachStep < 0 || GS.coachStep >= COACH.length) { c.hidden = true; return; }
     c.hidden = false;
-    c.innerHTML = `<strong>Getting started</strong><br>${COACH[GS.coachStep]}<div class="tip-row"><button class="btn ghost small" id="coach-skip">Hide tips</button></div>`;
+    c.innerHTML = V.coach(GS.coachStep===2?4:1,false)+`<div class="tip-row"><button class="btn ghost small" id="coach-skip" aria-label="Hide tips">×</button></div>`;
     $("coach-skip").onclick = () => { GS.coachStep = -1; renderCoach(); };
   }
   function coachAfterEdit() {
@@ -154,7 +154,7 @@
   }
   function buildMaterials() {
     const lv = GS.level;
-    $("materials").innerHTML = `<span class="fixed-road" title="Road is prelaid, locked and included in your budget">Road ready · locked</span>` + lv.materials.filter(m=>m!=="road").map((m, i) => {
+    $("materials").innerHTML = `<span class="fixed-road" title="Road is prelaid, locked and included in your budget" aria-label="Road ready and locked">${V.icon("lock")}<span>Road ready · locked</span></span>` + lv.materials.filter(m=>m!=="road").map((m, i) => {
       const mat = P.MATERIALS[m], col = "#" + C.COLORS[m].toString(16).padStart(6, "0");
       return `<button class="tool" role="radio" data-tool="${m}" title="${esc(mat.role)} (${i + 1})"><i class="swatch" style="background:${col}"></i>${mat.name} <span class="cost">${mat.cost}/m</span>${lv.newMaterial === m ? '<span class="new">NEW</span>' : ""}</button>`;
     }).join("");
@@ -181,7 +181,7 @@
     const pct = (v) => Math.min(100, (v / total) * 100).toFixed(1);
     const res = lv.totalBudget - lv.budget;
     $("budget").className = "budget" + (over ? " over" : "");
-    $("budget").innerHTML = `<strong>${c}</strong> / ${lv.budget}${res ? ` + ${res} saved` : ""} credits · ${GS.design.members.length} members
+    $("budget").innerHTML = `<span class="budget-short"><strong>${c}</strong> / ${total}</span><span class="budget-detail"> credits${res ? ` · ${res} brought` : ""} · ${GS.design.members.length} members</span>
       <div class="bar"><i class="res" style="width:${pct(Math.max(c, 0))}%"></i><i style="width:${pct(Math.min(c, lv.budget))}%"></i></div>`;
     $("btn-undo").disabled = !GS.design.undo.length; $("btn-redo").disabled = !GS.design.redo.length;
     $("btn-clear").disabled = !GS.design.members.some(m=>m.m!=="road");
@@ -200,12 +200,12 @@
   function redo() { if (GS.mode === "edit" && M.redo(GS.design)) {if(GS.practice&&GS.practiceStep===2&&GS.practiceUndone)GS.practiceStep=3;changed();} }
   function clearAll() { if(GS.mode==="edit"&&GS.design.members.some(m=>m.m!=="road")){M.load(GS.design,fixedRoad(GS.level));changed();toast("Supports cleared. The road stays. Undo brings the supports back.");} }
   function practiceIntro(){
-    openModal('practice','<p class="lead">Try the real building controls before the first crossing.</p><ol class="practice-list"><li><strong>Look:</strong> rotate the bridge, then return to Front view.</li><li><strong>Build:</strong> choose Timber and connect the highlighted joints. Drag, or tap two ends.</li><li><strong>Recover:</strong> Undo and Redo a brace.</li><li><strong>Test:</strong> pause the moving load and read the forces.</li></ol><p>The road is already laid and locked. Build one side elevation; a matching truss is shown on the other side. Both represent the same 2D simulation. Practice does not change journey scores or recorded experiments.</p><div class="result-actions"><button class="btn" id="practice-intro-skip">Skip to first crossing</button><button class="btn primary" id="practice-start">Practice in 3D</button></div>');
+    openModal('practice',V.practice()+'<div class="result-actions task-actions"><button class="btn" id="practice-intro-skip">Skip to first crossing</button><button class="btn primary" id="practice-start">Practice in 3D</button></div>');
     $('practice-intro-skip').textContent=world().node==='tabletop'?'Skip to first crossing':'Skip practice & return';
     $('practice-start').onclick=()=>{closeModal();GS.practiceStep=0;renderCoach();};$('practice-intro-skip').onclick=()=>endPractice(false);
   }
   function endPractice(done,toMenu=false){world().checks[done?'controls:done':'controls:skipped']=true;persist();GS.practice=false;resetWorkshop();closeModal(false);if(toMenu)renderMenu();else goNode(world().node);}
-  function renderPracticeResult(){const {rec,s}=GS.lastSummary;$('coach').hidden=true;$('test-hud').hidden=true;const box=$('result');box.className='result '+(rec.pass?'pass':'fail');box.innerHTML=`<h3 id="result-title">${rec.pass?'Controls practice complete':'Try the practice again'}</h3><p>${esc(s.reason)}</p><p>You built braces, used the real controls and observed a test. The road remains prelaid in the journey. Your bridge designs will be stored separately from this practice.</p><div class="result-actions"><button class="btn" id="practice-edit">Edit practice bridge</button><button class="btn primary" id="practice-finish">${rec.pass?'Start first crossing':'Skip to first crossing'}</button></div>`;box.hidden=false;$('practice-finish').textContent=world().node==='tabletop'?(rec.pass?'Start first crossing':'Skip to first crossing'):'Return to journey';$('practice-edit').onclick=backToEdit;$('practice-finish').onclick=()=>endPractice(rec.pass);$('practice-finish').focus();}
+  function renderPracticeResult(){const {rec,s}=GS.lastSummary;$('coach').hidden=true;$('test-hud').hidden=true;const box=$('result');box.className='result '+(rec.pass?'pass':'fail');box.innerHTML=`<h3 id="result-title">${rec.pass?'Controls practice complete':'Try the practice again'}</h3><p>${esc(s.reason)}</p><p class="practice-complete">${V.icon("check")} Connect · undo · test</p><div class="result-actions"><button class="btn" id="practice-edit">Edit practice bridge</button><button class="btn primary" id="practice-finish">${rec.pass?'Start first crossing':'Skip to first crossing'}</button></div>`;box.hidden=false;$('practice-finish').textContent=world().node==='tabletop'?(rec.pass?'Start first crossing':'Skip to first crossing'):'Return to journey';$('practice-edit').onclick=backToEdit;$('practice-finish').onclick=()=>endPractice(rec.pass);$('practice-finish').focus();}
   // ---------- test run (fixed 1/60 s steps, same as the Node tests) ----------
   function setMode(mode) {
     GS.mode = mode; R.setMode(mode);
@@ -288,11 +288,9 @@
     const sim = GS.sim; if (!sim) return;
     let now = 0, peak = 0; for (const m of sim.mems) { if (!m.broken && m.ratio > now) now = m.ratio; if (m.peak > peak) peak = m.peak; }
     const sag = sim.maxSag * 100, lim = sim.sagLimit * 100;
-    $("test-hud").innerHTML = `<strong>${GS.paused ? "Paused — inspect the evidence" : GS.slowmo > 0 ? "Slow motion: first failure" : sim.outcome ? "Test finished" : sim.t < sim.settle ? "Settling under self-weight…" : "Crossing…"}</strong>
-      <div>Max road drop: ${sag.toFixed(1)} / ${lim} cm</div><div class="bar"><i class="${sag > lim ? "hot" : ""}" style="width:${Math.min(100, (sag / lim) * 100)}%"></i></div>
-      <div>Busiest member now: ${Math.round(now * 100)}% (peak ${Math.round(peak * 100)}%)</div><div class="bar"><i class="${peak > 0.85 ? "hot" : ""}" style="width:${Math.min(100, peak * 100)}%"></i></div>
-      ${GS.breakText ? `<p class="small">${esc(GS.breakText)}</p>` : ""}
-      <div class="load-legend"><span>Load</span><i></i><span>0 → 100%</span></div><div class="legend"><span><b style="background:#2e7dd1"></b>tension bands</span><span><b style="background:#d2452f"></b>compression bands</span></div>`;
+    const state=GS.paused?"Paused":GS.slowmo>0?"First failure":sim.outcome?"Finished":sim.t<sim.settle?"Settling":"Crossing";
+    $("test-hud").innerHTML = `<strong>${state}</strong><div class="hud-meters"><div><span>${V.icon('drop')} <b>${sag.toFixed(1)}</b> / ${lim} cm</span><div class="bar"><i class="${sag>lim?'hot':''}" style="width:${Math.min(100,sag/lim*100)}%"></i></div></div><div><span>Load <b>${Math.round(now*100)}%</b><small> · peak ${Math.round(peak*100)}%</small></span><div class="bar"><i class="${now>.85?'hot':''}" style="width:${Math.min(100,now*100)}%"></i></div></div></div><div class="hud-explanation"><div class="load-legend"><span>Load</span><i></i><span>0 → 100%</span></div><div class="legend"><span><b style="background:#2e7dd1"></b>pull</span><span><b style="background:#d2452f"></b>push</span></div></div>`;
+
   }
   // ---------- result: stars, badges, inspect, check question ----------
   function finishTest() {
@@ -328,11 +326,9 @@
     box.className = "result " + (rec.pass ? "pass" : "fail");
     box.innerHTML = `<h3 id="result-title">${rec.pass ? "Delivered! " + star(rec.stars) : "Not yet"}</h3>
       <p>${esc(reason)}</p>
-      <div class="stats"><div><strong>${valid?s.maxSagCm+" cm":"Unavailable"}</strong>max drop (limit ${Math.round(lv.sagLimit * 100)})</div><div><strong>${valid?Math.round(s.peakRatio * 100)+"%":"Unavailable"}</strong>busiest member</div><div><strong>${rec.cost}</strong>credits (budget ${lv.totalBudget})</div><div><strong>${rec.members}</strong>members</div></div>
-      ${next.length ? `<p class="small">${next.map(esc).join(" ")}</p>` : ""}
+      <div class="stats"><div><strong>${valid?s.maxSagCm+" cm":"Unavailable"}</strong>max drop (limit ${Math.round(lv.sagLimit * 100)})</div><div><strong>${valid?Math.round(s.peakRatio * 100)+"%":"Unavailable"}</strong>busiest member</div><div><strong>${rec.cost}</strong>credits (budget ${lv.totalBudget})</div><div class="members-stat"><strong>${rec.members}</strong>members</div></div>
       ${GS.lastRecord ? Edu.resultHtml(GS.lastRecord) : ""}
-      ${Edu.revealHtml()}
-      <div class="world-strip">${badgeHtml}</div>
+      <details class="result-explanation"><summary>What happened? · guide &amp; rewards</summary>${next.length ? `<p class="small">${next.map(esc).join(" ")}</p>` : ""}${Edu.revealHtml()}<div class="world-strip">${badgeHtml}</div></details>
       <div class="result-actions">
         <button class="btn" id="res-inspect">Inspect forces</button>
         <button class="btn ${rec.pass ? "" : "primary"}" id="res-edit">Edit design</button>
@@ -407,20 +403,20 @@
   function openModal(kind, html) {
     lastFocus = document.activeElement;
     const titles = { about: "About this game", help: "Help", brief: GS.level ? GS.level.title : "Task", hint: "Hint", map: "Journey map" };
-    titles.notebook="Engineering notebook"; titles.practice="Before the first crossing: controls practice";
+    titles.notebook="Engineering notebook"; titles.practice="Try it in 3D";
     $("modal").classList.remove("notebook-modal"); $("modal").dataset.kind=kind;
     $("modal-title").textContent = titles[kind] || kind;
     $("modal-body").innerHTML = html || (kind === "about" ? T.about.replace("Rendering uses Phaser 3.90 (MIT).", "Rendering uses Three.js r165 and OrbitControls (MIT).") : kind === "help" ? helpHtml() : kind === "brief" ? Edu.taskHtml(GS.level) : kind === "map" ? mapHtml() : "");
-    hideTip(); R.cancel();
+    hideTip(); R.cancel(); R.setBlocked&&R.setBlocked(true);
     $("modal").hidden = false;
     if (kind === "help") wireHelp();
     if (kind === "brief") Edu.wireTask();
-    $("modal-close").focus();
+    $("modal").querySelector(".modal-box").scrollTop=0; $("modal-close").focus();
   }
-  function closeModal(restore=true) { Edu.flush(); $("modal").hidden = true; $("modal").classList.remove("notebook-modal"); if(GS.practice&&GS.screen==="build")renderCoach(); if (restore && lastFocus && lastFocus.isConnected && lastFocus.getClientRects().length && !lastFocus.disabled) lastFocus.focus(); }
+  function closeModal(restore=true) { Edu.flush(); $("modal").hidden = true; R.setBlocked&&R.setBlocked(false); $("modal").classList.remove("notebook-modal"); if(GS.practice&&GS.screen==="build")renderCoach(); if (restore && lastFocus && lastFocus.isConnected && lastFocus.getClientRects().length && !lastFocus.disabled) lastFocus.focus(); }
   function helpHtml() {
     return `<div class="tabs"><button class="btn small primary" data-tab="controls">How to play</button><button class="btn small" data-tab="settings">Settings</button></div>
-      <div data-pane="controls"><p class="small">3D view: right-drag to orbit, scroll to zoom, or use Orbit view and drag with one finger. Use two fingers to rotate and zoom. Front view restores the building elevation. During tests, green → yellow → red shows the fraction of each member’s load limit; blue/red end bands show tension/compression. Slack cables are pale and dashed.</p>${T.controls.replace("<h3>Draw road</h3><p>Pick <strong>Road</strong>, then drag from one bank to the other along the dotted line. You can also tap one point, then another.</p>","<h3>Road is ready</h3><p>The prelaid road is locked and counted in your budget. Pick a support material, then drag between existing joints or tap both endpoints. Both truss sides update together.</p>").replace("Blue members are pulled (tension), red members are pushed (compression).", "Blue end bands are pulled (tension), red end bands are pushed (compression). Member bodies show load from green through yellow to red.").replace("Remove members that stayed pale, strengthen the red ones.", "Compare lightly loaded green members with highly loaded red ones, then test your changes. A low reading alone does not prove a member is unnecessary.").replace("1–4 materials · X erase", "1–3 support materials · Arrow keys + Enter build · P pause · X erase")}</div>
+      <div data-pane="controls"><div class="help-actions"><button class="btn small" id="help-hint">Get a hint</button><button class="btn small" id="help-map">Journey map</button></div>${V.practice()}<details class="full-controls"><summary>Full controls &amp; force colors</summary><p class="small">3D view: right-drag to orbit, scroll to zoom, or use Orbit view and drag with one finger. Use two fingers to rotate and zoom. Front view restores the building elevation. During tests, green → yellow → red shows the fraction of each member’s load limit; blue/red end bands show tension/compression. Slack cables are pale and dashed.</p>${T.controls.replace("<h3>Draw road</h3><p>Pick <strong>Road</strong>, then drag from one bank to the other along the dotted line. You can also tap one point, then another.</p>","<h3>Road is ready</h3><p>The prelaid road is locked and counted in your budget. Pick a support material, then drag between existing joints or tap both endpoints. Both truss sides update together.</p>").replace("Blue members are pulled (tension), red members are pushed (compression).", "Blue end bands are pulled (tension), red end bands are pushed (compression). Member bodies show load from green through yellow to red.").replace("Remove members that stayed pale, strengthen the red ones.", "Compare lightly loaded green members with highly loaded red ones, then test your changes. A low reading alone does not prove a member is unnecessary.").replace("1–4 materials · X erase", "1–3 support materials · Arrow keys + Enter build · P pause · X erase")}</details></div>
       <div data-pane="settings" hidden>
         <p class="small">${esc(storageText())} Use Notebook → Export notebook to include your experiment records and notes.</p><h3>Save progress</h3><p>Progress saves automatically in this browser. To move it to another computer, copy the text below and paste it there.</p>
         <textarea id="save-text" readonly aria-label="Exported progress">${esc(Pr.exportText(GS.save))}</textarea>
@@ -431,6 +427,7 @@
       </div>`;
   }
   function wireHelp() {
+    $("help-hint").onclick=hint; $("help-map").onclick=()=>openModal("map");
     const tabs = $("modal-body").querySelectorAll("[data-tab]");
     tabs.forEach((t) => t.addEventListener("click", () => {
       tabs.forEach((x) => x.classList.toggle("primary", x === t));
@@ -497,6 +494,12 @@
 
   // ---------- wiring ----------
   function wire() {
+    $("build").addEventListener("pointerdown",()=>R.interact&&R.interact(),true);
+    $("build").addEventListener("keydown",()=>R.interact&&R.interact(),true);
+    for(const [selector,id,label] of [['#btn-menu','menu','Menu'],['#btn-map','map','Map'],['#btn-notebook','notebook','Notebook'],['.topbar [data-open="brief"]','task','Task'],['.topbar [data-open="help"]','help','Help']]){
+      const b=document.querySelector(selector);b.setAttribute('aria-label',label);b.title=label;b.innerHTML=V.icon(id)+`<span class="nav-label">${label}</span>`;
+    }
+
     $("btn-new").onclick = newJourney; $("btn-continue").onclick = cont;
     $("btn-select").onclick = () => openModal("map");
     $("comic-next").onclick = comicNext; $("comic-skip").onclick = () => advance("prologue");

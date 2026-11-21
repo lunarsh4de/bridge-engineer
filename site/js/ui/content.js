@@ -66,16 +66,17 @@
   function taskBlock1(level) {
     const mats = level.materials.map(m => root.BridgePhysics.MATERIALS[m]);
     const brought = level.id === 'tabletop' ? 0 : level.reserve || 0;
-    return `<section class="task-block" data-task-block="1"><span class="bloom-tag">Skill: ${esc(BLOOM_MAP[level.id] || '')}</span>
+    const visual=root.VisualGuide?root.VisualGuide.task(level):"";
+    return `<section class="task-block" data-task-block="1">${visual}<details class="task-story"><summary>Story, goal &amp; rules</summary><span class="bloom-tag">Skill: ${esc(BLOOM_MAP[level.id] || '')}</span>
       <p class="eyebrow">Your challenge · Engage & explore</p><p class="lead">${esc(level.brief)}</p>
       <p><strong>Goal:</strong> ${esc(level.goal)}</p>
       <p><strong>Load:</strong> ${level.mass.toLocaleString('en')} kg (${esc(level.cargo)}) · <strong>Span:</strong> ${level.span} m · <strong>Budget:</strong> ${level.budget} credits${brought ? ` + ${brought} brought forward` : ''}</p>
       <p><strong>Pass:</strong> continuous road · no broken members · maximum drop under ${Math.round((level.sagLimit || .12) * 100)} cm · cost within budget</p>
-      <details class="task-materials"><summary>Materials and limits</summary><ul>${mats.map(m => `<li><strong>${esc(m.name)}</strong> · ${m.cost} credits/m · up to ${m.maxLen} m</li>`).join('')}</ul><p class="small">Road is prelaid, locked and included in the budget.</p></details>
-      <p class="small muted">Try your own design and observe a test. Failed tests cost nothing.</p></section>`;
+      </details><details class="task-materials"><summary>Materials and limits</summary><ul>${mats.map(m => `<li><strong>${esc(m.name)}</strong> · ${m.cost} credits/m · up to ${m.maxLen} m</li>`).join('')}</ul><p class="small">Road is prelaid, locked and included in the budget.</p></details>
+      <p class="small muted task-assurance">Test your idea. Retries are free.</p></section>`;
   }
   function taskBlock2(level) {
-    return `<section class="task-block concept-dialogue" data-task-block="2"><p class="eyebrow">After your first attempt · Explain</p><h3>What might explain the result?</h3><p>${CONCEPT_DIALOGUE_MAP[level.id] || esc(level.concept)}</p><p><strong>Try observing:</strong> ${esc(level.hints[0] || '')}</p><p class="small muted">Use your test evidence to investigate. The first break locates a failure; it does not establish the whole cause.</p></section>`;
+    return `<section class="task-block concept-dialogue" data-task-block="2"><div class="concept-visual">${root.VisualGuide?root.VisualGuide.concept(level):""}<h3>${root.VisualGuide?root.VisualGuide.shortConcept(level):"What might explain the result?"}</h3></div><details class="concept-more"><summary>Hear the guide · investigate</summary><p>${CONCEPT_DIALOGUE_MAP[level.id] || esc(level.concept)}</p><p><strong>Try observing:</strong> ${esc(level.hints[0] || '')}</p><p class="small muted">Use your test evidence to investigate. The first break locates a failure; it does not establish the whole cause.</p></details></section>`;
   }
   function taskBlock3(level, savings) {
     let world = '';
@@ -84,7 +85,7 @@
       if (savings.brought > 0) world += `You brought <strong>${savings.brought} saved credits</strong> into this crossing${savings.used ? `; this design uses ${savings.used} of them` : ''}. `;
       if (world) world += `After delivery, your reserve will be <strong>${savings.total} credits</strong>. ${level.id === 'finale' ? 'This is the final crossing.' : 'Earlier choices shape what reaches Riverbend.'}`;
     }
-    return `<section class="task-block real-world" data-task-block="3"><p class="eyebrow">After a successful test · Elaborate & evaluate</p><h3>Beyond this crossing</h3><p>${esc(REAL_WORLD_MAP[level.id] || '')}</p><p class="ill-structured">${esc(ILL_STRUCTURED)}</p>${world ? `<p class="world-state-hint">${world}</p>` : ''}</section>`;
+    return `<section class="task-block real-world" data-task-block="3"><div class="concept-visual">${root.VisualGuide?root.VisualGuide.concept(level):""}<h3>One crossing. Many designs.</h3></div>${savings&&level.id!=="tabletop"?`<p class="reserve-preview">After delivery: <strong>${savings.total} credits</strong> in reserve</p>`:""}<details class="transfer-more"><summary>Beyond this crossing</summary><p>${esc(REAL_WORLD_MAP[level.id] || '')}</p><p class="ill-structured">${esc(ILL_STRUCTURED)}</p>${world ? `<p class="world-state-hint">${world}</p>` : ''}</details></section>`;
   }
   // Compatibility for callers of the old task API: entry information only.
   const task = taskBlock1;
