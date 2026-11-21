@@ -32,7 +32,7 @@
     if (!d.level.materials.includes(type)) return `${P.MATERIALS[type].name} is not available here.`;
     const isJoint = (p) => joints(d).some((j) => same(j.p, p));
     if (!isJoint(a)) return "Start from an existing joint (a dot).";
-    if (type === "road" && (a[1] !== 0 || b[1] !== 0)) return "Road must stay level with the riverbanks.";
+    if (type === "road" && (a[1] !== (d.level.deckY||0) || b[1] !== (d.level.deckY||0))) return "Road must stay level with the riverbanks.";
     const L = Math.hypot(b[0] - a[0], b[1] - a[1]) * P.G;
     if (type !== "road" && L > P.MATERIALS[type].maxLen + 1e-9) return `Too long. ${P.MATERIALS[type].name} pieces can be at most ${P.MATERIALS[type].maxLen} m.`;
     if (find(d, a, b) >= 0) return "There is already a member there.";
@@ -48,7 +48,7 @@
     let x = a[0];
     while (x !== b[0]) {
       const nx = Math.abs(b[0] - x) > step ? x + dir * step : b[0];
-      out.push({ a: [x, 0], b: [nx, 0], m: "road" });
+      out.push({ a: [x, a[1]], b: [nx, a[1]], m: "road" });
       x = nx;
     }
     return out;

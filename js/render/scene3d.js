@@ -42,7 +42,7 @@
     for(let x=0;x<=l.N;x++)for(let y=l.yMin;y<=l.yMax;y++) dots.push(x*G,y*G,.012);
     const geo=new T.BufferGeometry(); geo.setAttribute("position",new T.Float32BufferAttribute(dots,3));
     grid.add(new T.Points(geo,new T.PointsMaterial({color:0x336b73,size:3,sizeAttenuation:false,transparent:true,opacity:.65,depthTest:false})));
-    const line=[]; for(let x=0;x<l.N;x+=.5)line.push(x*G,.012,0,Math.min(l.N,x+.24)*G,.012,0);
+    const line=[]; for(let x=0;x<l.N;x+=.5)line.push(x*G,(l.deckY||0)*G+.012,0,Math.min(l.N,x+.24)*G,(l.deckY||0)*G+.012,0);
     const lg=new T.BufferGeometry(); lg.setAttribute("position",new T.Float32BufferAttribute(line,3));
     grid.add(new T.LineSegments(lg,new T.LineBasicMaterial({color:0x306865,transparent:true,opacity:.7,depthTest:false})));
     grid.renderOrder=3;
@@ -89,7 +89,7 @@
   function render(dt) {
     if(!renderer||!S.level||lost)return;
     root.Bridge3D.update(bridge,S.sim,S.inspect,S.forces,S.highlight,S.hover,S.trace);
-    root.Vehicle3D.update(vehicle,S.sim,dt); root.Terrain3D.update(terrain,elapsed,reduced());
+    root.Vehicle3D.update(vehicle,S.sim,dt); root.Terrain3D.update(terrain,elapsed,reduced(),S.sim);
     input&&input.update();
     if(grid)grid.position.z=editingPlaneZ();
     if(grid)grid.visible=S.mode==="edit";

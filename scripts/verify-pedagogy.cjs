@@ -6,7 +6,7 @@ const root=path.resolve(process.argv[2]||path.join(__dirname,'..')),out=path.res
 fs.mkdirSync(out,{recursive:true});
 (async()=>{
  const executablePath=process.env.RIVERBEND_BROWSER||['C:/Program Files/Google/Chrome/Application/chrome.exe','C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe'].find(x=>fs.existsSync(x));
- const browser=await chromium.launch({headless:true,...(executablePath?{executablePath}:{})}),context=await browser.newContext({viewport:{width:1440,height:900}});await context.setOffline(true);
+ const browser=await chromium.launch({headless:true,...(executablePath?{executablePath}:{})}),context=await browser.newContext({locale:'en-US',viewport:{width:1440,height:900}});await context.setOffline(true);
  const page=await context.newPage(),errors=[],external=[],report={root,offline:true,checks:[],errors,externalRequests:external,screenshots:[],method:'Seeded saves set starting conditions. First failed Willow test and rebuilt passing Willow use real-time solver and real mouse. Later duplicate/branch checks accelerate the unchanged fixed-step solver.'};
  page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});page.on('request',r=>{if(/^https?:/.test(r.url()))external.push(r.url());});
  const check=name=>{report.checks.push(name);console.log('PASS '+name);};

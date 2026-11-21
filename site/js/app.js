@@ -5,7 +5,8 @@
   const P = root.BridgePhysics, L = root.BridgeLevels, M = root.BridgeModel, Pr = root.BridgeProgress, Sc = root.BridgeScoring;
   const Bus = root.BridgeBus, E = root.BridgeEvents, C = root.BridgeConstants, T = root.BridgeContent, R = root.BridgeScene;
   const $ = (id) => document.getElementById(id);
-  const V=root.VisualGuide;
+  const V=root.VisualGuide, X=root.BridgeExpansion;
+  X.install(L,root.EngineeringLab);
   const esc = T.esc, Lab = root.EngineeringLab, Notes=root.InquiryNotes;
   let notebook = Lab.blank(), inquiry={}, storageVolatile = false;
 
@@ -16,14 +17,19 @@
     teaching:{block2:false,block3:false}, teachingNotice:null, savings:null, testNoteIndex:null, comicIndex: 0, coachStep: 0, firstBreakShown: false, practice: false, practiceStep: 0, practiceUndone: false, paused: false, observedSlack: new Set(), testDesign: null, lastRecord: null,
     reset() { this.teaching={block2:false,block3:false};this.teachingNotice=null;this.savings=null;this.testNoteIndex=null; this.level = null; this.design = null; this.sim = null; this.mode = "edit"; this.slowmo = 0; this.endHold = 0; this.accum = 0; this.lastSummary = null; this.hintStep = 0; this.firstBreakShown = false; this.breakText = ""; this.seenEvents = 0; this.practice=false; this.practiceStep=0; this.practiceUndone=false; this.paused = false; this.inspectList = null; this.testDesign = null; this.lastRecord = null; this.observedSlack = new Set(); },
   };
-  const store = (() => { try { const s = root.localStorage; s.setItem("rb.t", "1"); s.removeItem("rb.t"); return s; } catch (e) { storageVolatile = true; const m = {}; return { getItem: (k) => m[k] || null, setItem: (k, v) => { m[k] = String(v); }, removeItem: (k) => { delete m[k]; } }; } })();
+  const rawStore = (() => { try { const s = root.localStorage; s.setItem("rb.t", "1"); s.removeItem("rb.t"); return s; } catch (e) { storageVolatile = true; const m = {}; return { getItem: (k) => m[k] || null, setItem: (k, v) => { m[k] = String(v); }, removeItem: (k) => { delete m[k]; } }; } })();
+  let chapter=rawStore.getItem('riverbend.chapter')==='advanced'?'advanced':'foundation';
+  const store={getItem:k=>rawStore.getItem(chapter==='advanced'?'riverbend.advanced.'+k:k),setItem:(k,v)=>rawStore.setItem(chapter==='advanced'?'riverbend.advanced.'+k:k,v),removeItem:k=>rawStore.removeItem(chapter==='advanced'?'riverbend.advanced.'+k:k)};
+  const makeWorld=()=>chapter==='advanced'?X.newWorld(L):L.newWorld();
+  function loadChapter(){const loaded=Pr.load(store,makeWorld),checked=Lab.validateSave(loaded);GS.save=checked.ok?checked.data:Pr.blank(makeWorld);notebook=Lab.load(store,GS.save);inquiry=Notes.migrate(notebook,Notes.load(store,Lab.progressStamp(GS.save)));saveBook();}
+  function switchChapter(next){if(next===chapter)return;Edu.flush();persist();resetWorkshop();chapter=next;rawStore.setItem('riverbend.chapter',chapter);loadChapter();closeModal(false);renderMenu();}
   const world = () => GS.save.world;
   function storageText() { return storageVolatile ? "Storage is unavailable or full. Work is kept for this session; export your notebook before closing." : "Progress and the optional Notebook save locally in this browser."; }
   function saveBook() { if (!Lab.save(store, notebook, GS.save)) storageVolatile = true; if(!Notes.save(store,inquiry,Lab.progressStamp(GS.save)))storageVolatile=true; }
   function persist() { if (GS.design && GS.level && !GS.practice) GS.save.designs[GS.level.id] = M.clone(GS.design.members); if (!Pr.save(store, GS.save)) storageVolatile = true; saveBook(); }
   function download(name, text) { const a = document.createElement("a"), url = URL.createObjectURL(new Blob([text], {type:"application/json"})); a.href=url; a.download=name; a.click(); setTimeout(()=>URL.revokeObjectURL(url),1000); }
   function resetWorkshop() { GS.reset(); R.setGuide([]); R.setSim(null); R.setInspect(null); R.setHighlight(-1); R.setTrace([]); Edu.reset(); }
-  function installSave(data, book, notes) { resetWorkshop(); GS.save=data; notebook=book||Lab.blank(); inquiry=Notes.migrate(notebook,notes||{}); persist(); closeModal(false); renderMenu(); toast("Progress loaded."); }
+  function installSave(data, book, notes) { Edu.flush();persist();resetWorkshop();chapter=data.world.chapter==='advanced'?'advanced':'foundation';rawStore.setItem('riverbend.chapter',chapter); GS.save=data; notebook=book||Lab.blank(); inquiry=Notes.migrate(notebook,notes||{}); persist(); closeModal(false); renderMenu(); toast("Progress loaded."); }
 
   // ---------- screens ----------
   function show(id) {
@@ -46,19 +52,24 @@
 
   // ---------- menu ----------
   function renderMenu() {
-    const w = world(), started = GS.save.started && w.node !== "prologue";
+    const w=world(),advanced=chapter==='advanced',started=GS.save.started&&w.node!=='prologue';
+    document.querySelectorAll('[data-chapter]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.chapter===chapter)));
+    $('chapter-label').textContent=advanced?'Chapter II · Design for a working river':'Chapter I · A bridge-building story';
+    $('chapter-lead').textContent=advanced?'Two trucks. Tall boats. Two spans. Meet every constraint in five new engineering commissions.':'The flood took the valley’s bridges. Build new ones, choose who to help first, and live with what your choices change.';
+    $('menu-practice').hidden=advanced;
     $("btn-continue").hidden = !started;
     $("btn-select").hidden = !started;
-    $("btn-new").textContent = started ? "Start over" : "New journey";
+    $("btn-new").textContent = started ? "Start over" : advanced?"New expedition":"New journey";
     $("btn-new").classList.toggle("primary", !started);
-    const done = Object.keys(w.results).filter(id => id !== "tabletop").length, stars = Object.values(w.results).reduce((a, r) => a + (r.stars || 0), 0);
-    $("menu-progress").textContent = started ? `${done} of ${Object.keys(L.LEVELS).length - 1} crossings built · ${stars} stars · ${w.reserve} credits saved` : "";
+    const done = Object.keys(w.results).length, stars = Object.values(w.results).reduce((a, r) => a + (r.stars || 0), 0);
+    $("menu-progress").textContent = started ? `${done} of ${5} crossings built · ${stars} stars · ${w.reserve} credits saved` : "";
     $("menu-storage").textContent = storageText();
     show("menu");
   }
   function newJourney() {
     if (GS.save.started && !confirm("Start a new journey? Your current progress will be replaced. (Help → Settings can export it first.)")) return;
-    resetWorkshop(); notebook = Lab.blank(); inquiry={}; GS.save = Pr.blank(L.newWorld); GS.save.started = true; persist();
+    resetWorkshop(); notebook = Lab.blank(); inquiry={}; GS.save = Pr.blank(makeWorld); GS.save.started = true; persist();
+    if(chapter==='advanced'){goNode('convoy');return;}
     GS.comicIndex = 0; renderComic(); show("comic");
   }
   function cont() { goNode(world().node); }
@@ -324,8 +335,9 @@
     const box = $("result");
     $("test-hud").hidden = true;
     box.className = "result " + (rec.pass ? "pass" : "fail");
+    const challenge=chapter==='advanced'?challengeEvidence(s):'';
     box.innerHTML = `<h3 id="result-title">${rec.pass ? "Delivered! " + star(rec.stars) : "Not yet"}</h3>
-      <p>${esc(reason)}</p>
+      <p>${esc(reason)}</p>${challenge}
       <div class="stats"><div><strong>${valid?s.maxSagCm+" cm":"Unavailable"}</strong>max drop (limit ${Math.round(lv.sagLimit * 100)})</div><div><strong>${valid?Math.round(s.peakRatio * 100)+"%":"Unavailable"}</strong>busiest member</div><div><strong>${rec.cost}</strong>credits (budget ${lv.totalBudget})</div><div class="members-stat"><strong>${rec.members}</strong>members</div></div>
       ${GS.lastRecord ? Edu.resultHtml(GS.lastRecord) : ""}
       <details class="result-explanation"><summary>What happened? · guide &amp; rewards</summary>${next.length ? `<p class="small">${next.map(esc).join(" ")}</p>` : ""}${Edu.revealHtml()}<div class="world-strip">${badgeHtml}</div></details>
@@ -339,8 +351,10 @@
     $("res-edit").onclick = backToEdit;
     if (rec.pass) $("res-go").onclick = showCheck;
     Edu.wireResult();
+    if($('show-obstruction'))$('show-obstruction').onclick=()=>{const n=s.navigation.find(n=>n.blocked);inspect();R.setHighlight(n.blocked.member);toast('Highlighted member occupies the boat envelope.');};
     (rec.pass ? $("res-go") : $("res-edit")).focus();
   }
+  function challengeEvidence(s){return `<div class="challenge-evidence">${(s.vehicles||[]).map((v,i)=>`<span>${V.icon('truck')} ${i+1} · ${v.mass} kg ${v.completed?'✓':'×'}</span>`).join('')}${(s.navigation||[]).map(n=>`<span>${V.icon('boat')} ${n.index+1} ${n.passed?'✓':'×'} · ${n.minClearance===null?'—':n.minClearance} / ${n.requiredClearance} m</span>`).join('')}${(s.navigation||[]).some(n=>n.blocked)?'<button class="btn small" id="show-obstruction">Show obstruction</button>':''}</div>`;}
   function inspect() {
     if (GS.mode !== "result" || !GS.inspectList) return;
     R.setSim(null); R.setInspect(GS.inspectList); R.setHighlight(-1); R.setTrace([]);
@@ -410,9 +424,13 @@
     hideTip(); R.cancel(); R.setBlocked&&R.setBlocked(true);
     $("modal").hidden = false;
     if (kind === "help") wireHelp();
-    if (kind === "brief") Edu.wireTask();
+    if (kind === "brief") {Edu.wireTask();wireHeight();}
     $("modal").querySelector(".modal-box").scrollTop=0; $("modal-close").focus();
   }
+  function wireHeight(){const b=$('apply-height');if(!b)return;b.onclick=()=>{
+    if(GS.mode!=='edit')return;const d=+$('deck-height').value;if(d===GS.level.deckY)return;
+    const id=GS.level.id;Edu.flush();world().challengeOptions[id]={deckY:d};GS.save.designs[id]=[];GS.design=null;persist();closeModal(false);openLevel(id);persist();openModal('brief');toast('Height applied. Road rebuilt; supports cleared. Previous tests stay in the Notebook.');
+  };}
   function closeModal(restore=true) { Edu.flush(); $("modal").hidden = true; R.setBlocked&&R.setBlocked(false); $("modal").classList.remove("notebook-modal"); if(GS.practice&&GS.screen==="build")renderCoach(); if (restore && lastFocus && lastFocus.isConnected && lastFocus.getClientRects().length && !lastFocus.disabled) lastFocus.focus(); }
   function helpHtml() {
     return `<div class="tabs"><button class="btn small primary" data-tab="controls">How to play</button><button class="btn small" data-tab="settings">Settings</button></div>
@@ -447,10 +465,10 @@
   }
   const ORDER = ["prologue", "tabletop", "willow", "route", "clinic", "mill", "share", "echo", "support", "finale", "report"];
   function mapHtml() {
-    const w = world(), cur = ORDER.indexOf(w.node);
+    const w=world(),order=chapter==='advanced'?[...X.IDS,'advanced-report']:ORDER,cur=order.indexOf(w.node);
     const label = (id) => { const n = L.NODES[id]; return n.type === "level" ? L.LEVELS[n.level].title : n.type === "choice" ? n.title : id === "prologue" ? "Prologue" : "Field report"; };
-    const rows = ORDER.filter((id) => !(id === "clinic" && w.firstHelp === "mill") && !(id === "mill" && w.firstHelp === "clinic")).map((id) => {
-      const n = L.NODES[id], i = ORDER.indexOf(id);
+    const rows = order.filter((id) => !(id === "clinic" && w.firstHelp === "mill") && !(id === "mill" && w.firstHelp === "clinic")).map((id) => {
+      const n = L.NODES[id], i = order.indexOf(id);
       let state = i < cur ? "✔" : i === cur ? "▶" : "·", extra = "";
       if (n.type === "level" && w.results[n.level]) extra = " " + "★".repeat(w.results[n.level].stars || 0);
       if (n.type === "choice" && w.choices[id]) extra = " → " + esc(n.options.find((o) => o.id === w.choices[id]).label);
@@ -461,6 +479,7 @@
   }
   // ---------- field report ----------
   function renderReport() {
+    if(chapter==='advanced'){renderAdvancedReport();return;}
     const w = world();
     const rows = ["tabletop", "willow", w.firstHelp || "clinic", "echo", "finale"].filter((id) => w.results[id]).map((id) => {
       const r = w.results[id], st = r.stars || 0;
@@ -492,6 +511,11 @@
     show("report");
   }
 
+  function renderAdvancedReport(){
+    const w=world(),ids=X.IDS.filter(id=>w.results[id]);
+    $('report-body').innerHTML=`<p class="eyebrow">Chapter II · Field report</p><h2 id="report-title">The river is connected</h2><p class="lead">Five commissions: traffic, navigation and connected spans.</p><div class="report-table"><table><thead><tr><th>Crossing</th><th>Stars</th><th>Credits</th><th>Max drop</th></tr></thead><tbody>${ids.map(id=>{const r=w.results[id];return `<tr><td>${esc(L.LEVELS[id].title)}</td><td>${'★'.repeat(r.stars)}</td><td>${r.cost}</td><td>${r.maxSagCm} cm</td></tr>`;}).join('')}</tbody></table></div><h3>Your engineering evidence</h3><p>Compare tests only when traffic, height, water, navigation lanes and supports match. Explain a change using measurements from a complete test.</p><textarea id="reflection" aria-label="Your answer" data-no-i18n>${esc(GS.save.reflection||'')}</textarea><div class="result-actions"><button class="btn" id="rep-notebook">Open engineering notebook</button><button class="btn" id="rep-print">Print / save as PDF</button><button class="btn" id="rep-menu">Main menu</button><button class="btn primary" id="rep-foundation">Valley journey</button></div>`;
+    $('reflection').oninput=e=>{GS.save.reflection=e.target.value;persist();};$('rep-notebook').onclick=()=>Edu.open('riverport');$('rep-print').onclick=()=>root.print();$('rep-menu').onclick=renderMenu;$('rep-foundation').onclick=()=>switchChapter('foundation');show('report');
+  }
   // ---------- wiring ----------
   function wire() {
     $("build").addEventListener("pointerdown",()=>R.interact&&R.interact(),true);
@@ -500,6 +524,8 @@
       const b=document.querySelector(selector);b.setAttribute('aria-label',label);b.title=label;b.innerHTML=V.icon(id)+`<span class="nav-label">${label}</span>`;
     }
 
+    document.querySelectorAll('[data-chapter]').forEach(b=>b.onclick=()=>switchChapter(b.dataset.chapter));
+    document.querySelectorAll('.language-switch').forEach(b=>b.onclick=()=>root.BridgeI18n.toggle());
     $("btn-new").onclick = newJourney; $("btn-continue").onclick = cont;
     $("btn-select").onclick = () => openModal("map");
     $("comic-next").onclick = comicNext; $("comic-skip").onclick = () => advance("prologue");
@@ -542,10 +568,10 @@
   // ---------- QA hooks (game-qa skill) ----------
   root.__GAME_STATE__ = GS; root.__EVENT_BUS__ = Bus; root.__EVENTS__ = E;
   root.render_game_to_text = () => {
-    const out = { coords: "grid units of 0.5 m; origin at left deck end; x right, y up", screen: GS.screen, mode: GS.mode };
+    const out = { coords: "grid units of 0.5 m; origin at left deck end; x right, y up", screen: GS.screen, mode: GS.mode, chapter, language:root.BridgeI18n.language };
     if (GS.save) { const w = world(); out.node = w.node; out.world = { reserve: w.reserve, materials: w.materials, helped: w.helped, support: w.support, choices: w.choices }; }
     if (GS.screen === "build" && GS.level) {
-      out.level = { id: GS.level.id, span_m: GS.level.span, budget: GS.level.totalBudget, materials: GS.level.materials };
+      out.level = { id: GS.level.id, span_m: GS.level.span, budget: GS.level.totalBudget, materials: GS.level.materials, deckY:GS.level.deckY||0, traffic:GS.level.traffic, navigation:GS.level.navigation };
       out.design = { members: GS.design.members.length, cost: cost(), warnings: M.warnings(GS.design) };
       out.tool = GS.tool; out.paused=GS.paused; out.notebookRuns=notebook.runs.length;
       if (GS.sim) out.sim = { t: +GS.sim.t.toFixed(2), vehicle_x_m: +GS.sim.vehicle.front.toFixed(2), maxSagCm: Math.round(GS.sim.maxSag * 1000) / 10, broken: GS.sim.mems.filter((m) => m.broken).length, outcome: GS.sim.outcome, slowmo: GS.slowmo > 0 };
@@ -585,8 +611,7 @@
   root.addEventListener("pagehide",()=>Edu.flush());
   // ---------- boot ----------
   function boot() {
-    const loaded=Pr.load(store,L.newWorld),checked=Lab.validateSave(loaded);
-    GS.save=checked.ok?checked.data:Pr.blank(L.newWorld); notebook=Lab.load(store,GS.save); inquiry=Notes.migrate(notebook,Notes.load(store,Lab.progressStamp(GS.save)));saveBook();
+    loadChapter();root.BridgeI18n.start();
     wire();
     renderMenu();
   }

@@ -17,7 +17,7 @@
  function blank(){return{version:VERSION,progressStamp:'',runs:[],drafts:{}};}
  function progressStamp(save){let h=2166136261;const canonical=x=>Array.isArray(x)?x.map(canonical):x&&typeof x==='object'?Object.fromEntries(Object.keys(x).sort().map(k=>[k,canonical(x[k])])):x;const s=JSON.stringify(canonical(save));for(let n=0;n<s.length;n++){h^=s.charCodeAt(n);h=Math.imul(h,16777619);}return(h>>>0).toString(16);}
  function designKey(ms){return JSON.stringify(ms.map(m=>{const a=m.a.join(','),b=m.b.join(',');return[a<b?a:b,a<b?b:a,m.m];}).sort((a,b)=>JSON.stringify(a)<JSON.stringify(b)?-1:JSON.stringify(a)>JSON.stringify(b)?1:0));}
- function conditions(level){return{levelId:level.id,span:level.span,mass:level.mass,anchors:level.anchors.map(a=>a.slice()).sort((a,b)=>a[0]-b[0]||a[1]-b[1]),materials:level.materials.slice().sort(),budget:level.totalBudget,sagLimit:level.sagLimit,mode:'prescribed-crossing',model:'XPBD-v1'};}
+ function conditions(level){return{levelId:level.id,span:level.span,mass:level.mass,anchors:level.anchors.map(a=>a.slice()).sort((a,b)=>a[0]-b[0]||a[1]-b[1]),materials:level.materials.slice().sort(),budget:level.totalBudget,sagLimit:level.sagLimit,mode:'prescribed-crossing',model:level.chapter==='advanced'?'XPBD-fleet-nav-v1':'XPBD-v1',...(level.chapter==='advanced'?{deckY:level.deckY||0,traffic:copy(level.traffic),waterY:level.waterY??null,navigation:copy(level.navigation||[]),island:copy(level.island||[])}:{})};}
  const conditionKey=l=>JSON.stringify(conditions(l));
  function connected(members,anchors,memberIndex){
   const key=P.keyOf,graph=new Map(),fixed=new Set(anchors.map(key));
@@ -31,7 +31,7 @@
  function record(level,members,sim,result,prediction,slackObserved){
   const valid=Number.isFinite(sim.maxSag)&&sim.nodes.every(n=>Number.isFinite(n.x)&&Number.isFinite(n.y))&&sim.mems.every(m=>Number.isFinite(m.peak)&&Number.isFinite(m.ratio));
   const states=sim.mems.map((m,i)=>({i,type:m.type,len:m.rest,peak:valid?Math.max(m.peak,m.broken?m.ratio:0):0,mode:m.peakMode||(m.fs>=0?'tension':'compression'),broken:m.broken,slack:!!(slackObserved&&slackObserved.has(i)),tension:m.mat.tension,compression:m.comp}));
-  return{levelId:level.id,condition:conditions(level),conditionKey:conditionKey(level),design:copy(members),designKey:designKey(members),prediction:String(prediction||'').slice(0,400),example:false,valid,duration:sim.t,crossingDuration:Math.max(0,sim.t-sim.settle),settle:sim.settle,pass:valid&&result.pass,outcome:sim.outcome,reason:valid?sim.reason:'The simulation produced invalid data; no numerical evidence was recorded.',cost:P.costOf(members),maxSagCm:valid?sim.maxSag*100:null,peakRatio:valid?Math.max(0,...states.map(s=>s.peak)):null,firstBreak:sim.firstBreak?copy(sim.firstBreak):null,slackCount:states.filter(s=>s.slack).length,members:states,connections:connected(members,level.anchors,-1).unsupported.length};
+  return{...(level.chapter==='advanced'?{trafficResult:P.summary(sim).vehicles,navigationResult:P.summary(sim).navigation}:{}),levelId:level.id,condition:conditions(level),conditionKey:conditionKey(level),design:copy(members),designKey:designKey(members),prediction:String(prediction||'').slice(0,400),example:false,valid,duration:sim.t,crossingDuration:Math.max(0,sim.t-sim.settle),settle:sim.settle,pass:valid&&result.pass,outcome:sim.outcome,reason:valid?sim.reason:'The simulation produced invalid data; no numerical evidence was recorded.',cost:P.costOf(members),maxSagCm:valid?sim.maxSag*100:null,peakRatio:valid?Math.max(0,...states.map(s=>s.peak)):null,firstBreak:sim.firstBreak?copy(sim.firstBreak):null,slackCount:states.filter(s=>s.slack).length,members:states,connections:connected(members,level.anchors,-1).unsupported.length};
  }
  function add(lab,run){run.id=(lab.runs.reduce((m,r)=>Math.max(m,r.id||0),0)+1);lab.runs.push(run);if(lab.runs.length>MAX_RUNS)lab.runs.splice(0,lab.runs.length-MAX_RUNS);return run;}
  function changes(a,b){
@@ -41,7 +41,7 @@
  }
  function compare(a,b){
   if(!a||!b)return{ok:false,reason:'Choose two recorded tests.'};if(a.id===b.id)return{ok:false,reason:'Choose two different tests.'};
-  if(a.conditionKey!==b.conditionKey)return{ok:false,reason:'Different span, load, supports, materials, budget or model. These tests are not a controlled comparison.'};
+  if(a.conditionKey!==b.conditionKey)return{ok:false,reason:'Different span, traffic, height, navigation, supports, materials, budget or model. These tests are not a controlled comparison.'};
   if(!a.valid||!b.valid)return{ok:false,reason:'Invalid solver data cannot be compared.'};
   return{ok:true,cost:b.cost-a.cost,drop:b.maxSagCm-a.maxSagCm,peak:(b.peakRatio-a.peakRatio)*100,duration:b.duration-a.duration,completedBoth:a.pass&&b.pass,changes:changes(a,b),sameDesign:a.designKey===b.designKey};
  }
@@ -57,9 +57,15 @@
   for(const[id,choice]of Object.entries(v.choices))if(!own(L.NODES,id)||!L.NODES[id].options||!L.NODES[id].options.some(o=>o.id===choice))return fail();
   for(const[id,res]of Object.entries(v.results))if(!own(L.LEVELS,id)||!res||!Number.isInteger(res.stars)||res.stars<0||res.stars>3||!['cost','maxSagCm','peakRatio'].every(k=>Number.isFinite(res[k])&&res[k]>=0)||!Array.isArray(res.badges))return fail();
   if(['echo','finale'].includes(v.node)&&!v.materials.some(m=>m==='steel'||m==='cable'))return fail();
+  if(v.challengeOptions!==undefined){
+   if(!v.challengeOptions||typeof v.challengeOptions!=='object'||Array.isArray(v.challengeOptions))return fail();
+   for(const[id,o]of Object.entries(v.challengeOptions))if(!own(L.LEVELS,id)||!L.LEVELS[id].heights||!o||!L.LEVELS[id].heights.includes(o.deckY))return fail();
+  }
+  if(v.chapter==='advanced'&&!['convoy','harbor','island','shipping','riverport','advanced-report'].includes(v.node))return fail();
+  if(v.chapter!=='advanced'&&L.LEVELS[v.node]&&L.LEVELS[v.node].chapter==='advanced')return fail();
   for(const[id,ms]of Object.entries(raw.designs)){
    if(!own(L.LEVELS,id)||!Array.isArray(ms)||ms.length>500)return fail();const lv=L.LEVELS[id],seen=new Set();
-   for(const m of ms){if(!m||!own(P.MATERIALS,m.m)||![m.a,m.b].every(p=>Array.isArray(p)&&p.length===2&&p.every(Number.isInteger)&&p[0]>=0&&p[0]<=lv.N&&p[1]>=lv.yMin&&p[1]<=lv.yMax)||P.lengthOf(m)<.01||P.lengthOf(m)>P.MATERIALS[m.m].maxLen+1e-6||m.m==='road'&&(m.a[1]!==0||m.b[1]!==0))return fail();const k=[m.a.join(','),m.b.join(',')].sort().join('|');if(seen.has(k))return fail();seen.add(k);}
+   for(const m of ms){if(!m||!own(P.MATERIALS,m.m)||![m.a,m.b].every(p=>Array.isArray(p)&&p.length===2&&p.every(Number.isInteger)&&p[0]>=0&&p[0]<=lv.N&&p[1]>=lv.yMin&&p[1]<=(lv.heights?Math.max(...lv.heights)+9:lv.yMax))||P.lengthOf(m)<.01||P.lengthOf(m)>P.MATERIALS[m.m].maxLen+1e-6||m.m==='road'&&(m.a[1]!==m.b[1]||!(lv.heights||[0]).includes(m.a[1])))return fail();const k=[m.a.join(','),m.b.join(',')].sort().join('|');if(seen.has(k))return fail();seen.add(k);}
    data.designs[id]=ms.map(m=>({a:m.a.slice(),b:m.b.slice(),m:m.m}));
   }
   return{ok:true,data};
@@ -76,11 +82,15 @@
     if(r.noteIndex!==undefined&&(!Number.isSafeInteger(r.noteIndex)||r.noteIndex<1||r.noteIndex>1e9))return{ok:false,error:'The notebook contains an invalid inquiry index.'};
     if(r.noteIndex!==undefined){const nk=r.levelId+':'+r.noteIndex;if(noteIds.has(nk))return{ok:false,error:'The notebook repeats an inquiry index.'};noteIds.add(nk);}
     const source=validateSave({version:1,started:true,world:p.data.world,designs:{[r.levelId]:r.design}}),c=r.condition;
-    if(!source.ok||!c||c.levelId!==r.levelId||!Array.isArray(c.anchors)||!c.anchors.every(a=>Array.isArray(a)&&a.length===2&&a.every(Number.isFinite))||!['span','mass','budget','sagLimit'].every(k=>Number.isFinite(c[k])&&c[k]>0)||!Array.isArray(c.materials)||!c.materials.every(m=>own(P.MATERIALS,m))||c.mode!=='prescribed-crossing'||c.model!=='XPBD-v1'||!Number.isInteger(r.id)||r.id<1||ids.has(r.id)||!Array.isArray(r.members)||r.members.length!==r.design.length||!['duration','crossingDuration','settle','cost'].every(k=>Number.isFinite(r[k])&&r[k]>=0)||typeof r.valid!=='boolean'||typeof r.pass!=='boolean'||typeof r.reason!=='string'||r.valid&&!['maxSagCm','peakRatio'].every(k=>Number.isFinite(r[k])&&r[k]>=0))return{ok:false,error:'The notebook contains invalid experiment data.'};
+    if(!source.ok||!c||c.levelId!==r.levelId||!Array.isArray(c.anchors)||!c.anchors.every(a=>Array.isArray(a)&&a.length===2&&a.every(Number.isFinite))||!['span','mass','budget','sagLimit'].every(k=>Number.isFinite(c[k])&&c[k]>0)||!Array.isArray(c.materials)||!c.materials.every(m=>own(P.MATERIALS,m))||c.mode!=='prescribed-crossing'||!['XPBD-v1','XPBD-fleet-nav-v1'].includes(c.model)||!Number.isInteger(r.id)||r.id<1||ids.has(r.id)||!Array.isArray(r.members)||r.members.length!==r.design.length||!['duration','crossingDuration','settle','cost'].every(k=>Number.isFinite(r[k])&&r[k]>=0)||typeof r.valid!=='boolean'||typeof r.pass!=='boolean'||typeof r.reason!=='string'||r.valid&&!['maxSagCm','peakRatio'].every(k=>Number.isFinite(r[k])&&r[k]>=0))return{ok:false,error:'The notebook contains invalid experiment data.'};
+    if(c.model==='XPBD-fleet-nav-v1'){
+     const lv=L.LEVELS[r.levelId];
+     if(lv.chapter!=='advanced'||!Number.isInteger(c.deckY)||!(lv.heights||[0]).includes(c.deckY)||!Array.isArray(c.traffic)||c.traffic.length<1||c.traffic.length>2||!c.traffic.every(v=>v&&Number.isFinite(v.mass)&&v.mass>0&&Number.isFinite(v.offset)&&v.offset>=0)||!Array.isArray(c.navigation)||c.navigation.length>2||!c.navigation.every(n=>n&&['x1','x2','requiredClearance'].every(k=>Number.isFinite(n[k]))&&n.x1>=0&&n.x1<n.x2&&n.x2<=c.span&&n.requiredClearance>0)||c.navigation.length&&!Number.isFinite(c.waterY)||!Array.isArray(c.island))return{ok:false,error:'The notebook contains invalid traffic or navigation conditions.'};
+    }
     ids.add(r.id);
     for(let i=0;i<r.members.length;i++){const m=r.members[i];if(!m||m.type!==r.design[i].m||!['len','peak','tension','compression'].every(k=>Number.isFinite(m[k])&&m[k]>=0)||Math.abs(m.len-P.lengthOf(r.design[i]))>1e-5||!['tension','compression'].includes(m.mode)||typeof m.broken!=='boolean')return{ok:false,error:'The notebook contains invalid member measurements.'};}
     if(r.firstBreak&&(!Number.isInteger(r.firstBreak.i)||r.firstBreak.i<0||r.firstBreak.i>=r.members.length||!Number.isFinite(r.firstBreak.t)))return{ok:false,error:'The notebook contains an invalid failure record.'};
-    r.designKey=designKey(r.design);r.condition=conditions({id:r.levelId,span:c.span,mass:c.mass,anchors:c.anchors,materials:c.materials,totalBudget:c.budget,sagLimit:c.sagLimit});r.conditionKey=JSON.stringify(r.condition);r.imported=true;r.prediction=String(r.prediction||'').slice(0,400);r.reason=r.reason.slice(0,2000);
+    r.designKey=designKey(r.design);r.condition=conditions({id:r.levelId,span:c.span,mass:c.mass,anchors:c.anchors,materials:c.materials,totalBudget:c.budget,sagLimit:c.sagLimit,...(c.model==='XPBD-fleet-nav-v1'?{chapter:'advanced',deckY:c.deckY,traffic:c.traffic,waterY:c.waterY,navigation:c.navigation,island:c.island}:{})});r.conditionKey=JSON.stringify(r.condition);r.imported=true;r.prediction=String(r.prediction||'').slice(0,400);r.reason=r.reason.slice(0,2000);
    }
    const drafts={};for(const[id,d]of Object.entries(l.drafts)){if(own(L.LEVELS,id)&&d&&typeof d==='object'){drafts[id]={};for(const key of ['prediction','claim','evidence','reasoning'])drafts[id][key]=String(d[key]||'').slice(0,key==='prediction'?400:600);}}l.drafts=drafts;
    return{ok:true,progress:p.data,notebook:l,inquiry:notes?notes.data:undefined};

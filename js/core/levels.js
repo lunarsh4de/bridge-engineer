@@ -197,6 +197,7 @@
   // Level config resolved against the world state.
   function resolveLevel(id, w) {
     const L = LEVELS[id];
+    if(L.resolve)return L.resolve(w);
     const out = { ...L, anchors: L.anchors.slice(), refs: (L.refs || []).slice() };
     if (id === "echo") out.materials = ["road", "timber", ...w.materials.filter((m) => m === "steel" || m === "cable")];
     if (id === "finale") {

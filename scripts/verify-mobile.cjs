@@ -11,7 +11,7 @@ fs.mkdirSync(out,{recursive:true});
  const check=n=>{report.checks.push(n);console.log('PASS '+n);};
  let page,context;
  const track=p=>{p.on('pageerror',e=>report.errors.push(e.message));p.on('console',m=>{if(m.type()==='error')report.errors.push(m.text());});if(!process.env.RIVERBEND_BASE_URL)p.on('request',r=>{if(/^https?:/.test(r.url()))report.externalRequests.push(r.url());});};
- async function fresh(size,reduce='no-preference'){const c=await browser.newContext({viewport:size,isMobile:true,hasTouch:true,reducedMotion:reduce});if(!process.env.RIVERBEND_BASE_URL)await c.setOffline(true);const p=await c.newPage();track(p);await p.goto(url,{waitUntil:'networkidle'});return[c,p];}
+ async function fresh(size,reduce='no-preference'){const c=await browser.newContext({locale:'en-US',viewport:size,isMobile:true,hasTouch:true,reducedMotion:reduce});if(!process.env.RIVERBEND_BASE_URL)await c.setOffline(true);const p=await c.newPage();track(p);await p.goto(url,{waitUntil:'networkidle'});return[c,p];}
  const shot=async n=>page.screenshot({path:path.join(out,n+'.png')});
  const close=async()=>{if(await page.locator('#modal').isVisible())await page.getByRole('button',{name:'Close',exact:true}).tap();};
  const count=()=>page.evaluate(()=>__GAME_STATE__.design.members.length);
