@@ -1,4 +1,4 @@
-# Riverbend: Bridge Engineer — Two chapters · 中文 / English · 1.4.0
+# Riverbend: Bridge Engineer — Two chapters · 中文 / English · 1.4.1
 
 Offline STEM bridge-building game for ages 11–14. Open `index.html` (or
 `site/index.html`) in a browser with WebGL 2. No server, install, build step,
@@ -12,6 +12,7 @@ fixed-step XPBD model. Chapter I retains its original structural cases and versi
 - Two independent chapters: select **I · Valley journey** or **II · River challenges** on the menu. Changing chapters preserves each journey and notebook.
 - Advanced navigation: choose +0 / +1 / +2 m deck height. Applying a different height rebuilds the road and clears supports, with an explicit label; old tests stay in the Notebook. Both trucks and every boat must finish. A blocked lane identifies the obstructing member.
 - Real bridge cases: all eleven level definitions include a local photo with attribution, an engineering connection and a clear model difference. See `docs/BRIDGE-CASES.md` and `assets/bridges/SOURCES.json` for licenses and sources.
+- First-chapter balance update: tighter per-crossing drop limits and budgets, with investigation prompts in both languages. See `docs/RELEASE-NOTES-v1.4.1_zh.md`.
 - Expansion specification, teaching flow and limitations: `docs/EXPANSION-v1.4_zh.md`.
 - Mobile: pictorial controls and mission cards, compact touch tools, an instruction strip outside the scene, and expandable explanations. First workshop entry gently turns once to reveal the 3D view; touch stops it immediately and reduced-motion settings disable it. See `docs/MOBILE-UPDATE_zh.md`.
 - First crossing: a real controls practice teaches orbit/front view, two-end construction, undo/redo, pause and force reading before the first scored crossing.
