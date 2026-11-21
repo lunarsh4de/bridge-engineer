@@ -359,7 +359,7 @@ This happened because the force path went through...|出现这个结果，是因
    result=v;
    if(/[A-Za-z]{3}/.test(result)&&!/^[-+\d\s.,%/×→↑★☆✓·:()mkgcns²]+$/i.test(result))seen.set(n,result);
   }
-  result=result.replace(/(\d+) brought\b/g,'携入$1点');
+  result=result.replace(/(\d+) brought forward\b/g,'前关携入$1点').replace(/(\d+) brought\b/g,'携入$1点');
   return source.match(/^\s*/)[0]+result+source.match(/\s*$/)[0];
  }
  let phraseList=[];
