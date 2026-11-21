@@ -1,0 +1,18 @@
+{
+  "version": "0.165.0",
+  "adaptation": "Classic script wrappers; source import/export boundaries only. MIT license included.",
+  "sources": {
+    "three.module.min.js": {
+      "url": "https://cdn.jsdelivr.net/npm/three@0.165.0/build/three.module.min.js",
+      "sha256": "1af5bef9a9fd79fcb73fcfd3e4dd2ac0cea8720205bc7607d67369ce194a87fa"
+    },
+    "OrbitControls.module.js": {
+      "url": "https://cdn.jsdelivr.net/npm/three@0.165.0/examples/jsm/controls/OrbitControls.js",
+      "sha256": "f260591ef315aa04888152e7f121865214e33fb54727145cf4e4445058db1297"
+    },
+    "LICENSE": {
+      "url": "https://cdn.jsdelivr.net/npm/three@0.165.0/LICENSE",
+      "sha256": "4c40a1ef62450b857c3b2aaf294936304cd552d965fbcd9d32d4c5bcf4ba4454"
+    }
+  }
+}

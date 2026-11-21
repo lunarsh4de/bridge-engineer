@@ -1,1543 +1,591 @@
-"use strict";
-(() => {
-  const $ = (id) => document.getElementById(id),
-    P = BridgePhysics,
-    M = BridgeModel,
-    L = BridgeLevels,
-    E = BridgeProgress,
-    C = BridgeContent,
-    renderer = new BridgeEngine($("scene")),
-    STORAGE = "bridge-engineer-workshop-v2",
-    ONBOARDING = "bridge-engineer-onboarding-v1";
-  const state = {
-    screen: "home",
-    prediction: "",
-    recorded: false,
-    level: L.levels[0],
-    index: 0,
-    editor: null,
-    material: "road",
-    tool: "build",
-    mode: "build",
-    world: null,
-    paused: false,
-    speed: 1,
-    grid: true,
-    forces: false,
-    seed: null,
-    preview: null,
-    pointer: { x: 440, y: 430 },
-    hoverNode: null,
-    hoverMember: null,
-    moving: null,
-    keyboard: false,
-    elapsed: 0,
-    reduced: matchMedia("(prefers-reduced-motion: reduce)").matches,
-    storageOK: true,
-    sandbox: false,
-    training: false,
-    tested: false,
-    tutorialStep: -1,
-    trainingTarget: null,
-    communityConnected: false,
-    hintStage: 0,
-    pendingBriefing: false,
+/* Riverbend: Bridge Engineer - orchestrator.
+ * State machine menu -> comic -> level/choice nodes -> report. Owns the fixed-step loop. */
+(function (root) {
+  "use strict";
+  const P = root.BridgePhysics, L = root.BridgeLevels, M = root.BridgeModel, Pr = root.BridgeProgress, Sc = root.BridgeScoring;
+  const Bus = root.BridgeBus, E = root.BridgeEvents, C = root.BridgeConstants, T = root.BridgeContent, R = root.BridgeScene;
+  const $ = (id) => document.getElementById(id);
+  const esc = T.esc, Lab = root.EngineeringLab, Notes=root.InquiryNotes;
+  let notebook = Lab.blank(), inquiry={}, storageVolatile = false;
+
+  // ---------- GameState ----------
+  const GS = {
+    screen: "menu", save: null, level: null, design: null, sim: null, mode: "edit",
+    tool: "road", forces: true, slowmo: 0, endHold: 0, accum: 0, lastSummary: null, hintStep: 0,
+    teaching:{block2:false,block3:false}, teachingNotice:null, savings:null, testNoteIndex:null, comicIndex: 0, coachStep: 0, firstBreakShown: false, practice: false, practiceStep: 0, practiceUndone: false, paused: false, observedSlack: new Set(), testDesign: null, lastRecord: null,
+    reset() { this.teaching={block2:false,block3:false};this.teachingNotice=null;this.savings=null;this.testNoteIndex=null; this.level = null; this.design = null; this.sim = null; this.mode = "edit"; this.slowmo = 0; this.endHold = 0; this.accum = 0; this.lastSummary = null; this.hintStep = 0; this.firstBreakShown = false; this.breakText = ""; this.seenEvents = 0; this.practice=false; this.practiceStep=0; this.practiceUndone=false; this.paused = false; this.inspectList = null; this.testDesign = null; this.lastRecord = null; this.observedSlack = new Set(); },
   };
-  let saved = E.empty(L.levels, L.sandbox),
-    down = null,
-    accumulator = 0,
-    lastTime = 0,
-    metricsAt = 0,
-    noteTimer = null,
-    modalFocus = null,
-    selectFrom = "home",
-    exploreAll = false,
-    storyDone = null,
-    transitionTimer = null;
-  try {
-    saved = E.normalize(
-      JSON.parse(localStorage.getItem(STORAGE)),
-      L.levels,
-      L.sandbox,
-    );
-  } catch {
-    state.storageOK = false;
-  }
-  const previewEditor = { design: L.starter(L.levels[0]) };
-  const tutorial = [
-    ["Choose Road.", "Select Road in the toolkit. Materials change what each member can do."],
-    ["Connect the banks.", "Drag between the two orange anchors, or tap one anchor and then the other."],
-    ["Choose Timber.", "Your guide adds a practice frame. Select Timber to finish its last connection."],
-    ["Complete the triangle.", "Connect the two glowing joints to finish this frame. We added the other supports for practice."],
-    ["Run a real test.", "Select Test crossing. The same physics used in every mission will run."],
-    ["Return to the drawing.", "Watch the result, then select Edit design. Tests never erase your editable bridge."],
-    ["Training complete.", "Now start with a clean campaign crossing and build your own solution."],
-  ];
-  function canBuild() {
-    return (
-      state.screen === "workshop" && state.mode === "build" && !$("modal").open
-    );
-  }
-  function showScreen(screen) {
-    state.screen = screen;
-    document.body.dataset.screen = screen;
-    for (const [id, visible] of [
-      ["main-menu", screen === "home"],
-      ["level-select", screen === "select"],
-      ["play-ui", screen === "workshop"],
-      ["workshop-nav", screen === "workshop"],
-      ["play-nav", screen === "workshop"],
-    ]) {
-      $(id).hidden = !visible;
-      $(id).inert = !visible;
+  const store = (() => { try { const s = root.localStorage; s.setItem("rb.t", "1"); s.removeItem("rb.t"); return s; } catch (e) { storageVolatile = true; const m = {}; return { getItem: (k) => m[k] || null, setItem: (k, v) => { m[k] = String(v); }, removeItem: (k) => { delete m[k]; } }; } })();
+  const world = () => GS.save.world;
+  function storageText() { return storageVolatile ? "Storage is unavailable or full. Work is kept for this session; export your notebook before closing." : "Progress and the optional Notebook save locally in this browser."; }
+  function saveBook() { if (!Lab.save(store, notebook, GS.save)) storageVolatile = true; if(!Notes.save(store,inquiry,Lab.progressStamp(GS.save)))storageVolatile=true; }
+  function persist() { if (GS.design && GS.level && !GS.practice) GS.save.designs[GS.level.id] = M.clone(GS.design.members); if (!Pr.save(store, GS.save)) storageVolatile = true; saveBook(); }
+  function download(name, text) { const a = document.createElement("a"), url = URL.createObjectURL(new Blob([text], {type:"application/json"})); a.href=url; a.download=name; a.click(); setTimeout(()=>URL.revokeObjectURL(url),1000); }
+  function resetWorkshop() { GS.reset(); R.setGuide([]); R.setSim(null); R.setInspect(null); R.setHighlight(-1); R.setTrace([]); Edu.reset(); }
+  function installSave(data, book, notes) { resetWorkshop(); GS.save=data; notebook=book||Lab.blank(); inquiry=Notes.migrate(notebook,notes||{}); persist(); closeModal(false); renderMenu(); toast("Progress loaded."); }
+
+  // ---------- screens ----------
+  function show(id) {
+    GS.screen = id;
+    document.querySelectorAll(".screen").forEach((s) => s.classList.toggle("active", s.id === id));
+    // Pause the renderer and fixed-step simulation outside the visible workshop.
+    const g = root.__GAME__;
+    if (g && g.loop) {
+      if (id === "build") { g.loop.wake(); R.refresh(); }
+      else g.loop.sleep();
     }
-    $("scene").tabIndex = screen === "workshop" ? 0 : -1;
-    $("final-report-screen").hidden = screen !== "report";
-    $("final-report-screen").inert = screen !== "report";
-    $("field-report").hidden = !saved.completed.some(Boolean);
-    cancelPlacement();
-    note("");
-    renderTutorial();
-    renderer.refreshViewport?.();
-    if (screen === "workshop" && state.pendingBriefing && !state.training) {
-      if (saved.visited && Number.isInteger(state.index)) {
-        saved.visited[state.index] = true;
-        save();
-      }
-      state.pendingBriefing = false;
-      queueMicrotask(() => showTask("NEW CROSSING"));
-    }
+    const focus = document.querySelector(`#${id} .btn.primary:not([hidden]):not(:disabled)`) || document.querySelector(`#${id} button:not([hidden]):not(:disabled)`);
+    focus && setTimeout(() => focus.focus({ preventScroll: true }), 30);
   }
-  function learning(level = state.level) {
-    if (typeof C.getLearning === "function") return C.getLearning(level) || {};
-    return level?.learning || {
-      delivery: level?.place ? `Reconnect ${level.place}.` : "Complete the delivery.",
-      goal: level?.constraint || "Build a continuous road between both banks.",
-      decision: level?.concept || "Choose a connected load path.",
-      newConstraint: level?.newMaterial || "Use the available materials.",
-      hints: [
-        { kind: "observe", text: level?.hint || "Look for gaps and unsupported road joints." },
-        { kind: "principle", text: level?.lesson || "Trace forces from the road to fixed supports." },
-      ],
-      consequence: `The route through ${level?.place || "Riverbend"} is open.`,
-    };
-  }
-  function pulse(label) {
-    clearTimeout(transitionTimer);
-    $("transition-label").textContent = label;
-    $("scene-transition").hidden = false;
-    transitionTimer = setTimeout(() => ($("scene-transition").hidden = true), 430);
-  }
-  function hasOnboarded() {
-    try {
-      return localStorage.getItem(ONBOARDING) === "complete";
-    } catch {
-      return false;
-    }
-  }
-  function markOnboarded() {
-    try {
-      localStorage.setItem(ONBOARDING, "complete");
-    } catch {}
-  }
-  function showStory(onDone) {
-    storyDone = onDone || null;
-    $("story").hidden = false;
-    $("story").inert = false;
-    $("story-continue").focus({ preventScroll: true });
-  }
-  function closeStory() {
-    $("story").hidden = true;
-    $("story").inert = true;
-    const done = storyDone;
-    storyDone = null;
-    done?.();
-  }
-  $("story-continue").onclick = closeStory;
-  $("story-skip").onclick = closeStory;
-  $("replay-story").onclick = () => showStory(() => $("start").focus());
-  $("story").querySelectorAll("img").forEach((img) => {
-    img.addEventListener("error", () => img.classList.add("broken-image"));
-  });
-  if (Array.isArray(C.storyPanels))
-    $("story")
-      .querySelectorAll("figcaption span")
-      .forEach((caption, i) => {
-        if (C.storyPanels[i]) caption.textContent = C.storyPanels[i];
-      });
-  if (L.sandbox?.truckMassOptions) {
-    $("sandbox-load").innerHTML = L.sandbox.truckMassOptions
-      .map(
-        (mass) =>
-          `<option value="${mass}">${mass.toLocaleString()} kg</option>`,
-      )
-      .join("");
-    $("sandbox-load").value = String(L.sandbox.truckMass);
-  }
-  function escapeHTML(s) {
-    return String(s).replace(
-      /[&<>"']/g,
-      (c) =>
-        ({
-          "&": "&amp;",
-          "<": "&lt;",
-          ">": "&gt;",
-          '"': "&quot;",
-          "'": "&#39;",
-        })[c],
-    );
-  }
-  function save(userEdit = false) {
-    if (state.training || state.level?.id === "training" || !state.editor)
-      return;
-    if (!state.sandbox) saved.level = state.index;
-    saved.designs[String(state.index)] = structuredClone(state.editor.design);
-    try {
-      localStorage.setItem(STORAGE, JSON.stringify(saved));
-      state.storageOK = true;
-    } catch {
-      state.storageOK = false;
-    }
-    if (userEdit) $("storage-status").hidden = state.storageOK;
-  }
-  function modal(title, body, eyebrow = "RIVERBEND WORKSHOP") {
-    if (!$("modal").open) modalFocus = document.activeElement;
-    cancelPlacement();
-    if (state.world) {
-      state.paused = true;
-      accumulator = 0;
-      controls();
-    }
-    $("modal-body").innerHTML =
-      `<div class="eyebrow">${eyebrow}</div><h2 class="modal-title" id="modal-title">${title}</h2>${body}`;
-    if (!$("modal").open) $("modal").showModal();
-  }
-  function closeModal() {
-    $("modal").close();
-  }
-  $("close-modal").onclick = closeModal;
-  $("modal").addEventListener("click", (e) => {
-    if (e.target !== $("modal")) return;
-    const r = $("modal").getBoundingClientRect();
-    if (
-      e.clientX < r.left ||
-      e.clientX > r.right ||
-      e.clientY < r.top ||
-      e.clientY > r.bottom
-    )
-      closeModal();
-  });
-  $("modal").addEventListener("close", () => {
-    lastTime = performance.now();
-    accumulator = 0;
-    if (modalFocus?.isConnected && !modalFocus.closest("[hidden]"))
-      modalFocus.focus({ preventScroll: true });
-  });
-  document.addEventListener("visibilitychange", () => {
-    lastTime = performance.now();
-    accumulator = 0;
-    cancelPlacement();
-    if (document.hidden && state.world) {
-      state.paused = true;
-      controls();
-    }
-  });
-  function note(message, error = false) {
-    clearTimeout(noteTimer);
-    $("instruction").textContent = message;
-    $("instruction").hidden = !message;
-    $("instruction").classList.toggle("error", error);
-    if (message)
-      noteTimer = setTimeout(
-        () => {
-          $("instruction").hidden = true;
-        },
-        error ? 6500 : 4200,
-      );
-  }
-  function renderTutorial() {
-    const active = state.tutorialStep >= 0;
-    const visible = active && state.screen === "workshop";
-    $("tutorial-coach").hidden = !visible;
-    document.body.classList.toggle("tutorial-active", visible);
-    if (active) document.body.dataset.tutorialStep = String(state.tutorialStep);
-    else delete document.body.dataset.tutorialStep;
-    if (!active) return;
-    const [title, copy] = tutorial[state.tutorialStep];
-    $("tutorial-title").textContent = title;
-    $("tutorial-copy").textContent = copy;
-    $("tutorial-progress").textContent =
-      state.tutorialStep === tutorial.length - 1
-        ? "DONE"
-        : `${state.tutorialStep + 1} / ${tutorial.length - 1}`;
-    $("tutorial-continue").hidden = state.tutorialStep !== tutorial.length - 1;
-    $("tutorial-skip").hidden = state.tutorialStep === tutorial.length - 1;
-  }
-  function tutorialStep(step) {
-    if (state.tutorialStep < 0 || step <= state.tutorialStep) return;
-    state.tutorialStep = Math.min(step, tutorial.length - 1);
-    renderTutorial();
-  }
-  function finishTraining() {
-    markOnboarded();
-    state.tutorialStep = -1;
-    state.training = false;
-    renderTutorial();
-    enter(saved.level);
-    showScreen("workshop");
-    pulse("Opening your first crossing...");
-    showTask("YOUR FIRST MISSION");
-  }
-  function beginTraining() {
-    const base = L.levels[0];
-    state.training = true;
-    state.communityConnected = false;
-    state.sandbox = false;
-    state.index = 0;
-    state.level = {
-      ...base,
-      id: "training",
-      name: "Training Yard",
-      place: "Training Yard",
-      truckMass: 300,
-      inventory: { road: 20, wood: 20, steel: 0, cable: 0 },
-    };
-    state.editor = new M.Editor(state.level, M.fresh(state.level));
-    state.material = "wood";
-    state.tool = "build";
-    state.mode = "build";
-    state.world = null;
-    state.paused = false;
-    state.speed = 1;
-    state.tested = false;
-    state.trainingTarget = null;
-    state.pointer = { x: state.level.left, y: state.level.deckY };
-    renderer.zoom = 1;
-    cancelPlacement();
-    hideFeedback();
-    showScreen("workshop");
-    $("mission-label").textContent = "Training Yard";
-    $("span-value").textContent =
-      (state.level.right - state.level.left) / 100 + " m";
-    $("load-value").textContent = state.level.truckMass.toLocaleString() + " kg";
-    $("sandbox-load-wrap").hidden = true;
-    $("result-reference").hidden = true;
-    $("result-compare").hidden = true;
-    state.tutorialStep = 0;
-    controls();
-    renderTutorial();
-    pulse("Setting up the training yard...");
-  }
-  $("tutorial-skip").onclick = finishTraining;
-  $("tutorial-continue").onclick = finishTraining;
-  function hideFeedback() {
-    $("feedback-panel").hidden = true;
-    $("simulation-panel").classList.remove("under-feedback");
-  }
-  function feedback(title, body, type = "observation") {
-    const box = $("feedback-panel");
-    box.hidden = false;
-    box.className = "feedback panel " + type;
-    $("feedback-title").textContent = title;
-    $("feedback-body").textContent = body;
-    $("feedback-label").textContent =
-      type === "success"
-        ? "CROSSING COMPLETE"
-        : type === "failure"
-          ? "A USEFUL FAILURE"
-          : "FIELD OBSERVATION";
-    $("next").hidden =
-      type !== "success" || state.sandbox || state.training;
-    $("next").textContent =
-      !state.sandbox && state.index === L.levels.length - 1
-        ? "Your field report →"
-        : "Next crossing →";
-    $("next").className = type === "success" ? "primary" : "small-button";
-    $("result-edit").className = type === "failure" ? "primary" : "small-button";
-    $("simulation-panel").classList.add("under-feedback");
-  }
-  function controls() {
-    const used = M.usage(state.editor.design),
-      running = state.mode !== "build";
-    $("materials").innerHTML = Object.entries(P.MATERIALS)
-      .filter(([key]) => state.level.inventory[key] > 0)
-      .map(([key, m]) => {
-        const i = Object.keys(P.MATERIALS).indexOf(key);
-        const available = state.level.inventory[key] > 0;
-        return `<button class="material ${state.material === key && state.tool === "build" ? "selected" : ""} ${available ? "" : "locked"}" data-material="${key}" draggable="${available && !running}" aria-pressed="${state.material === key && state.tool === "build"}" aria-label="${m.name}: ${available ? (state.level.inventory[key] - used[key]).toFixed(1) + " metres left" : "unlocks in mission 3"}" title="${escapeHTML(m.description)}. Maximum member length ${m.maxLength} m." ${!available || running ? "disabled" : ""}><span class="material-top"><span class="material-icon ${key}"></span><span class="material-key">${i + 1}</span></span><span class="material-name">${m.name}</span><span class="material-amount">${available ? Math.max(0, state.level.inventory[key] - used[key]).toFixed(1) + " / " + state.level.inventory[key] + " m" : "Mission 03"}</span></button>`;
-      })
-      .join("");
-    for (const id of ["move", "erase", "clear"]) $(id).disabled = running;
-    for (const id of ["move", "erase"]) {
-      $(id).classList.toggle("active", state.tool === id && !running);
-      $(id).setAttribute("aria-pressed", String(state.tool === id && !running));
-    }
-    $("undo").disabled = running || !state.editor.undoStack.length;
-    $("redo").disabled = running || !state.editor.redoStack.length;
-    $("test").disabled = running;
-    $("notebook").disabled = state.training;
-    $("gravity").textContent = running ? "Edit design" : "Self-weight";
-    $("simulation-panel").hidden = !running;
-    $("mode-text").textContent = running
-      ? state.paused
-        ? "EXPERIMENT PAUSED"
-        : state.mode === "gravity"
-          ? "GRAVITY LAB"
-          : "CROSSING TEST"
-      : "BUILD MODE";
-    $("pause").disabled = !!state.world && state.world.status !== "running";
-    $("pause").textContent = state.paused ? "Resume" : "Pause";
-    $("speed").textContent = "Speed " + state.speed + "×";
-    $("scene").style.cursor = running
-      ? "default"
-      : state.tool === "move"
-        ? "grab"
-        : state.tool === "erase"
-          ? "not-allowed"
-          : "crosshair";
-  }
-  function cancelPlacement() {
-    state.seed = null;
-    state.preview = null;
-    state.moving = null;
-    down = null;
-    $("cancel-placement").hidden = true;
-  }
-  function enter(index) {
-    state.training = false;
-    state.sandbox = false;
-    state.tutorialStep = -1;
-    state.trainingTarget = null;
-    state.index = index;
-    const firstVisit = saved.visited?.[index] !== true;
-    state.pendingBriefing = firstVisit;
-    state.hintStage = 0;
-    state.prediction = "";
-    state.recorded = false;
-    state.tested = (saved.records[index] || []).length > 0;
-    state.level = L.levels[index];
-    state.communityConnected = saved.completed[index] === true;
-    state.editor = new M.Editor(state.level, saved.designs[index]);
-    state.material = "road";
-    state.tool = "build";
-    state.mode = "build";
-    state.world = null;
-    state.paused = false;
-    state.speed = 1;
-    state.pointer = { x: state.level.left, y: state.level.deckY };
-    state.hoverNode = null;
-    state.hoverMember = null;
-    renderer.zoom = 1;
-    cancelPlacement();
-    hideFeedback();
-    $("mission-label").textContent = `${String(index + 1).padStart(2, "0")} / ${state.level.place}`;
-    $("span-value").textContent =
-      (state.level.right - state.level.left) / 100 + " m";
-    $("load-value").textContent =
-      state.level.truckMass.toLocaleString() + " kg";
-    $("result-reward").hidden = true;
-    $("result-reference").hidden = !state.tested;
-    $("result-compare").hidden = false;
-    $("sandbox-load-wrap").hidden = true;
-    $("storage-status").hidden = true;
-    $("objective-text").textContent = learning(state.level).goal || "Connect both banks with a usable road.";
-    $("mission-objective").classList.toggle("delivered", saved.completed[index]);
-    if (saved.completed[index]) $("objective-text").textContent = `Route open: ${learning(state.level).consequence || "delivery completed"}`;
-    controls();
-    note("");
-    renderTutorial();
-    save();
-  }
-  function enterSandbox() {
-    if (!L.sandbox) return;
-    state.training = false;
-    state.sandbox = true;
-    state.communityConnected = false;
-    state.tutorialStep = -1;
-    state.trainingTarget = null;
-    state.index = "sandbox";
-    state.pendingBriefing = false;
-    state.hintStage = 0;
-    state.prediction = "";
-    state.recorded = false;
-    state.tested = (saved.records.sandbox || []).length > 0;
-    const load = Number($("sandbox-load").value) || L.sandbox.truckMass;
-    state.level = { ...L.sandbox, truckMass: load };
-    state.editor = new M.Editor(state.level, saved.designs.sandbox);
-    state.material = "road";
-    state.tool = "build";
-    state.mode = "build";
-    state.world = null;
-    state.paused = false;
-    state.speed = 1;
-    state.pointer = { x: state.level.left, y: state.level.deckY };
-    renderer.zoom = 1;
-    cancelPlacement();
-    hideFeedback();
-    $("mission-label").textContent = "Sandbox / Free build";
-    $("span-value").textContent =
-      (state.level.right - state.level.left) / 100 + " m";
-    $("load-value").textContent = load.toLocaleString() + " kg";
-    $("result-reward").hidden = true;
-    $("result-reference").hidden = true;
-    $("result-compare").hidden = false;
-    $("sandbox-load-wrap").hidden = false;
-    $("sandbox-load").value = String(load);
-    $("storage-status").hidden = true;
-    $("objective-text").textContent = "Build freely, choose a load, and compare your tests.";
-    controls();
-    note("");
-    renderTutorial();
-    save();
-  }
-  $("sandbox-load").onchange = () => {
-    if (!state.sandbox || state.mode !== "build") return;
-    save();
-    const design = structuredClone(state.editor.design);
-    const load = Number($("sandbox-load").value);
-    state.level = { ...L.sandbox, truckMass: load };
-    state.editor = new M.Editor(state.level, design);
-    $("load-value").textContent = load.toLocaleString() + " kg";
-    controls();
-    note(`Test load set to ${load.toLocaleString()} kg. Your design is unchanged.`);
-  };
-  function afterEdit(problem) {
-    cancelPlacement();
-    if (problem) {
-      renderer.effect("reject");
-      note(problem, true);
-      controls();
-      return false;
-    }
-    hideFeedback();
-    state.prediction = "";
-    save(true);
-    controls();
-    renderer.effect("place");
-    note("");
-    if (state.training) {
-      if (state.tutorialStep === 1 && trainingRoadComplete()) {
-        prepareTrainingFrame();
-        tutorialStep(2);
-      }
-      if (state.tutorialStep === 3) {
-        if (trainingMemberComplete()) tutorialStep(4);
-        else note("Connect the two highlighted joints to complete the triangle.", true);
-      }
-    }
-    return true;
-  }
-  function connectedByMaterial(material, from, to) {
-    const adjacency = new Map();
-    for (const edge of state.editor.design.members) {
-      if (edge.material !== material) continue;
-      if (!adjacency.has(edge.a)) adjacency.set(edge.a, []);
-      if (!adjacency.has(edge.b)) adjacency.set(edge.b, []);
-      adjacency.get(edge.a).push(edge.b);
-      adjacency.get(edge.b).push(edge.a);
-    }
-    const seen = new Set([from]), queue = [from];
-    while (queue.length) {
-      const id = queue.shift();
-      if (id === to) return true;
-      for (const next of adjacency.get(id) || [])
-        if (!seen.has(next)) {
-          seen.add(next);
-          queue.push(next);
-        }
-    }
-    return false;
-  }
-  function trainingRoadComplete() {
-    return connectedByMaterial("road", "left", "right");
-  }
-  function prepareTrainingFrame() {
-    const reference = L.starter(state.level),
-      points = new Map(reference.nodes.map((n) => [n.id, n]));
-    const missing = [...reference.members].reverse().find((edge) => {
-      const a = points.get(edge.a), b = points.get(edge.b);
-      return edge.material === "wood" && a && b && a.y !== b.y;
-    });
-    if (!missing) return;
-    state.trainingTarget = {
-      a: { x: points.get(missing.a).x, y: points.get(missing.a).y },
-      b: { x: points.get(missing.b).x, y: points.get(missing.b).y },
-    };
-    reference.members = reference.members.filter((edge) => edge.id !== missing.id);
-    state.editor.commit(reference);
-    controls();
-    renderer.effect("place", state.trainingTarget.a);
-  }
-  function trainingMemberComplete() {
-    const target = state.trainingTarget;
-    if (!target) return false;
-    const points = new Map(state.editor.design.nodes.map((n) => [n.id, n]));
-    return state.editor.design.members.some((edge) => {
-      if (edge.material !== "wood") return false;
-      const a = points.get(edge.a), b = points.get(edge.b);
-      const near = (p, q) => Math.hypot(p.x - q.x, p.y - q.y) < 2;
-      return (near(a, target.a) && near(b, target.b)) ||
-        (near(a, target.b) && near(b, target.a));
-    });
-  }
-  function chooseMaterial(key) {
-    if (!canBuild() || !state.level.inventory[key]) return;
-    state.material = key;
-    state.tool = "build";
-    cancelPlacement();
-    controls();
-    note("");
-    if (state.training && key === "road" && state.tutorialStep === 0)
-      tutorialStep(1);
-    if (state.training && key === "wood" && state.tutorialStep === 2)
-      tutorialStep(3);
-  }
-  $("materials").onclick = (e) => {
-    const b = e.target.closest("[data-material]");
-    if (b && !b.disabled) chooseMaterial(b.dataset.material);
-  };
-  $("materials").addEventListener("dragstart", (e) => {
-    const b = e.target.closest("[data-material]");
-    if (!b || b.disabled) {
-      e.preventDefault();
-      return;
-    }
-    chooseMaterial(b.dataset.material);
-    e.dataTransfer.setData("text/plain", b.dataset.material);
-    e.dataTransfer.effectAllowed = "copy";
-    note(
-      "Drop a member anywhere in the build area. Move its joints to reshape it.",
-    );
-  });
-  $("scene").addEventListener("dragover", (e) => {
-    if (canBuild()) {
-      e.preventDefault();
-      e.dataTransfer.dropEffect = "copy";
-    }
-  });
-  $("scene").addEventListener("drop", (e) => {
-    e.preventDefault();
-    if (!canBuild()) return;
-    const material = e.dataTransfer.getData("text/plain");
-    if (!P.MATERIALS[material] || !state.level.inventory[material]) return;
-    const p = snap(renderer.toWorld(e.clientX, e.clientY));
-    state.material = material;
-    afterEdit(
-      state.editor.add(
-        { x: p.x - 75, y: p.y },
-        { x: p.x + 75, y: p.y },
-        material,
-      ),
-    );
-  });
-  function hitNode(p) {
-    let best = null,
-      dist = Math.max(18, 18 / renderer.view.scale);
-    for (const n of state.editor.design.nodes) {
-      const d = Math.hypot(n.x - p.x, n.y - p.y);
-      if (d < dist) {
-        best = n;
-        dist = d;
-      }
-    }
-    return best;
-  }
-  function snap(p) {
-    const n = hitNode(p);
-    return n
-      ? { x: n.x, y: n.y }
-      : {
-          x: state.level.left + Math.round((p.x - state.level.left) / 25) * 25,
-          y:
-            state.level.deckY + Math.round((p.y - state.level.deckY) / 25) * 25,
-        };
-  }
-  function segmentDistance(p, a, b) {
-    const dx = b.x - a.x,
-      dy = b.y - a.y,
-      L = dx * dx + dy * dy,
-      t = L
-        ? Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.y - a.y) * dy) / L))
-        : 0;
-    return Math.hypot(p.x - a.x - t * dx, p.y - a.y - t * dy);
-  }
-  function hitMember(p) {
-    return state.editor.design.members
-      .slice()
-      .reverse()
-      .find((e) => {
-        const a = state.editor.design.nodes.find((n) => n.id === e.a),
-          b = state.editor.design.nodes.find((n) => n.id === e.b);
-        return segmentDistance(p, a, b) < Math.max(9, 5 / renderer.view.scale);
-      });
-  }
-  function addMember(a, b) {
-    if (Math.hypot(a.x - b.x, a.y - b.y) < 24) {
-      afterEdit("Drag farther, or click a second position.");
-      return;
-    }
-    // A long road gesture becomes joined deck sections in one undoable operation.
-    if (state.material === "road" && Math.hypot(a.x - b.x, a.y - b.y) > 210) {
-      const count = Math.ceil(Math.hypot(a.x - b.x, a.y - b.y) / 200),
-        draft = new M.Editor(state.level, state.editor.design);
-      for (let i = 0; i < count; i++) {
-        const p = {
-            x: a.x + ((b.x - a.x) * i) / count,
-            y: a.y + ((b.y - a.y) * i) / count,
-          },
-          q = {
-            x: a.x + ((b.x - a.x) * (i + 1)) / count,
-            y: a.y + ((b.y - a.y) * (i + 1)) / count,
-          };
-        const problem = draft.add(p, q, "road");
-        if (problem) {
-          afterEdit(problem);
-          return;
-        }
-      }
-      afterEdit(state.editor.commit(draft.design));
-    } else afterEdit(state.editor.add(a, b, state.material));
-  }
-  function inspectMember(e) {
-    const p = renderer.toWorld(e.clientX, e.clientY),
-      w = state.world;
-    const member = w?.members.find((edge) => {
-      const a = w.byId.get(edge.a),
-        b = w.byId.get(edge.b);
-      return (
-        segmentDistance(
-          p,
-          { x: a.x * 100, y: a.y * 100 },
-          { x: b.x * 100, y: b.y * 100 },
-        ) < Math.max(10, 7 / renderer.view.scale)
-      );
-    });
-    if (member) {
-      state.hoverMember = member.id;
-      note(
-        `${P.MATERIALS[member.material].name} · ${member.length.toFixed(2)} m · ${member.broken ? "broken" : Math.abs(member.force) < 10 ? (member.material === "cable" ? "slack · tension only" : "nearly unloaded") : (Math.abs(member.force) / 1000).toFixed(1) + " kN " + (member.force > 0 ? "tension" : "compression")}`,
-      );
-    } else state.hoverMember = null;
-  }
-  const canvas = $("scene");
-  renderer.onPointer("pointerdown", (e) => {
-    if (
-      state.screen === "workshop" &&
-      state.mode !== "build" &&
-      !$("modal").open
-    ) {
-      inspectMember(e);
-      return;
-    }
-    if (e.button !== 0 || !canBuild() || down) return;
-    e.preventDefault();
-    canvas.focus({ preventScroll: true });
-    state.keyboard = false;
-    const raw = renderer.toWorld(e.clientX, e.clientY),
-      p = snap(raw);
-    down = {
-      x: e.clientX,
-      y: e.clientY,
-      start: state.seed || p,
-      raw,
-      pointerId: e.pointerId,
-    };
-    $("cancel-placement").hidden = false;
-    state.pointer = p;
-    if (state.tool === "move") {
-      const n = hitNode(raw);
-      if (n && !n.fixed) {
-        state.moving = { id: n.id, start: { x: n.x, y: n.y } };
-        canvas.style.cursor = "grabbing";
-      } else
-        note(
-          "Drag a free joint to move it. The orange bank anchors stay fixed.",
-        );
-    }
-  });
-  renderer.onPointer("pointermove", (e) => {
-    if (
-      state.screen !== "workshop" ||
-      $("modal").open ||
-      (down && down.pointerId !== e.pointerId)
-    )
-      return;
-    if (state.mode !== "build") {
-      inspectMember(e);
-      return;
-    }
-    const raw = renderer.toWorld(e.clientX, e.clientY);
-    state.pointer = snap(raw);
-    state.hoverNode = hitNode(raw)?.id || null;
-    state.hoverMember = hitMember(raw)?.id || null;
-    if (state.moving) {
-      state.pointer = {
-        x: state.level.left + Math.round((raw.x - state.level.left) / 25) * 25,
-        y:
-          state.level.deckY + Math.round((raw.y - state.level.deckY) / 25) * 25,
-      };
-    } else if (state.tool === "build" && (state.seed || down))
-      state.preview = { start: state.seed || down.start, end: state.pointer };
-  });
-  renderer.onPointer("pointerup", (e) => {
-    if (!down || !canBuild() || down.pointerId !== e.pointerId) return;
-    const bounds = canvas.getBoundingClientRect();
-    if (
-      e.clientX < bounds.left ||
-      e.clientX > bounds.right ||
-      e.clientY < bounds.top ||
-      e.clientY > bounds.bottom
-    ) {
-      cancelPlacement();
-      note("Placement cancelled.");
-      return;
-    }
-    const raw = renderer.toWorld(e.clientX, e.clientY),
-      p = snap(raw),
-      moved = Math.hypot(e.clientX - down.x, e.clientY - down.y) > 7;
-    const start = down.start;
-    down = null;
-    if (state.tool === "erase") {
-      const beam = hitMember(raw);
-      if (beam) afterEdit(state.editor.remove(beam.id));
-      else note("Click a member to return its material.");
-      return;
-    }
-    if (state.tool === "move") {
-      if (state.moving) {
-        const id = state.moving.id,
-          target = state.pointer;
-        state.moving = null;
-        afterEdit(state.editor.move(id, target));
-      }
-      return;
-    }
-    if (moved || state.seed) {
-      addMember(start, p);
-    } else {
-      state.seed = p;
-      state.preview = { start: p, end: p };
-      note(
-        "Choose a second position, or drag from this point. Escape cancels.",
-      );
-    }
-  });
-  renderer.onPointer("pointercancel", () => {
-    if (!down && !state.seed && !state.moving) return;
-    cancelPlacement();
-    canvas.style.cursor = state.tool === "move" ? "grab" : "crosshair";
-  });
-  $("cancel-placement").onclick = () => {
-    cancelPlacement();
-    note("Placement cancelled.");
-  };
-  canvas.addEventListener("pointercancel", () => {
-    cancelPlacement();
-    controls();
-  });
-  // Phaser handles touchend after native implicit pointer capture is released.
-  // Cancelling on lostpointercapture would discard every ordinary touch tap.
-  // Actual cancellation is handled by pointercancel / pointerupoutside above.
-  canvas.addEventListener("contextmenu", (e) => {
-    e.preventDefault();
-    if (!canBuild()) return;
-    cancelPlacement();
-    const beam = hitMember(renderer.toWorld(e.clientX, e.clientY));
-    if (beam) afterEdit(state.editor.remove(beam.id));
-  });
-  for (const id of ["move", "erase"])
-    $(id).onclick = () => {
-      if (!canBuild()) return;
-      state.tool = state.tool === id ? "build" : id;
-      cancelPlacement();
-      controls();
-      note(
-        id === "move"
-          ? "Drag any free joint. Attached members move with it."
-          : "Click a member to remove it and reuse its material.",
-      );
-    };
-  $("undo").onclick = () => {
-    if (canBuild() && state.editor.undo()) afterEdit(null);
-  };
-  $("redo").onclick = () => {
-    if (canBuild() && state.editor.redo()) afterEdit(null);
-  };
-  function clearDesign() {
-    modal(
-      "Restart this bridge?",
-      '<p>Return every placed member to the toolkit. Restart is one undoable edit, and completed missions stay recorded.</p><div class="notebook-actions"><button class="small-button" id="keep-design">Keep building</button><button class="primary" id="confirm-clear">Restart bridge</button></div>',
-    );
-    $("keep-design").onclick = closeModal;
-    $("confirm-clear").onclick = () => {
-      closeModal();
-      afterEdit(state.editor.commit(M.fresh(state.level)));
-    };
-  }
-  $("clear").onclick = clearDesign;
-  function loadStarter() {
-    if (!state.tested) {
-      note("Run one of your own tests before opening the reference design.", true);
-      return;
-    }
-    const apply = () => {
-      closeModal();
-      afterEdit(state.editor.commit(L.starter(state.level)));
-      note(
-        "Reference loaded as one reversible edit. It is one possible design, not an optimal answer.",
-      );
-    };
-    if (state.editor.design.members.length) {
-      modal(
-        "Inspect one possible design?",
-        `<p>The reference replaces this design as one reversible edit. Undo restores your work. It is one example to test, never a claim of an optimal bridge.</p>${C.debrief ? C.debrief(state.level) : ""}<button id="confirm-starter" class="primary">Load reference design</button>`,
-      );
-      $("confirm-starter").onclick = () => {
-        apply();
-      };
-    } else apply();
-  }
-  function startExperiment(vehicle) {
-    if (!canBuild()) return;
-    if (state.training && (!vehicle || state.tutorialStep !== 4)) {
-      note("Complete the highlighted training step before testing.", true);
-      return;
-    }
-    if (!state.editor.design.members.length) {
-      note("Place a road or member first.", true);
-      return;
-    }
-    cancelPlacement();
-    hideFeedback();
-    renderer.effect("start");
-    state.mode = vehicle ? "crossing" : "gravity";
-    state.world = new P.World(state.editor.design, state.level, { vehicle });
-    state.recorded = false;
-    $("result-reward").hidden = true;
-    state.paused = false;
-    state.speed = 1;
-    accumulator = 0;
-    lastTime = performance.now();
-    controls();
-    note(
-      vehicle
-        ? "The bridge settles under its own weight before the delivery starts."
-        : "Gravity is on. Unanchored members fall; connected members transfer their weight.",
-    );
-    if (vehicle && !state.world.route)
-      note(
-        "The road is not connected yet. Watch what happens at the gap, then return to build.",
-      );
-    if (state.training && vehicle && state.tutorialStep === 4) tutorialStep(5);
-  }
-  function edit() {
-    if (
-      state.training &&
-      state.tutorialStep === 5 &&
-      state.world?.status === "running"
-    ) {
-      note("Let the training test finish so you can observe its result.", true);
-      return;
-    }
-    state.mode = "build";
-    state.world = null;
-    state.paused = false;
-    accumulator = 0;
-    cancelPlacement();
-    hideFeedback();
-    controls();
-    note(
-      "Back to your saved design. Adjust the structure and run the same experiment again.",
-    );
-    if (state.training && state.tutorialStep === 5) tutorialStep(6);
-  }
-  $("gravity").onclick = () =>
-    state.mode === "build" ? startExperiment(false) : edit();
-  $("test").onclick = () => startExperiment(true);
-  $("back-build").onclick = edit;
-  $("result-edit").onclick = edit;
-  $("result-reference").onclick = () => {
-    edit();
-    loadStarter();
-  };
-  $("dismiss-feedback").onclick = hideFeedback;
-  $("pause").onclick = () => {
-    if (!state.world || state.world.status !== "running") return;
-    state.paused = !state.paused;
-    controls();
-  };
-  $("speed").onclick = () => {
-    state.speed = state.speed === 1 ? 0.5 : state.speed === 0.5 ? 2 : 1;
-    controls();
-  };
-  $("grid").onclick = () => {
-    state.grid = !state.grid;
-    $("grid").classList.toggle("active", state.grid);
-    $("grid").setAttribute("aria-pressed", String(state.grid));
-  };
-  $("stress").onclick = () => {
-    state.forces = !state.forces;
-    $("stress").classList.toggle("active", state.forces);
-    $("stress").setAttribute("aria-pressed", String(state.forces));
-  };
-  $("zoom-in").onclick = () =>
-    (renderer.zoom = Math.min(1.5, renderer.zoom + 0.1));
-  $("zoom-out").onclick = () =>
-    (renderer.zoom = Math.max(0.65, renderer.zoom - 0.1));
-  function captureEvidence(reason) {
-    if (state.recorded) return;
-    state.tested = true;
-    $("result-reference").hidden = state.sandbox || state.training;
-    if (state.training) {
-      state.recorded = true;
-      return;
-    }
-    const result = E.record(
-      saved,
-      state.index,
-      state.level,
-      state.editor.design,
-      state.world,
-      state.mode,
-      state.prediction,
-      reason,
-    );
-    state.recorded = true;
-    $("result-reward").hidden = !result.saver;
-    $("result-reward").textContent = result.saver
-      ? "Material saver · a lower-cost successful design"
-      : "";
-    save(true);
-  }
-  function experimentResult() {
-    const w = state.world;
-    let reason;
-    state.tested = true;
-    $("result-reference").hidden = state.sandbox || state.training;
-    if (w.status === "passed") {
-      renderer.effect("success");
-      if (!state.sandbox && !state.training) {
-        saved.completed[state.index] = true;
-        if (saved.delivered) saved.delivered[state.index] = true;
-        state.communityConnected = true;
-      }
-      reason = `Maximum deck drop: ${(w.maxSag * 100).toFixed(1)} cm. No member failed.`;
-      if (!state.training && !state.sandbox && C.transition) {
-        const next = L.levels[state.index + 1] || null;
-        reason += " " + C.transition(state.level, next).replace(/<[^>]+>/g, "");
-      }
-      const consequence = learning(state.level).consequence;
-      if (consequence) reason += " " + consequence;
-      feedback(learning(state.level).success?.title || "Crossing complete.", reason, "success");
-    } else {
-      const failureGuide = learning(state.level).failure;
-      reason = w.events.includes(
-        "The simulation could not resolve this design.",
-      )
-        ? "The simulation could not resolve this design. Your editable bridge is safe; this is not a learning assessment."
-        : w.firstBreak
-          ? `${P.MATERIALS[w.firstBreak.material].name} failed in ${w.firstBreak.force > 0 ? "tension" : "compression"} at ${w.firstBreak.time.toFixed(1)} s. Inspect the highlighted member and its load path.`
-          : !w.route
-            ? "Road endpoints do not form a continuous route between the banks. Find the gap, then edit your design."
-            : `Maximum deck drop: ${(w.maxSag * 100).toFixed(1)} cm. ${failureGuide?.next || "Compare a different support arrangement."}`;
-      if (failureGuide?.body) reason += " " + failureGuide.body;
-      feedback(failureGuide?.title || "A clue for your next design.", reason, "failure");
-      if (w.firstBreak) state.hoverMember = w.firstBreak.id;
-    }
-    if (!w.events.includes("The simulation could not resolve this design."))
-      captureEvidence(reason);
-    state.paused = true;
-    controls();
-    note("");
+  let toastTimer = 0;
+  function toast(msg, kind) {
+    const t = $("toast"); t.textContent = msg; t.className = "toast show " + (kind || "");
+    clearTimeout(toastTimer); toastTimer = setTimeout(() => (t.className = "toast"), C.TOAST_MS);
   }
 
-  function designSketch(design, level, className = "record-design") {
-    const points = new Map(design.nodes.map((n) => [n.id, n]));
-    const colors = {
-      road: "#344f45",
-      wood: "#b07843",
-      steel: "#557f87",
-      cable: "#687e70",
-    };
-    const lines = design.members
-      .map((e) => {
-        const a = points.get(e.a),
-          b = points.get(e.b);
-        return `<line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" stroke="${colors[e.material]}" stroke-width="${e.material === "cable" ? 5 : 10}" />`;
-      })
-      .join("");
-    const piers = (level.piers || [])
-      .map(
-        (pier) =>
-          `<path d="M${pier.x - 18} ${pier.y + 8}H${pier.x + 18}L${pier.x + 24} 650H${pier.x - 24}Z" fill="#668174"/><rect x="${pier.x - 27}" y="${pier.y}" width="54" height="13" rx="3" fill="#81978a"/>`,
-      )
-      .join("");
-    return `<svg class="${className}" viewBox="${level.left - 80} 200 ${level.right - level.left + 160} 460" role="img" aria-label="Bridge design diagram"><path d="M${level.left - 80} 440H${level.left}V650H${level.left - 80}M${level.right + 80} 440H${level.right}V650H${level.right + 80}" fill="#719482"/>${piers}${lines}<circle cx="${level.left}" cy="430" r="10" fill="#edb578"/><circle cx="${level.right}" cy="430" r="10" fill="#edb578"/></svg>`;
+  // ---------- menu ----------
+  function renderMenu() {
+    const w = world(), started = GS.save.started && w.node !== "prologue";
+    $("btn-continue").hidden = !started;
+    $("btn-select").hidden = !started;
+    $("btn-new").textContent = started ? "Start over" : "New journey";
+    $("btn-new").classList.toggle("primary", !started);
+    const done = Object.keys(w.results).filter(id => id !== "tabletop").length, stars = Object.values(w.results).reduce((a, r) => a + (r.stars || 0), 0);
+    $("menu-progress").textContent = started ? `${done} of ${Object.keys(L.LEVELS).length - 1} crossings built · ${stars} stars · ${w.reserve} credits saved` : "";
+    $("menu-storage").textContent = storageText();
+    show("menu");
   }
-  function showMissions() {
-    if (state.screen !== "select") selectFrom = state.screen;
-    if (state.world) {
-      state.paused = true;
-      accumulator = 0;
-    }
-    save();
-    const campaignCards = L.levels
-      .map((level, i) => {
-        const locked = i > 0 && !saved.completed[i - 1] && !saved.completed[i];
-        return `<button class="level-card ${locked && !exploreAll ? "locked" : ""}" data-mission="${i}">${designSketch(L.starter(level), level, "card-sketch")}<span class="card-body"><span class="card-number"><span>${String(i + 1).padStart(2, "0")}</span><span>${saved.completed[i] ? "COMPLETE" : locked && !exploreAll ? "LOCKED" : exploreAll && locked ? "EXPLORE" : "READY"}</span></span><strong>${level.place}</strong><small>${(level.right - level.left) / 100} m · ${level.truckMass.toLocaleString()} kg</small><small>${level.newMaterial}</small><span class="card-action">${locked && !exploreAll ? "Preview crossing" : "Build here →"}</span></span></button>`;
-      })
-      .join("");
-    const sandboxCard = L.sandbox
-      ? `<button class="level-card sandbox-card" data-sandbox="true">${designSketch(L.starter(L.sandbox), L.sandbox, "card-sketch")}<span class="card-body"><span class="card-number"><span>FREE BUILD</span><span>ALWAYS OPEN</span></span><strong>${L.sandbox.place || "Riverbend Lab"}</strong><small>Adjustable load · generous material supply</small><small>Does not affect campaign completion</small><span class="card-action">Open sandbox →</span></span></button>`
-      : "";
-    $("level-cards").innerHTML = campaignCards + sandboxCard;
-    $("route-progress").innerHTML = `<span class="eyebrow">RIVERBEND ROUTE</span><div class="route-stops">${L.levels.map((level, i) => { const status = saved.completed[i] ? "delivered" : i === 0 || saved.completed[i - 1] ? "ready" : "locked"; return `<span class="route-stop ${status} ${saved.level === i ? "current" : ""}" aria-label="${escapeHTML(level.place)}: ${status}"><b>${i + 1}</b><small>${escapeHTML(level.place)}</small><em>${status}</em></span>`; }).join("")}</div>`;
-    $("explore-toggle").setAttribute("aria-pressed", String(exploreAll));
-    $("explore-toggle").textContent = exploreAll
-      ? "Return to campaign order"
-      : "Explore all levels";
-    showScreen("select");
-    $("level-cards")
-      .querySelectorAll("[data-mission]")
-      .forEach(
-        (button) =>
-          (button.onclick = () => {
-            const i = Number(button.dataset.mission);
-            if (
-              i &&
-              !saved.completed[i - 1] &&
-              !saved.completed[i] &&
-              !exploreAll
-            ) {
-              modal(
-                L.levels[i].name,
-                `${C.task(L.levels[i])}<p>Complete crossing ${i} first, or choose Explore all levels on the selection screen for independent practice.</p>`,
-                "CROSSING PREVIEW",
-              );
-            } else {
-              enter(i);
-              showScreen("workshop");
-              $("scene").focus({ preventScroll: true });
-            }
-          }),
-      );
-    const sandboxButton = $("level-cards").querySelector("[data-sandbox]");
-    if (sandboxButton)
-      sandboxButton.onclick = () => {
-        enterSandbox();
-        showScreen("workshop");
-        pulse("Opening free build...");
-        $("scene").focus({ preventScroll: true });
-      };
+  function newJourney() {
+    if (GS.save.started && !confirm("Start a new journey? Your current progress will be replaced. (Help → Settings can export it first.)")) return;
+    resetWorkshop(); notebook = Lab.blank(); inquiry={}; GS.save = Pr.blank(L.newWorld); GS.save.started = true; persist();
+    GS.comicIndex = 0; renderComic(); show("comic");
   }
-  $("start").onclick = () => {
-    if (hasOnboarded()) {
-      enter(saved.level);
-      showScreen("workshop");
-      pulse("Opening crossing...");
-      $("scene").focus({ preventScroll: true });
-    } else showStory(beginTraining);
-  };
-  $("select-level").onclick = showMissions;
-  $("free-build").onclick = () => {
-    enterSandbox();
-    showScreen("workshop");
-    pulse("Opening free build...");
-    $("scene").focus({ preventScroll: true });
-  };
-  $("missions").onclick = showMissions;
-  $("selection-back").onclick = () => {
-    showScreen(selectFrom);
-    controls();
-  };
-  $("explore-toggle").onclick = () => {
-    exploreAll = !exploreAll;
-    showMissions();
-  };
-  $("home").onclick = () => {
-    if (state.training || state.level?.id === "training") {
-      state.tutorialStep = -1;
-      state.trainingTarget = null;
-      state.training = false;
-      enter(saved.level);
-    } else {
-      save();
-      edit();
-    }
-    showScreen("home");
-    $("start").focus();
-  };
-  function showTask(eyebrow = state.level.place.toUpperCase()) {
-    const guide = learning(state.level);
-    const firstBrief = eyebrow === "NEW CROSSING" || eyebrow === "YOUR FIRST MISSION";
-    const compact = `<div class="mission-brief"><p>${escapeHTML(guide.delivery || "Complete this crossing.")}</p><div class="brief-chips"><span>${(state.level.right - state.level.left) / 100} m span</span><span>${state.level.truckMass.toLocaleString()} kg load</span><span>Drop below 12 cm</span></div><p><strong>Your decision:</strong> ${escapeHTML(guide.decision || "Trace a continuous load path.")}</p><details><summary>New constraint</summary><p>${escapeHTML(guide.newConstraint || guide.goal || "Use the available materials.")}</p></details></div>`;
-    modal(
-      state.level.name,
-      `${firstBrief ? compact : C.task(state.level)}<div class="brief-action"><button id="begin-building" class="primary">Build my bridge →</button></div>`,
-      eyebrow,
-    );
-    $("begin-building").onclick = closeModal;
+  function cont() { goNode(world().node); }
+
+  // ---------- comic ----------
+  function renderComic() {
+    const p = T.storyPanels[GS.comicIndex];
+    $("comic-img").src = p.img; $("comic-img").alt = p.alt; $("comic-text").textContent = p.text;
+    $("comic-dots").innerHTML = T.storyPanels.map((_, i) => `<i class="${i === GS.comicIndex ? "on" : ""}"></i>`).join("");
+    $("comic-next").textContent = GS.comicIndex === T.storyPanels.length - 1 ? "Begin" : "Next";
   }
-  function showFinalReport() {
-    const completeCount = saved.completed.filter(Boolean).length;
-    const allComplete = completeCount === L.levels.length;
-    $("final-report-title").textContent = allComplete ? "Riverbend, reconnected." : `${completeCount} of ${L.levels.length} crossings connected.`;
-    $("final-report-subtitle").textContent = allComplete ? "Your tested structures opened the full community route." : "Your completed deliveries remain open; continue the route when ready.";
-    $("report-route-summary").innerHTML = `<div class="route-progress"><span class="eyebrow">${allComplete ? "ALL EIGHT DELIVERIES" : `${completeCount} DELIVERIES COMPLETE`}</span><div class="route-stops">${L.levels.map((level, i) => { const status = saved.completed[i] ? "delivered" : i === 0 || saved.completed[i - 1] ? "ready" : "locked"; return `<span class="route-stop ${status} ${saved.level === i ? "current" : ""}"><b>${i + 1}</b><small>${escapeHTML(level.place)}</small><em>${status}</em></span>`; }).join("")}</div></div>`;
-    $("report-crossings").innerHTML = L.levels.map((level, i) => {
-      const passed = [...(saved.records[i] || [])].reverse().find((r) => r.result === "passed" && r.mode === "crossing");
-      const completed = saved.completed[i];
-      const unlocked = i === 0 || saved.completed[i - 1] || completed || exploreAll;
-      return `<article class="report-crossing ${unlocked ? "" : "locked"}"><span class="eyebrow">CROSSING ${String(i + 1).padStart(2, "0")}</span><h3>${escapeHTML(level.place)}</h3>${passed ? designSketch(passed.design, level) : '<div class="report-no-design">No passing test retained</div>'}<p>${passed ? `${(passed.drop * 100).toFixed(1)} cm maximum drop · ${passed.broken} broken · ${passed.cost.toFixed(1)} credits` : completed ? "Completion is saved; no passing measurements are retained." : "Awaiting delivery."}</p>${completed ? `<p>${escapeHTML(learning(level).consequence || "Community route restored.")}</p>` : ""}<button class="small-button" data-improve="${i}" ${unlocked ? "" : "disabled"}>${completed ? "Improve" : unlocked ? "Build" : "Locked"}</button></article>`;
+  function comicNext() { if (GS.comicIndex < T.storyPanels.length - 1) { GS.comicIndex++; renderComic(); } else advance("prologue"); }
+
+  // ---------- story nodes ----------
+  function goNode(id) {
+    const w = world(); w.node = id; persist();
+    Bus.emit(E.STORY_NODE, { id });
+    const n = L.NODES[id];
+    if (n.type === "comic") { GS.comicIndex = 0; renderComic(); show("comic"); }
+    else if (n.type === "choice") renderChoice(id);
+    else if (n.type === "level") openLevel(n.level);
+    else renderReport();
+  }
+  function advance(fromId) { goNode(L.NODES[fromId].next); }
+  function renderChoice(id) {
+    const n = L.NODES[id], w = world();
+    $("choice-title").textContent = n.title; $("choice-text").textContent = n.text(w);
+    $("choice-options").innerHTML = n.options.map((o) => {
+      const ok = !o.requires || o.requires(w);
+      return `<button class="choice-opt" data-opt="${o.id}" ${ok ? "" : "disabled aria-disabled=true"}><strong>${esc(o.label)}</strong><span>${esc(ok ? o.detail : o.lockedText)}</span></button>`;
     }).join("");
-    showScreen("report");
-    $("report-crossings").querySelectorAll("[data-improve]").forEach((button) => button.onclick = () => { enter(Number(button.dataset.improve)); showScreen("workshop"); });
+    $("choice-options").querySelectorAll("[data-opt]").forEach((b) => b.addEventListener("click", () => choose(id, b.dataset.opt)));
+    show("choice");
   }
-  $("field-report").onclick = showFinalReport;
-  $("report-menu").onclick = () => showScreen("home");
-  $("report-improve").onclick = showMissions;
-  $("report-free-build").onclick = () => $("free-build").click();
-  $("task").onclick = () => showTask();
-  $("hint").onclick = () => {
-    const text = typeof C.hint === "function"
-      ? C.hint(state.level, Math.min(state.hintStage, 1))
-      : learning(state.level).hints?.[Math.min(state.hintStage, 1)]?.text;
-    const label = state.hintStage++ === 0 ? "Observe" : "Principle";
-    if (text) note(`${label}: ${text}`);
-  };
-  $("next").onclick = () => {
-    if (state.world?.status !== "passed" || state.sandbox || state.training)
-      return;
-    if (state.index < L.levels.length - 1) {
-      enter(state.index + 1);
-      showScreen("workshop");
-      pulse("Opening the next crossing...");
-      return;
-    }
-    showFinalReport();
-  };
-  function showHelp(tab = "controls") {
-    const tabs = {
-      controls: "Controls",
-      structures: "Structures",
-      cases: "Real bridges",
-      settings: "Settings",
-    };
-    const settings = `<h3>Your workshop</h3><div class="notebook-actions"><button id="sound" class="small-button" aria-pressed="${renderer.muted}">${renderer.muted ? "Enable sound" : "Mute sound"}</button><button id="fullscreen" class="small-button">${document.fullscreenElement ? "Exit full screen" : "Full screen"}</button><button id="replay-training" class="small-button">Replay training</button></div><h3>Keep your work</h3><p>${state.storageOK ? "Campaign and sandbox designs, plus the last eight distinct tests per crossing, are saved in this browser." : "Browser storage is unavailable. Keep this tab open, or export your work before leaving."}</p><div class="notebook-actions"><button id="export" class="small-button">Export progress</button><button id="import" class="small-button">Import progress</button></div><p>Import replaces local designs and records after confirmation. An exported file lets you move your work to another computer.</p><details><summary>Reset workshop</summary><p>Remove all saved designs, test records and completed crossings.</p><button id="reset-progress" class="small-button">Reset all progress</button></details>`;
-    modal(
-      "Field guide",
-      `<nav class="guide-tabs" aria-label="Help sections">${Object.entries(tabs)
-        .map(
-          ([key, label]) =>
-            `<button data-guide="${key}" ${key === tab ? 'aria-current="page"' : ""}>${label}</button>`,
-        )
-        .join(
-          "",
-        )}</nav>${tab === "controls" ? C.controls : tab === "structures" ? C.structures(state.level, state.tested) : tab === "cases" ? C.cases(state.level) : settings}`,
-      "OPEN WHEN YOU NEED IT",
-    );
-    $("modal-body")
-      .querySelectorAll("[data-guide]")
-      .forEach((b) => (b.onclick = () => showHelp(b.dataset.guide)));
-    if (tab === "structures") {
-      if ($("starter")) {
-        $("starter").disabled = state.mode !== "build";
-        $("starter").onclick = loadStarter;
-      }
-    }
-    if (tab === "settings") {
-      $("sound").onclick = () => {
-        renderer.toggleSound();
-        showHelp("settings");
-      };
-      $("fullscreen").onclick = async () => {
-        try {
-          if (document.fullscreenElement) await document.exitFullscreen();
-          else await document.documentElement.requestFullscreen();
-        } catch {
-          note("Full screen is unavailable in this browser.", true);
-        }
-        showHelp("settings");
-      };
-      $("export").onclick = () => {
-        save();
-        const blob = new Blob(
-          [
-            JSON.stringify(
-              { format: "riverbend-progress", data: saved },
-              null,
-              2,
-            ),
-          ],
-          { type: "application/json" },
-        );
-        const url = URL.createObjectURL(blob),
-          link = document.createElement("a");
-        link.href = url;
-        link.download = "riverbend-progress.json";
-        link.click();
-        setTimeout(() => URL.revokeObjectURL(url), 1000);
-      };
-      $("import").onclick = () => $("import-file").click();
-      $("replay-training").onclick = () => {
-        closeModal();
-        beginTraining();
-      };
-      $("reset-progress").onclick = () => {
-        modal(
-          "Start a new journey?",
-          '<p>This removes all local designs, test records and completions. Export first if you want a backup.</p><button id="confirm-reset" class="primary">Reset workshop</button>',
-        );
-        $("confirm-reset").onclick = () => {
-          saved = E.empty(L.levels, L.sandbox);
-          closeModal();
-          enter(0);
-          showScreen("home");
-        };
-      };
-    }
+  function choose(id, optId) {
+    const n = L.NODES[id], o = n.options.find((x) => x.id === optId), w = world();
+    if (o.requires && !o.requires(w)) return;
+    const before = { mats: w.materials.slice(), reserve: w.reserve };
+    o.effect(w); w.choices[id] = optId;
+    w.log.push({ node: id, choice: optId, label: o.label });
+    const gained = w.materials.filter((m) => !before.mats.includes(m)).map((m) => P.MATERIALS[m].name);
+    const msg = [gained.length ? `New material: ${gained.join(", ")}` : "", w.reserve !== before.reserve ? `Saved credits: ${before.reserve} → ${w.reserve}` : ""].filter(Boolean).join(" · ");
+    goNode(o.next);
+    if (msg) toast(msg, "good");
   }
-  $("help").onclick = () => showHelp();
-  $("about").onclick = () =>
-    modal(
-      "Engineering through play.",
-      C.about,
-      "STEM EDUCATION · COURSE PROJECT",
-    );
-  $("import-file").onchange = async (e) => {
-    const file = e.target.files[0];
-    e.target.value = "";
-    if (!file) return;
-    try {
-      if (file.size > 2000000) throw new Error("File is too large.");
-      const value = JSON.parse(await file.text());
-      if (
-        value.format !== "riverbend-progress" ||
-        !value.data ||
-        !value.data.designs ||
-        !Array.isArray(value.data.completed)
-      )
-        throw new Error("Choose a Riverbend progress export.");
-      const incoming = E.normalize(value.data, L.levels, L.sandbox);
-      // Reject an invalid imported design rather than silently discarding the player's work.
-      for (const [key, design] of Object.entries(value.data.designs)) {
-        const level = key === "sandbox" ? L.sandbox : L.levels[key];
-        if (!level || M.validate(design, level))
-          throw new Error("This file contains an invalid design.");
-      }
-      modal(
-        "Replace local progress?",
-        '<p>This imports the selected file and replaces your current designs, records and completions.</p><button id="confirm-import" class="primary">Import progress</button>',
-      );
-      $("confirm-import").onclick = () => {
-        saved = incoming;
-        closeModal();
-        enter(saved.level);
-        showScreen("workshop");
-        note("Progress imported.");
-      };
-    } catch (error) {
-      modal(
-        "Could not import",
-        `<p class="error-note">${escapeHTML(error.message)}</p><p>Your current designs have not changed.</p>`,
-      );
-    }
-  };
-  function showNotebook() {
-    const records = saved.records[state.index] || [],
-      pair = E.comparison(records);
-    const testedLoad = (record) => {
-      try {
-        return JSON.parse(record.conditions)[5];
-      } catch {
-        return state.level.truckMass;
-      }
-    };
-    const metric = (r) =>
-      `<tr><th>Result</th><td>${r.previous.result}</td><td>${r.latest.result}</td></tr><tr><th>Max. drop</th><td>${(r.previous.drop * 100).toFixed(1)} cm</td><td>${(r.latest.drop * 100).toFixed(1)} cm</td></tr><tr><th>Broken members</th><td>${r.previous.broken}</td><td>${r.latest.broken}</td></tr><tr><th>Material cost</th><td>${r.previous.cost.toFixed(1)}</td><td>${r.latest.cost.toFixed(1)}</td></tr>`;
-    const comparison = pair
-      ? `<h3>Same conditions. Different designs.</h3><p>${pair.latest.mode === "crossing" ? Number(testedLoad(pair.latest)).toLocaleString() + " kg crossing" : "15-second self-weight observation"} · ${(state.level.right - state.level.left) / 100} m span</p><div class="modal-grid"><div><strong>Earlier design</strong>${designSketch(pair.previous.design, state.level)}</div><div><strong>Latest design</strong>${designSketch(pair.latest.design, state.level)}</div></div><table class="compare-table"><thead><tr><th>Measure</th><th>Earlier</th><th>Latest</th></tr></thead><tbody>${metric(pair)}</tbody></table><p>${Math.abs(pair.dropDelta * 100).toFixed(1)} cm ${pair.dropDelta > 0 ? "more" : "less"} maximum drop; ${Math.abs(pair.costDelta).toFixed(1)} ${pair.costDelta > 0 ? "more" : "fewer"} material credits. Several changes may affect this result: it does not establish a single cause.</p>`
-      : `<p>Save a test, change your design, then repeat the same kind of test. A comparison appears after two different designs are tested under matching conditions. Identical reruns do not create extra records.</p>`;
-    modal(
-      "Your engineering notebook",
-      `${state.mode === "build" ? '<details class="notebook-prediction"><summary>Make a prediction (optional)</summary><label class="form-label" for="prediction">What do you expect before the next test?</label><textarea id="prediction" maxlength="240" placeholder="Which part might move or fail? What will you change?"></textarea><button id="save-prediction" class="small-button">Save prediction</button></details>' : ""}${comparison}<p class="cer-prompt"><strong>Evidence question:</strong> ${escapeHTML(learning(state.level).cerPrompt || "What changed, and which measurement supports your explanation?")}</p><h3>${records.length > 2 ? "Latest tests first" : "Recent tests"} · ${records.length} / 8</h3>${records.length ? records.map((r, i) => ({ r, i })).reverse().map(({ r, i }, position) => `<details class="evidence-record" ${position < 2 ? "open" : ""}><summary><span>Test ${i + 1} · ${r.mode === "crossing" ? "Crossing" : "Self-weight"}</span><span>${r.result}</span></summary>${designSketch(r.design, state.level)}<p>${escapeHTML(r.reason)}</p><p><strong>Prediction:</strong> ${escapeHTML(r.prediction || "Not recorded")}</p><label class="form-label" for="reflection-${i}">What does this evidence suggest?</label><textarea id="reflection-${i}" data-reflection="${i}" maxlength="600"></textarea><div class="notebook-actions"><button class="small-button" data-reflect-save="${i}">Save reflection</button><button class="small-button" data-restore="${i}">Use this design</button></div></details>`).join("") : "<p>No completed tests yet. Your first result will appear here.</p>"}<details><summary>Model notes and material costs</summary><p class="model-note">Material cost: Road 1, Timber 1, Steel 3, Cable 1.2 credits per metre. These are game values. Predictions and reflections are evidence for discussion, not automatically marked answers.</p></details>`,
-      state.level.place.toUpperCase(),
-    );
-    if ($("prediction")) {
-      $("prediction").value = state.prediction;
-      $("save-prediction").onclick = () => {
-        state.prediction = $("prediction").value.trim();
-        closeModal();
-        note("Prediction saved for this design.");
-      };
-    }
-    records.forEach((r, i) => {
-      $("reflection-" + i).value = r.reflection;
-      $("modal-body").querySelector(`[data-reflect-save="${i}"]`).onclick =
-        () => {
-          r.reflection = $("reflection-" + i).value.trim();
-          save(true);
-          closeModal();
-          note("Reflection saved.");
-        };
-      $("modal-body").querySelector(`[data-restore="${i}"]`).onclick = () => {
-        modal(
-          "Use this tested design?",
-          '<p>This replaces the editable bridge. Undo restores your current design.</p><button id="confirm-restore" class="primary">Use design</button>',
-        );
-        $("confirm-restore").onclick = () => {
-          closeModal();
-          edit();
-          afterEdit(state.editor.commit(structuredClone(r.design)));
-        };
-      };
-    });
+  // ---------- level ----------
+  const COACH = [
+    "Step 1: the road is ready and locked. Pick Timber to design its supports.",
+    "Step 2: the road alone will sag. Pick Timber and drag from a square anchor below the bank up to the road.",
+    "Step 3: press Test crossing. Member colors show load. Blue end bands = pulled (tension), red end bands = pushed (compression).",
+  ];
+  function fixedRoad(level) { return M.clone(level.refs[0].members.filter(m=>m.m==='road')); }
+  function withFixedRoad(level,members) { return fixedRoad(level).concat(M.clone(members||[]).filter(m=>m.m!=='road')); }
+  function openLevel(id,options={}) {
+    const previous=GS.level&&GS.level.id===id&&!GS.practice&&!options.practice?GS.teaching:null;
+    GS.reset(); if(previous)GS.teaching=previous; Edu.reset();
+    const w = world(), lv = L.resolveLevel(id, w);
+    GS.level = lv; GS.practice=!!options.practice || id==='tabletop'&&!w.checks['controls:offered'];
+    GS.design = M.create(lv, withFixedRoad(lv, GS.practice?[]:GS.save.designs[id]||[]));
+    GS.tool = lv.materials.find(m=>m!=="road");
+    R.setLevel(lv, GS.design); R.setTool(GS.tool); R.setForces(GS.forces); R.setInspect(null);
+    $("lv-place").textContent = lv.place; $("lv-title").textContent = lv.title;
+    $("result").hidden = true; $("result").innerHTML = ""; $("test-hud").hidden = true; hideTip();
+    GS.inspectList = null;
+    buildMaterials(); renderWorldStrip(); setMode("edit"); refreshBudget();
+    GS.coachStep = id === "tabletop" && !GS.design.members.some(m=>m.m!=="road") ? 1 : -1;
+    renderCoach();
+    show("build");
+    if (!root.__GAME__) root.__GAME__ = R.mount("stage", { frame });
+    if (GS.practice) { w.checks['controls:offered']=true; persist(); practiceIntro(); return; }
+    if (!w.checks["seen:" + id]) { w.checks["seen:" + id] = true; persist(); openModal("brief"); }
+    if (lv.newMaterial) toast(`New material here: ${P.MATERIALS[lv.newMaterial].name}`, "good");
   }
-  $("notebook").onclick = showNotebook;
-  $("result-compare").onclick = showNotebook;
-
-  document.addEventListener("keydown", (e) => {
-    if ($("modal").open || state.screen !== "workshop") return;
-    if (e.target.matches("input,textarea,select")) return;
-    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") {
-      e.preventDefault();
-      if (state.mode === "build") {
-        const changed = e.shiftKey ? state.editor.redo() : state.editor.undo();
-        if (changed) afterEdit(null);
-      }
-      return;
+  function renderCoach() {
+    const c = $("coach");
+    if(GS.practice){
+      const steps=["Rotate with right-drag, or choose Orbit view and drag. Front view returns to a clear building view.","Road is already laid and locked. Pick Timber. Connect the two gold rings: the lower left support and the middle road joint. Drag, or tap both ends.","Undo your new brace, then Redo it. One construction action is one undo step.","Connect the lower right support to the middle road joint. The matching truss on the far side appears automatically.","Test crossing. Try Pause test to freeze the load, read the colors, then Resume. Green/yellow/red = utilization; blue/red end bands = pull/push."];
+      c.hidden=false;c.innerHTML=`<strong>Controls practice · ${Math.min(5,GS.practiceStep+1)} / 5</strong><br>${steps[Math.min(4,GS.practiceStep)]}<div class="tip-row">${GS.practiceStep===0?'<button class="btn small" id="practice-next">Next: connect</button>':''}<button class="btn ghost small" id="practice-skip">Skip practice</button></div>`;
+      R.setGuide(GS.practiceStep===1?[[0,-2],[4,0]]:GS.practiceStep===3?[[8,-2],[4,0]]:[]);
+      if($('practice-next'))$('practice-next').onclick=()=>{GS.practiceStep=1;renderCoach();};$('practice-skip').onclick=()=>endPractice(false);return;
     }
-    if (e.key.toLowerCase() === "h") {
-      e.preventDefault();
-      $("help").click();
-      return;
-    }
-    if (e.key === "Escape") {
-      cancelPlacement();
-      note("Placement cancelled.");
-      return;
-    }
-    if (e.code === "Space" && state.mode !== "build") {
-      e.preventDefault();
-      $("pause").click();
-      return;
-    }
-    if (!canBuild()) return;
-    if (["1", "2", "3", "4"].includes(e.key)) {
-      chooseMaterial(Object.keys(P.MATERIALS)[Number(e.key) - 1]);
-      return;
-    }
-    if (e.key.toLowerCase() === "m") {
-      $("move").click();
-      return;
-    }
-    if (e.key.toLowerCase() === "x") {
-      $("erase").click();
-      return;
-    }
-    if (document.activeElement === canvas) {
-      const arrows = {
-        ArrowLeft: [-25, 0],
-        ArrowRight: [25, 0],
-        ArrowUp: [0, -25],
-        ArrowDown: [0, 25],
-      };
-      if (arrows[e.key]) {
-        e.preventDefault();
-        state.keyboard = true;
-        const [dx, dy] = arrows[e.key];
-        state.pointer = {
-          x: Math.max(
-            state.level.left - 150,
-            Math.min(state.level.right + 150, state.pointer.x + dx),
-          ),
-          y: Math.max(155, Math.min(655, state.pointer.y + dy)),
-        };
-        if (state.seed)
-          state.preview = { start: state.seed, end: state.pointer };
-      } else if (e.key === "Enter") {
-        e.preventDefault();
-        state.keyboard = true;
-        if (state.tool === "erase") {
-          const beam = hitMember(state.pointer);
-          if (beam) afterEdit(state.editor.remove(beam.id));
-        } else if (state.tool === "build") {
-          if (state.seed) addMember(state.seed, state.pointer);
-          else {
-            state.seed = { ...state.pointer };
-            $("cancel-placement").hidden = false;
-            state.preview = { start: state.seed, end: state.pointer };
-          }
-        }
-      }
-    }
+    R.setGuide([]);
+    if (GS.coachStep < 0 || GS.coachStep >= COACH.length) { c.hidden = true; return; }
+    c.hidden = false;
+    c.innerHTML = `<strong>Getting started</strong><br>${COACH[GS.coachStep]}<div class="tip-row"><button class="btn ghost small" id="coach-skip">Hide tips</button></div>`;
+    $("coach-skip").onclick = () => { GS.coachStep = -1; renderCoach(); };
+  }
+  function coachAfterEdit() {
+    if(GS.practice){const has=(a,b)=>GS.design.members.some(m=>(P.keyOf(m.a)===P.keyOf(a)&&P.keyOf(m.b)===P.keyOf(b))||(P.keyOf(m.a)===P.keyOf(b)&&P.keyOf(m.b)===P.keyOf(a)));if(GS.practiceStep===1&&has([0,-2],[4,0]))GS.practiceStep=2;if(GS.practiceStep===3&&has([8,-2],[4,0]))GS.practiceStep=4;renderCoach();return;}
+    if (GS.coachStep < 0) return;
+    const ms = GS.design.members, hasRoad = ms.some((m) => m.m === "road"), hasSup = ms.some((m) => m.m !== "road");
+    const step = !hasRoad ? 0 : !hasSup ? 1 : 2;
+    if (step !== GS.coachStep) { GS.coachStep = step; renderCoach(); }
+  }
+  function buildMaterials() {
+    const lv = GS.level;
+    $("materials").innerHTML = `<span class="fixed-road" title="Road is prelaid, locked and included in your budget">Road ready · locked</span>` + lv.materials.filter(m=>m!=="road").map((m, i) => {
+      const mat = P.MATERIALS[m], col = "#" + C.COLORS[m].toString(16).padStart(6, "0");
+      return `<button class="tool" role="radio" data-tool="${m}" title="${esc(mat.role)} (${i + 1})"><i class="swatch" style="background:${col}"></i>${mat.name} <span class="cost">${mat.cost}/m</span>${lv.newMaterial === m ? '<span class="new">NEW</span>' : ""}</button>`;
+    }).join("");
+    $("materials").querySelectorAll("[data-tool]").forEach((b) => b.addEventListener("click", () => setTool(b.dataset.tool)));
+    setTool(GS.tool);
+  }
+  function setTool(t) {
+    if (t === "road") { toast("Road is already laid and locked. Build its supports."); return; }
+    if (t !== "erase" && !GS.level.materials.includes(t)) return;
+    GS.tool = t; R.setTool(t);
+    document.querySelectorAll("#toolbar [data-tool]").forEach((b) => { const on = b.dataset.tool === t; b.setAttribute(b.getAttribute("role") === "radio" ? "aria-checked" : "aria-pressed", String(on)); b.classList.toggle("on", on); });
+  }
+  function renderWorldStrip() {
+    const w = world();
+    const chips = [`<span class="chip">${w.reserve} saved credits</span>`];
+    chips.push(`<span class="chip">${w.materials.map((m) => P.MATERIALS[m].name).join(", ")}</span>`);
+    for (const h of w.helped) chips.push(`<span class="chip good">${esc(L.NAMES[h] || h)}</span>`);
+    if (w.support) chips.push(`<span class="chip">${esc(L.LEVELS.finale.variants[w.support].label)}</span>`);
+    $("world-strip").innerHTML = chips.join("");
+  }
+  function cost() { return P.costOf(GS.design.members); }
+  function refreshBudget() {
+    const lv = GS.level, c = cost(), total = lv.totalBudget, over = c > total;
+    const pct = (v) => Math.min(100, (v / total) * 100).toFixed(1);
+    const res = lv.totalBudget - lv.budget;
+    $("budget").className = "budget" + (over ? " over" : "");
+    $("budget").innerHTML = `<strong>${c}</strong> / ${lv.budget}${res ? ` + ${res} saved` : ""} credits · ${GS.design.members.length} members
+      <div class="bar"><i class="res" style="width:${pct(Math.max(c, 0))}%"></i><i style="width:${pct(Math.min(c, lv.budget))}%"></i></div>`;
+    $("btn-undo").disabled = !GS.design.undo.length; $("btn-redo").disabled = !GS.design.redo.length;
+    $("btn-clear").disabled = !GS.design.members.some(m=>m.m!=="road");
+  }
+  function changed() { GS.savings=null; GS.lastSummary=null; GS.inspectList=null; GS.lastRecord=null; R.setDesign(GS.design); R.setInspect(null); R.setTrace([]); R.setHighlight(-1); hideTip(); $("btn-results").hidden=true; refreshBudget(); coachAfterEdit(); persist(); Bus.emit(E.DESIGN_CHANGED, {}); }
+  let lastAddOk = false;
+  Bus.on(E.DESIGN_ADD, ({ a, b, type }) => {
+    if (GS.mode !== "edit" || type === "road" || !GS.level.materials.includes(type)) return;
+    const r = M.add(GS.design, a, b, type);
+    lastAddOk = r.ok;
+    if (!r.ok) { toast(r.error, "warn"); Bus.emit(E.DESIGN_REJECTED, { error: r.error }); return; }
+    changed();
   });
-  function frame(t) {
-    if ($("free-build").disabled && document.body.dataset.engineReady === "true")
-      $("free-build").disabled = false;
-    const dt = Math.min(0.05, Math.max(0, (t - lastTime) / 1000));
-    lastTime = t;
-    state.elapsed += dt;
-    if (
-      state.screen === "workshop" &&
-      state.world &&
-      !state.paused &&
-      !$("modal").open &&
-      !document.hidden
-    ) {
-      accumulator += dt * state.speed;
-      let count = 0;
-      while (accumulator >= P.STEP && count++ < 16) {
-        state.world.step();
-        accumulator -= P.STEP;
-        if (state.world.status !== "running") {
-          experimentResult();
-          break;
-        }
-        if (state.mode === "gravity" && state.world.time >= 15) {
-          state.paused = true;
-          controls();
-          feedback(
-            "Take a closer look.",
-            "The gravity experiment paused at 15 seconds. Look at what moved, then edit your design and compare.",
-          );
-          captureEvidence("Self-weight observation at 15 seconds.");
-          note("");
-          break;
-        }
-      }
-    }
-    if (state.world && t - metricsAt > 100) {
-      metricsAt = t;
-      $("time-value").innerHTML =
-        state.world.time.toFixed(1) + " <small>s</small>";
-      $("sag-value").innerHTML =
-        (state.world.maxSag * 100).toFixed(1) + " <small>cm</small>";
-      $("broken-value").textContent = state.world.breakCount;
-    }
-    renderer.draw(
-      state.screen === "workshop"
-        ? state
-        : {
-            ...state,
-            level: L.levels[0],
-            editor: previewEditor,
-            world: null,
-            mode: "build",
-            grid: false,
-            forces: false,
-            preview: null,
-            moving: null,
-            hoverNode: null,
-            hoverMember: null,
-            keyboard: false,
-          },
-    );
+  Bus.on(E.DESIGN_ERASE, ({ i }) => { if (GS.mode!=="edit") return; if(GS.design.members[i]&&GS.design.members[i].m==="road"){toast("Road is locked; erase or change a support instead.");return;}if(M.removeAt(GS.design,i))changed(); });
+  function undo() { if (GS.mode === "edit" && M.undo(GS.design)) {if(GS.practice&&GS.practiceStep===2)GS.practiceUndone=true;changed();} }
+  function redo() { if (GS.mode === "edit" && M.redo(GS.design)) {if(GS.practice&&GS.practiceStep===2&&GS.practiceUndone)GS.practiceStep=3;changed();} }
+  function clearAll() { if(GS.mode==="edit"&&GS.design.members.some(m=>m.m!=="road")){M.load(GS.design,fixedRoad(GS.level));changed();toast("Supports cleared. The road stays. Undo brings the supports back.");} }
+  function practiceIntro(){
+    openModal('practice','<p class="lead">Try the real building controls before the first crossing.</p><ol class="practice-list"><li><strong>Look:</strong> rotate the bridge, then return to Front view.</li><li><strong>Build:</strong> choose Timber and connect the highlighted joints. Drag, or tap two ends.</li><li><strong>Recover:</strong> Undo and Redo a brace.</li><li><strong>Test:</strong> pause the moving load and read the forces.</li></ol><p>The road is already laid and locked. Build one side elevation; a matching truss is shown on the other side. Both represent the same 2D simulation. Practice does not change journey scores or recorded experiments.</p><div class="result-actions"><button class="btn" id="practice-intro-skip">Skip to first crossing</button><button class="btn primary" id="practice-start">Practice in 3D</button></div>');
+    $('practice-intro-skip').textContent=world().node==='tabletop'?'Skip to first crossing':'Skip practice & return';
+    $('practice-start').onclick=()=>{closeModal();GS.practiceStep=0;renderCoach();};$('practice-intro-skip').onclick=()=>endPractice(false);
   }
-  enter(saved.level);
-  showScreen("home");
-  $("story").hidden = true;
-  $("story").inert = true;
-  renderTutorial();
-  renderer.start(frame);
-})();
+  function endPractice(done,toMenu=false){world().checks[done?'controls:done':'controls:skipped']=true;persist();GS.practice=false;resetWorkshop();closeModal(false);if(toMenu)renderMenu();else goNode(world().node);}
+  function renderPracticeResult(){const {rec,s}=GS.lastSummary;$('coach').hidden=true;$('test-hud').hidden=true;const box=$('result');box.className='result '+(rec.pass?'pass':'fail');box.innerHTML=`<h3 id="result-title">${rec.pass?'Controls practice complete':'Try the practice again'}</h3><p>${esc(s.reason)}</p><p>You built braces, used the real controls and observed a test. The road remains prelaid in the journey. Your bridge designs will be stored separately from this practice.</p><div class="result-actions"><button class="btn" id="practice-edit">Edit practice bridge</button><button class="btn primary" id="practice-finish">${rec.pass?'Start first crossing':'Skip to first crossing'}</button></div>`;box.hidden=false;$('practice-finish').textContent=world().node==='tabletop'?(rec.pass?'Start first crossing':'Skip to first crossing'):'Return to journey';$('practice-edit').onclick=backToEdit;$('practice-finish').onclick=()=>endPractice(rec.pass);$('practice-finish').focus();}
+  // ---------- test run (fixed 1/60 s steps, same as the Node tests) ----------
+  function setMode(mode) {
+    GS.mode = mode; R.setMode(mode);
+    $("build").dataset.mode = mode;
+    const testing = mode !== "edit";
+    $("btn-test").hidden = testing; $("btn-edit").hidden = !testing;
+    $("btn-pause").hidden = mode !== "test"; $("btn-results").hidden = mode !== "inspect";
+    document.querySelectorAll("#materials .tool, #tool-erase, #btn-undo, #btn-redo, #btn-clear, #btn-hint").forEach((b) => (b.disabled = testing));
+    if (!testing) refreshBudget();
+  }
+  function startTest() {
+    if (GS.mode !== "edit") return;
+    const warn = M.warnings(GS.design);
+    if (warn.length) toast(warn[0], "warn");
+    if(!GS.practice)world().tests++;
+    Edu.flush(); GS.testNoteIndex=null; GS.teachingNotice=null; GS.savings=null;
+    GS.testDesign=M.clone(GS.design.members); GS.observedSlack=new Set(); GS.paused=false; GS.prediction=GS.practice?"":Notes.get(inquiry,GS.level.id,0).predict;
+    $("btn-pause").textContent="Pause test"; $("btn-pause").setAttribute("aria-pressed","false"); persist();
+    GS.sim = P.createSim(GS.design.members, GS.level, GS.level.mass);
+    GS.accum = 0; GS.slowmo = 0; GS.endHold = 0; GS.firstBreakShown = false; GS.seenEvents = 0; GS.breakText = "";
+    R.setSim(GS.sim); R.setInspect(null); R.setHighlight(-1);
+    $("result").hidden = true; $("coach").hidden = true; hideTip();
+    setMode("test");
+    $("test-hud").hidden = false; renderHud(); if(GS.practice)renderCoach();
+    Bus.emit(E.TEST_STARTED, {});
+  }
+  function backToEdit() {
+    GS.paused=false; GS.sim = null; R.setSim(null); R.setInspect(null); R.setTrace([]); R.setHighlight(-1); hideTip();
+    $("test-hud").hidden = true; $("result").hidden = true;
+    setMode("edit"); renderCoach();
+  }
+  function returnToResults() { if (GS.mode!=="inspect" || !GS.lastSummary || !GS.sim) return; R.setInspect(null); R.setTrace([]); R.setSim(GS.sim); hideTip(); setMode("result"); renderResult(); }
+  function togglePause() { if (GS.mode!=="test") return; GS.paused=!GS.paused; $("btn-pause").textContent=GS.paused?"Resume test":"Pause test"; $("btn-pause").setAttribute("aria-pressed",String(GS.paused)); renderHud(); }
+  function frame(dt) {
+    if (GS.mode !== "test" || !GS.sim || GS.paused || !$("modal").hidden) return;
+    const sim = GS.sim;
+    let scale = 1;
+    if (GS.slowmo > 0) { GS.slowmo -= dt; scale = C.SLOWMO_SCALE; }
+    if (!sim.outcome) {
+      GS.accum += dt * scale;
+      let n = 0;
+      while (GS.accum >= P.FRAME && !sim.outcome && n++ < 6) { P.step(sim, P.FRAME); for(const m of sim.mems) if(m.slack) GS.observedSlack.add(m.i); GS.accum -= P.FRAME; }
+      if (n >= 6) GS.accum = 0;
+      handleEvents();
+      renderHud();
+    } else {
+      GS.endHold += dt;
+      if (GS.endHold >= C.END_HOLD && GS.slowmo <= 0) finishTest();
+    }
+  }
+  function memberInfo(i) {
+    const m = GS.sim.mems[i], mat = P.MATERIALS[m.type];
+    return { name: mat.name, len: m.rest, tension: mat.tension, comp: m.comp, buckles: m.type !== "cable" && m.comp < mat.compression - 1 };
+  }
+  function explainBreak(fb) {
+    const k = memberInfo(fb.i), kN = (v) => (v / 1000).toFixed(1) + " kN";
+    if (fb.mode === "tension") return `${k.name} was pulled apart (tension). This ${k.len.toFixed(1)} m piece can hold ${kN(k.tension)} of pull.`;
+    if (fb.type === "cable") return `A cable cannot push.`;
+    if (k.buckles) return `${k.name} buckled under compression. It is ${k.len.toFixed(1)} m long, so it can only take ${kN(k.comp)} of push. Shorter pieces resist buckling much better.`;
+    return `${k.name} was crushed (compression). This piece can take ${kN(k.comp)} of push.`;
+  }
+  function handleEvents() {
+    const sim = GS.sim;
+    while (GS.seenEvents < sim.events.length) {
+      const ev = sim.events[GS.seenEvents++];
+      if (ev.type === "break") {
+        const m = sim.mems[ev.i], xm = (m.a.x + m.b.x) / 2, ym = (m.a.y + m.b.y) / 2;
+        R.burst(xm, ym, C.COLORS[m.type], 14, 180);
+        Bus.emit(E.SIM_BREAK, ev);
+        if (!GS.firstBreakShown) {
+          GS.firstBreakShown = true; GS.slowmo = C.SLOWMO_SECONDS; R.setHighlight(ev.i);
+          GS.breakText = explainBreak({ ...sim.firstBreak, i: ev.i });
+          R.shake(1);
+        }
+      } else if (ev.type === "fall") { R.burst(sim.vehicle.front, -1, 0xffffff, 18, 220); Bus.emit(E.SIM_FALL, ev); }
+      else if (ev.type === "sag") Bus.emit(E.SIM_SAG, ev);
+    }
+  }
+  function renderHud() {
+    const sim = GS.sim; if (!sim) return;
+    let now = 0, peak = 0; for (const m of sim.mems) { if (!m.broken && m.ratio > now) now = m.ratio; if (m.peak > peak) peak = m.peak; }
+    const sag = sim.maxSag * 100, lim = sim.sagLimit * 100;
+    $("test-hud").innerHTML = `<strong>${GS.paused ? "Paused — inspect the evidence" : GS.slowmo > 0 ? "Slow motion: first failure" : sim.outcome ? "Test finished" : sim.t < sim.settle ? "Settling under self-weight…" : "Crossing…"}</strong>
+      <div>Max road drop: ${sag.toFixed(1)} / ${lim} cm</div><div class="bar"><i class="${sag > lim ? "hot" : ""}" style="width:${Math.min(100, (sag / lim) * 100)}%"></i></div>
+      <div>Busiest member now: ${Math.round(now * 100)}% (peak ${Math.round(peak * 100)}%)</div><div class="bar"><i class="${peak > 0.85 ? "hot" : ""}" style="width:${Math.min(100, peak * 100)}%"></i></div>
+      ${GS.breakText ? `<p class="small">${esc(GS.breakText)}</p>` : ""}
+      <div class="load-legend"><span>Load</span><i></i><span>0 → 100%</span></div><div class="legend"><span><b style="background:#2e7dd1"></b>tension bands</span><span><b style="background:#d2452f"></b>compression bands</span></div>`;
+  }
+  // ---------- result: stars, badges, inspect, check question ----------
+  function finishTest() {
+    const sim = GS.sim, lv = GS.level, s = P.summary(sim);
+    const rec = Sc.runRecord(GS.design.members, s, P.costOf);
+    rec.pass = rec.pass && rec.cost <= lv.totalBudget;
+    const par = Sc.par(lv.refs, P.costOf);
+    rec.stars = Sc.stars(rec.pass, rec.cost, par, lv.totalBudget);
+    rec.badges = Sc.badges(lv.badges, rec);
+    if(GS.practice){GS.lastSummary={s,rec,par};setMode("result");renderPracticeResult();return;}
+    GS.lastRecord=Lab.add(notebook,Lab.record(lv,GS.testDesign||GS.design.members,sim,rec,GS.prediction,GS.observedSlack)); if(!GS.lastRecord.valid){rec.pass=false;rec.stars=0;rec.badges=[];} GS.lastRecord.example=!!world().checks["example:"+lv.id];
+    GS.lastRecord.noteIndex=GS.testNoteIndex;
+    GS.lastSummary = { s, rec, par }; persist();
+    GS.inspectList = sim.mems.map((m) => ({ peak: m.peak, mode: m.peakMode || (m.fs >= 0 ? "tension" : "compression"), broken: m.broken, slack: GS.observedSlack.has(m.i) && m.peak < 0.001 }));
+    setMode("result");
+    Bus.emit(E.TEST_FINISHED, { outcome: rec.pass ? "pass" : "fail", rec });
+    renderResult();
+  }
+  function renderResult() {
+    const { s, rec, par } = GS.lastSummary, lv = GS.level;
+    const valid=!!(GS.lastRecord&&GS.lastRecord.valid);
+    let reason = s.reason;
+    if (!rec.pass && !s.firstBreak && s.maxSagCm > lv.sagLimit * 100 && /^The road dropped/.test(reason)) reason = `The road dropped ${s.maxSagCm.toFixed(1)} cm. The limit is ${Math.round(lv.sagLimit * 100)} cm.`;
+    if (s.outcome === "pass" && !rec.pass) reason = `The bridge held, but it costs ${rec.cost} credits. You have ${lv.totalBudget}.`;
+    const star = (n) => "★".repeat(n) + "☆".repeat(3 - n);
+    const badgeHtml = (lv.badges || []).map((b) => { const d = Sc.describe(b), got = rec.badges.includes(d.id); return `<span class="chip ${got ? "good" : ""}" title="${esc(d.text)}">${got ? "✓" : "○"} ${esc(d.name)}: ${esc(d.text)}</span>`; }).join(" ");
+    const next = [];
+    if (!rec.pass && s.firstBreak) next.push(GS.breakText);
+    if (valid && !rec.pass && s.maxSagCm > lv.sagLimit * 100) next.push(`The road dropped most near ${(GS.sim.sagX).toFixed(1)} m. Support that point with a triangle.`);
+    if (rec.pass && rec.stars < 3) next.push(`A tested design costs ${par} credits. Inspect your bridge: green members carried a low fraction of their limit.`);
+    const box = $("result");
+    $("test-hud").hidden = true;
+    box.className = "result " + (rec.pass ? "pass" : "fail");
+    box.innerHTML = `<h3 id="result-title">${rec.pass ? "Delivered! " + star(rec.stars) : "Not yet"}</h3>
+      <p>${esc(reason)}</p>
+      <div class="stats"><div><strong>${valid?s.maxSagCm+" cm":"Unavailable"}</strong>max drop (limit ${Math.round(lv.sagLimit * 100)})</div><div><strong>${valid?Math.round(s.peakRatio * 100)+"%":"Unavailable"}</strong>busiest member</div><div><strong>${rec.cost}</strong>credits (budget ${lv.totalBudget})</div><div><strong>${rec.members}</strong>members</div></div>
+      ${next.length ? `<p class="small">${next.map(esc).join(" ")}</p>` : ""}
+      ${GS.lastRecord ? Edu.resultHtml(GS.lastRecord) : ""}
+      ${Edu.revealHtml()}
+      <div class="world-strip">${badgeHtml}</div>
+      <div class="result-actions">
+        <button class="btn" id="res-inspect">Inspect forces</button>
+        <button class="btn ${rec.pass ? "" : "primary"}" id="res-edit">Edit design</button>
+        ${rec.pass ? '<button class="btn primary" id="res-go">Deliver &amp; continue</button>' : ""}
+      </div><div id="quiz-slot"></div>`;
+    box.hidden = false;
+    $("res-inspect").onclick = inspect;
+    $("res-edit").onclick = backToEdit;
+    if (rec.pass) $("res-go").onclick = showCheck;
+    Edu.wireResult();
+    (rec.pass ? $("res-go") : $("res-edit")).focus();
+  }
+  function inspect() {
+    if (GS.mode !== "result" || !GS.inspectList) return;
+    R.setSim(null); R.setInspect(GS.inspectList); R.setHighlight(-1); R.setTrace([]);
+    setMode("inspect");
+    $("result").hidden = true; $("test-hud").hidden = true;
+    toast("Hover or tap a member to see its highest load. Press Back to results to continue, or Edit design to change it.");
+  }
+  // Inspect tooltip
+  Bus.on(E.MEMBER_HOVER, ({ i, x, y }) => {
+    const tip = $("inspect-tip");
+    if (!GS.inspectList || i < 0 || !R.state.inspect || !GS.design.members[i]) { tip.hidden = true; return; }
+    const m = GS.design.members[i], d = GS.inspectList[i], mat = P.MATERIALS[m.m], len = P.lengthOf(m);
+    const cap = d.mode === "tension" ? mat.tension : P.compCapacity(mat, len);
+    tip.innerHTML = `<strong>${mat.name}, ${len.toFixed(1)} m</strong><br>${d.broken ? "Broke" : `Peak ${Math.round(d.peak * 100)}% of limit`} · ${d.mode === "tension" ? "pulled (tension)" : "pushed (compression)"}<br>Peak ≈ ${((d.peak * cap) / 1000).toFixed(1)} kN of ${(cap / 1000).toFixed(1)} kN`;
+    tip.hidden = false;
+    const stage = $("stage").getBoundingClientRect();
+    tip.style.left = Math.max(8, Math.min(stage.width - tip.offsetWidth - 8, x + 14)) + "px";
+    tip.style.top = Math.max(8, Math.min(stage.height - tip.offsetHeight - 8, y + 14)) + "px";
+  });
+  function hideTip() { const t = $("inspect-tip"); if (t) t.hidden = true; }
+
+  function showCheck() {
+    if (GS.mode !== "result" || !GS.lastSummary || !GS.lastSummary.rec.pass) return;
+    const q = GS.level.check, slot = $("quiz-slot");
+    $("res-go").disabled = true;
+    slot.innerHTML = `<div class="quiz"><strong>Quick check:</strong> ${esc(q.q)}${q.options.map((o, i) => `<button class="quiz-opt" data-i="${i}">${esc(o)}</button>`).join("")}<p id="quiz-why" class="small" hidden></p></div>`;
+    slot.querySelectorAll(".quiz-opt").forEach((b) => b.addEventListener("click", () => {
+      const i = +b.dataset.i, right = i === q.answer, w = world();
+      if (w.checks[GS.level.id] == null) w.checks[GS.level.id] = right;
+      slot.querySelectorAll(".quiz-opt").forEach((x) => { x.disabled = true; x.classList.toggle("right", +x.dataset.i === q.answer); x.classList.toggle("wrong", +x.dataset.i === i && !right); });
+      $("quiz-why").hidden = false; $("quiz-why").textContent = (right ? "Yes. " : "Not quite. ") + q.why;
+      const go = $("res-go"); go.disabled = false; go.textContent = "Continue the journey"; go.onclick = completeLevel; go.focus();
+    }));
+  }
+  function completeLevel() {
+    if (GS.mode !== "result" || !GS.lastSummary || !GS.lastSummary.rec.pass) return;
+    const { rec } = GS.lastSummary, w = world(), id = GS.level.id;
+    const prev = w.results[id];
+    const r = L.applyResult(w, id, { cost: rec.cost, pass: true, stars: rec.stars, badges: rec.badges, members: rec.members, maxSagCm: rec.maxSagCm, peakRatio: rec.peakRatio, tests: w.tests });
+    if (prev) w.results[id].stars = Math.max(prev.stars || 0, rec.stars);
+    w.log.push({ node: id, level: true, stars: rec.stars, cost: rec.cost });
+    persist();
+    if (r.carry || r.usedReserve) toast(`${r.carry ? `+${r.carry} credits saved for later` : ""}${r.carry && r.usedReserve ? " · " : ""}${r.usedReserve ? `${r.usedReserve} saved credits spent` : ""}`, "good");
+    GS.sim = null; R.setSim(null);
+    advance(id);
+  }
+  // ---------- hints ----------
+  function hint() {
+    const lv = GS.level, hs = lv.hints || [];
+    if (GS.hintStep < hs.length) { openModal("hint", `<p>${esc(hs[GS.hintStep])}</p><p class="small muted">Hint ${GS.hintStep + 1} of ${hs.length}. Press Hint again for the next one.</p>`); GS.hintStep++; return; }
+    if (!notebook.runs.some(r=>r.levelId===lv.id)) { openModal("hint", "<p>Try a test of your own design before loading an example. An empty or incomplete bridge is also an experiment.</p>"); return; }
+    const ref = lv.refs[0];
+    openModal("hint", `<p>You have seen every hint. You can load one tested example design (<em>${esc(ref.name)}</em>, ${P.costOf(ref.members)} credits). It is one way that works, not the only or the best one.</p>
+      <p class="small muted">Your current design is kept in Undo, so you can go back.</p><div class="result-actions"><button class="btn primary" id="load-ref">Load the example</button></div>`);
+    $("load-ref").onclick = () => { M.load(GS.design, withFixedRoad(GS.level,ref.members)); changed(); closeModal(); world().checks["example:" + lv.id] = true; persist(); toast("Example loaded. Test it, then try to make it cheaper."); };
+  }
+
+  // ---------- modals ----------
+  let lastFocus = null;
+  function openModal(kind, html) {
+    lastFocus = document.activeElement;
+    const titles = { about: "About this game", help: "Help", brief: GS.level ? GS.level.title : "Task", hint: "Hint", map: "Journey map" };
+    titles.notebook="Engineering notebook"; titles.practice="Before the first crossing: controls practice";
+    $("modal").classList.remove("notebook-modal"); $("modal").dataset.kind=kind;
+    $("modal-title").textContent = titles[kind] || kind;
+    $("modal-body").innerHTML = html || (kind === "about" ? T.about.replace("Rendering uses Phaser 3.90 (MIT).", "Rendering uses Three.js r165 and OrbitControls (MIT).") : kind === "help" ? helpHtml() : kind === "brief" ? Edu.taskHtml(GS.level) : kind === "map" ? mapHtml() : "");
+    hideTip(); R.cancel();
+    $("modal").hidden = false;
+    if (kind === "help") wireHelp();
+    if (kind === "brief") Edu.wireTask();
+    $("modal-close").focus();
+  }
+  function closeModal(restore=true) { Edu.flush(); $("modal").hidden = true; $("modal").classList.remove("notebook-modal"); if(GS.practice&&GS.screen==="build")renderCoach(); if (restore && lastFocus && lastFocus.isConnected && lastFocus.getClientRects().length && !lastFocus.disabled) lastFocus.focus(); }
+  function helpHtml() {
+    return `<div class="tabs"><button class="btn small primary" data-tab="controls">How to play</button><button class="btn small" data-tab="settings">Settings</button></div>
+      <div data-pane="controls"><p class="small">3D view: right-drag to orbit, scroll to zoom, or use Orbit view and drag with one finger. Use two fingers to rotate and zoom. Front view restores the building elevation. During tests, green → yellow → red shows the fraction of each member’s load limit; blue/red end bands show tension/compression. Slack cables are pale and dashed.</p>${T.controls.replace("<h3>Draw road</h3><p>Pick <strong>Road</strong>, then drag from one bank to the other along the dotted line. You can also tap one point, then another.</p>","<h3>Road is ready</h3><p>The prelaid road is locked and counted in your budget. Pick a support material, then drag between existing joints or tap both endpoints. Both truss sides update together.</p>").replace("Blue members are pulled (tension), red members are pushed (compression).", "Blue end bands are pulled (tension), red end bands are pushed (compression). Member bodies show load from green through yellow to red.").replace("Remove members that stayed pale, strengthen the red ones.", "Compare lightly loaded green members with highly loaded red ones, then test your changes. A low reading alone does not prove a member is unnecessary.").replace("1–4 materials · X erase", "1–3 support materials · Arrow keys + Enter build · P pause · X erase")}</div>
+      <div data-pane="settings" hidden>
+        <p class="small">${esc(storageText())} Use Notebook → Export notebook to include your experiment records and notes.</p><h3>Save progress</h3><p>Progress saves automatically in this browser. To move it to another computer, copy the text below and paste it there.</p>
+        <textarea id="save-text" readonly aria-label="Exported progress">${esc(Pr.exportText(GS.save))}</textarea>
+        <div class="result-actions"><button class="btn" id="save-copy">Copy</button><button class="btn" id="save-file">Download file</button></div>
+        <h3>Load progress</h3><textarea id="load-text" aria-label="Paste progress here" placeholder="Paste exported progress here"></textarea>
+        <div class="result-actions"><button class="btn" id="load-go">Load pasted progress</button></div>
+        <h3>Tips</h3><div class="result-actions"><button class="btn" id="tips-reset">Show getting-started tips again</button></div>
+      </div>`;
+  }
+  function wireHelp() {
+    const tabs = $("modal-body").querySelectorAll("[data-tab]");
+    tabs.forEach((t) => t.addEventListener("click", () => {
+      tabs.forEach((x) => x.classList.toggle("primary", x === t));
+      $("modal-body").querySelectorAll("[data-pane]").forEach((p) => (p.hidden = p.dataset.pane !== t.dataset.tab));
+    }));
+    $("save-copy").onclick = () => { $("save-text").select(); (navigator.clipboard ? navigator.clipboard.writeText($("save-text").value) : Promise.reject()).then(() => toast("Copied."), () => { document.execCommand && document.execCommand("copy"); toast("Selected. Press Ctrl+C to copy."); }); };
+    $("save-file").onclick = () => { const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([Pr.exportText(GS.save)], { type: "application/json" })); a.download = "riverbend-progress.json"; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000); };
+    $("load-go").onclick = () => {
+      const text=$("load-text").value.trim();
+      if(text.length>2*1024*1024){toast("That progress file is too large.","warn");return;}
+      const parsed = Pr.importText(text), r=parsed.ok ? Lab.validateSave(parsed.data) : parsed;
+      if (!r.ok) { toast(r.error, "warn"); return; }
+      if (!confirm("Replace your current progress with the pasted one? The optional Notebook will start empty; export it separately first.")) return;
+      installSave(r.data);
+    };
+    $("tips-reset").onclick = () => { if (GS.level && GS.level.id === "tabletop") { GS.coachStep = 0; coachAfterEdit(); renderCoach(); } toast("Tips will show on the first crossing."); };
+  }
+  const ORDER = ["prologue", "tabletop", "willow", "route", "clinic", "mill", "share", "echo", "support", "finale", "report"];
+  function mapHtml() {
+    const w = world(), cur = ORDER.indexOf(w.node);
+    const label = (id) => { const n = L.NODES[id]; return n.type === "level" ? L.LEVELS[n.level].title : n.type === "choice" ? n.title : id === "prologue" ? "Prologue" : "Field report"; };
+    const rows = ORDER.filter((id) => !(id === "clinic" && w.firstHelp === "mill") && !(id === "mill" && w.firstHelp === "clinic")).map((id) => {
+      const n = L.NODES[id], i = ORDER.indexOf(id);
+      let state = i < cur ? "✔" : i === cur ? "▶" : "·", extra = "";
+      if (n.type === "level" && w.results[n.level]) extra = " " + "★".repeat(w.results[n.level].stars || 0);
+      if (n.type === "choice" && w.choices[id]) extra = " → " + esc(n.options.find((o) => o.id === w.choices[id]).label);
+      if ((id === "clinic" || id === "mill") && !w.firstHelp) extra = " (one of these, your choice)";
+      return `<li><strong>${state}</strong> ${esc(label(id))}${extra}</li>`;
+    });
+    return `<ol class="timeline">${rows.join("")}</ol><p class="small muted">Saved credits: ${w.reserve} · Materials: ${w.materials.map((m) => P.MATERIALS[m].name).join(", ")} · Helped: ${w.helped.map((h) => esc(L.NAMES[h] || h)).join(", ") || "nobody yet"}</p>`;
+  }
+  // ---------- field report ----------
+  function renderReport() {
+    const w = world();
+    const rows = ["tabletop", "willow", w.firstHelp || "clinic", "echo", "finale"].filter((id) => w.results[id]).map((id) => {
+      const r = w.results[id], st = r.stars || 0;
+      const chk = w.checks[id] === true ? "✔" : w.checks[id] === false ? "worth revisiting" : "-";
+      return `<tr><td>${esc(L.LEVELS[id].title)}</td><td>${"★".repeat(st)}${"☆".repeat(3 - st)}</td><td>${r.cost}</td><td>${r.maxSagCm} cm</td><td>${Math.round((r.peakRatio || 0) * 100)}%</td><td>${(r.badges || []).length}</td><td>${chk}</td></tr>`;
+    });
+    const stars = Object.values(w.results).reduce((a, r) => a + (r.stars || 0), 0);
+    const badges = Object.values(w.results).reduce((a, r) => a + (r.badges || []).length, 0);
+    const missed = w.firstHelp === "clinic" ? "Stony Ford mill" : "Fern Hollow clinic";
+    const extra = w.materials.filter((m) => m === "steel" || m === "cable").map((m) => P.MATERIALS[m].name.toLowerCase()).join(" and ");
+    const consequences = [
+      `You went to ${esc(L.NAMES[w.firstHelp] || "")} first, so ${esc(missed)} waited${w.shared ? " until you sent them your saved credits." : " and patched their own crossing."}`,
+      w.shared ? "Sharing cost your savings but brought a second material and a second community's trust." : `Keeping the credits gave Riverbend a bigger budget, but beyond timber you only had ${esc(extra)}.`,
+      `Riverbend was built with: ${esc(L.LEVELS.finale.variants[w.support || "none"].label)}.`,
+    ];
+    $("report-body").innerHTML = `<p class="eyebrow">Field report</p><h2 id="report-title">Riverbend is connected</h2>
+      <p class="lead">The seedlings crossed. ${stars} stars and ${badges} badges over ${w.tests} tests.</p>
+      <h3>What your choices changed</h3><ul class="timeline">${consequences.map((c) => `<li>${c}</li>`).join("")}</ul>
+      <h3>Your crossings</h3><div class="report-table" role="region" aria-label="Crossing results" tabindex="0"><table><thead><tr><th>Crossing</th><th>Stars</th><th>Credits</th><th>Max drop</th><th>Busiest member</th><th>Badges</th><th>Check</th></tr></thead><tbody>${rows.join("")}</tbody></table></div>
+      <div class="engineering-feedback"><strong>Your engineering evidence</strong><p>${notebook.runs.length} recorded tests. Revisit your designs, compare matching conditions, and export your observations and explanation. Stars and quiz answers do not establish engineering mastery.</p><button class="btn" id="rep-notebook">Open engineering notebook</button></div>
+      <h3>Final question</h3><p>If you played again, which decision would you change, and how would it change the Riverbend bridge? Use one number from the table as evidence.</p>
+      <textarea id="reflection" aria-label="Your answer">${esc(GS.save.reflection || "")}</textarea>
+      <div class="result-actions"><button class="btn" id="rep-print">Print / save as PDF</button><button class="btn" id="rep-menu">Main menu</button><button class="btn primary" id="rep-again">Try another path</button></div>`;
+    $("reflection").addEventListener("input", (e) => { GS.save.reflection = e.target.value; persist(); });
+    $("rep-notebook").onclick=()=>Edu.open("finale");
+    $("rep-print").onclick = () => root.print();
+    $("rep-menu").onclick = renderMenu;
+    $("rep-again").onclick = newJourney;
+    show("report");
+  }
+
+  // ---------- wiring ----------
+  function wire() {
+    $("btn-new").onclick = newJourney; $("btn-continue").onclick = cont;
+    $("btn-select").onclick = () => openModal("map");
+    $("comic-next").onclick = comicNext; $("comic-skip").onclick = () => advance("prologue");
+    $("btn-menu").onclick = () => { if(GS.practice){endPractice(false,true);return;} if (GS.mode !== "edit") backToEdit(); persist(); renderMenu(); };
+    $("menu-practice").onclick=()=>{persist();openLevel("tabletop",{practice:true});};
+    $("btn-notebook").onclick = ()=>Edu.open(GS.level.id); $("menu-notebook").onclick=()=>Edu.open();
+    $("btn-pause").onclick=togglePause; $("btn-results").onclick=returnToResults;
+    $("btn-map").onclick = () => openModal("map");
+    $("tool-erase").onclick = () => setTool(GS.tool === "erase" ? GS.level.materials.find(m=>m!=="road") : "erase");
+    $("btn-undo").onclick = undo; $("btn-redo").onclick = redo; $("btn-clear").onclick = clearAll;
+    $("btn-hint").onclick = hint;
+    $("btn-forces").onclick = () => { GS.forces = !GS.forces; R.setForces(GS.forces); $("btn-forces").setAttribute("aria-pressed", String(GS.forces)); };
+    $("btn-forces").setAttribute("aria-pressed", "true");
+    $("btn-test").onclick = startTest; $("btn-edit").onclick = backToEdit;
+    document.querySelectorAll("[data-open]").forEach((b) => b.addEventListener("click", () => openModal(b.dataset.open)));
+    $("modal-close").onclick = closeModal;
+    $("modal").addEventListener("click", (e) => { if (e.target === $("modal")) closeModal(); });
+    document.addEventListener("keydown", onKey);
+  }
+  function onKey(e) {
+    if (!$("modal").hidden) {
+      if(e.key==="Escape")closeModal();
+      if(e.key==="Tab"){const nodes=[...$("modal").querySelectorAll('button:not(:disabled),input,select,textarea,[tabindex="0"]')].filter(n=>n.getClientRects().length);if(nodes.length){const first=nodes[0],last=nodes.at(-1);if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}}}return;
+    }
+    if (GS.screen !== "build" || /input|textarea|select/i.test(e.target.tagName)) return;
+    const mod = e.ctrlKey || e.metaKey, k = e.key.toLowerCase();
+    if (mod && k === "z") { e.preventDefault(); e.shiftKey ? redo() : undo(); return; }
+    if (mod && k === "y") { e.preventDefault(); redo(); return; }
+    if (e.key === "Escape") { R.cancel(); return; }
+    if (e.key === " " && e.target.tagName !== "BUTTON") { e.preventDefault(); GS.mode === "edit" ? startTest() : backToEdit(); return; }
+    if (k === "f") { $("btn-forces").click(); return; }
+    if (k === "p" && GS.mode === "test") { togglePause(); return; }
+    if (GS.mode !== "edit") return;
+    const n = parseInt(e.key, 10), materials=GS.level.materials.filter(m=>m!=="road");
+    if (n >= 1 && n <= materials.length) setTool(materials[n - 1]);
+    else if (k === "x") setTool("erase");
+    else if (k === "f") $("btn-forces").click();
+  }
+
+  // ---------- QA hooks (game-qa skill) ----------
+  root.__GAME_STATE__ = GS; root.__EVENT_BUS__ = Bus; root.__EVENTS__ = E;
+  root.render_game_to_text = () => {
+    const out = { coords: "grid units of 0.5 m; origin at left deck end; x right, y up", screen: GS.screen, mode: GS.mode };
+    if (GS.save) { const w = world(); out.node = w.node; out.world = { reserve: w.reserve, materials: w.materials, helped: w.helped, support: w.support, choices: w.choices }; }
+    if (GS.screen === "build" && GS.level) {
+      out.level = { id: GS.level.id, span_m: GS.level.span, budget: GS.level.totalBudget, materials: GS.level.materials };
+      out.design = { members: GS.design.members.length, cost: cost(), warnings: M.warnings(GS.design) };
+      out.tool = GS.tool; out.paused=GS.paused; out.notebookRuns=notebook.runs.length;
+      if (GS.sim) out.sim = { t: +GS.sim.t.toFixed(2), vehicle_x_m: +GS.sim.vehicle.front.toFixed(2), maxSagCm: Math.round(GS.sim.maxSag * 1000) / 10, broken: GS.sim.mems.filter((m) => m.broken).length, outcome: GS.sim.outcome, slowmo: GS.slowmo > 0 };
+      if (GS.lastSummary && GS.mode !== "test") out.result = GS.lastSummary.rec;
+    }
+    if (GS.screen === "choice") out.options = L.NODES[world().node].options.map((o) => ({ id: o.id, available: !o.requires || o.requires(world()) }));
+    return JSON.stringify(out);
+  };
+  root.__ENGINEERING_NOTEBOOK__=()=>notebook; root.__INQUIRY_NOTES__=()=>inquiry;
+  root.advanceTime = (ms) => new Promise((resolve) => { const t0 = performance.now(); (function f() { if (performance.now() - t0 >= ms) resolve(); else requestAnimationFrame(f); })(); });
+  // Test-only helper: load the first example design for the current level.
+  root.__loadExample = () => { if (GS.level && GS.mode === "edit") { M.load(GS.design, withFixedRoad(GS.level,GS.level.refs[0].members)); changed(); return true; } return false; };
+
+  const Edu=root.EngineeringUI.create({GS,P,L,M,R,Lab,esc,getBook:()=>notebook,getNotes:()=>inquiry,Notes,saveBook,storageText,persist,toast,download,withFixedRoad,openModal,closeModal,backToEdit,changed,startTest,importBook:r=>installSave(r.progress,r.notebook,r.inquiry)});
+  // Adapt presentation events without changing the original event definitions.
+  Bus.on(E.TEST_STARTED,()=>Bus.emit('test:start',{levelId:GS.level&&GS.level.id,practice:GS.practice}));
+  Bus.on('test:start',({levelId,practice})=>{
+    if(practice||GS.practice||!GS.level||GS.mode!=='test'||GS.level.id!==levelId||GS.testNoteIndex!==null)return;
+    GS.testNoteIndex=Notes.start(inquiry,levelId,Date.now());persist();
+  });
+  Bus.on(E.TEST_FINISHED,({outcome,rec})=>{
+    if(GS.practice||!GS.level)return;
+    Bus.emit(outcome==='pass'?'level:pass':'test:fail',{levelId:GS.level.id,rec});
+  });
+  function refreshTask(){if(!$('modal').hidden&&$('modal').dataset.kind==='brief'){$('modal-body').innerHTML=Edu.taskHtml(GS.level);Edu.wireTask();}}
+  Bus.on('test:fail',({levelId})=>{
+    if(GS.practice||!GS.level||GS.level.id!==levelId||GS.teaching.block2)return;
+    GS.teaching.block2=true;GS.teachingNotice='block2';refreshTask();
+  });
+  Bus.on('level:pass',({levelId,rec})=>{
+    if(GS.practice||!GS.level||GS.level.id!==levelId||!rec||!rec.pass)return;
+    const preview=Lab.copy(world()),brought=world().reserve,delta=L.applyResult(preview,levelId,rec);
+    GS.savings={carry:delta.carry,used:delta.usedReserve,brought,total:preview.reserve};
+    if(!GS.teaching.block3){GS.teaching.block3=true;GS.teachingNotice='block3';refreshTask();}
+  });
+  root.addEventListener("beforeunload",()=>Edu.flush());
+  root.addEventListener("pagehide",()=>Edu.flush());
+  // ---------- boot ----------
+  function boot() {
+    const loaded=Pr.load(store,L.newWorld),checked=Lab.validateSave(loaded);
+    GS.save=checked.ok?checked.data:Pr.blank(L.newWorld); notebook=Lab.load(store,GS.save); inquiry=Notes.migrate(notebook,Notes.load(store,Lab.progressStamp(GS.save)));saveBook();
+    wire();
+    renderMenu();
+  }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot); else boot();
+})(typeof self !== "undefined" ? self : this);
