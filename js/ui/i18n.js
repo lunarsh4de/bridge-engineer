@@ -20,6 +20,11 @@ New expedition|开启进阶旅程
 New journey|开启旅程
 Start over|重新开始
 Continue|继续
+Continue to Chapter II|继续第二章
+View chapter report|查看本章报告
+Chapter I complete. Chapter II brings new river challenges.|第一章已完成，接下来进入第二章河港工程挑战。
+This is the final crossing of Chapter I. Chapter II follows.|这是第一章的最后一座桥，完成后将继续第二章。
+Complete Chapter I to continue straight into Chapter II, where two trucks, boat clearance and multiple spans add new constraints.|完成第一章后将直接进入第二章，继续挑战双车荷载、船舶净空与多跨结构。
 About|关于
 How to play|玩法
 Controls practice|操作练习

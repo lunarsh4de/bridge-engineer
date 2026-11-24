@@ -22,8 +22,10 @@
   const store={getItem:k=>rawStore.getItem(chapter==='advanced'?'riverbend.advanced.'+k:k),setItem:(k,v)=>rawStore.setItem(chapter==='advanced'?'riverbend.advanced.'+k:k,v),removeItem:k=>rawStore.removeItem(chapter==='advanced'?'riverbend.advanced.'+k:k)};
   const makeWorld=()=>chapter==='advanced'?X.newWorld(L):L.newWorld();
   function loadChapter(){const loaded=Pr.load(store,makeWorld),checked=Lab.validateSave(loaded);GS.save=checked.ok?checked.data:Pr.blank(makeWorld);notebook=Lab.load(store,GS.save);inquiry=Notes.migrate(notebook,Notes.load(store,Lab.progressStamp(GS.save)));saveBook();}
-  function switchChapter(next){if(next===chapter)return;Edu.flush();persist();resetWorkshop();chapter=next;rawStore.setItem('riverbend.chapter',chapter);loadChapter();closeModal(false);renderMenu();}
+  function switchChapter(next,resume=false){if(next===chapter)return;Edu.flush();persist();resetWorkshop();chapter=next;rawStore.setItem('riverbend.chapter',chapter);loadChapter();closeModal(false);if(resume){GS.save.started=true;goNode(world().node);}else renderMenu();}
   const world = () => GS.save.world;
+  function canContinueToAdvanced(){return chapter==='foundation'&&world().node==='report'&&!!world().results.finale;}
+  function continueToAdvanced(){switchChapter('advanced',true);toast("Chapter I complete. Chapter II brings new river challenges.","good");}
   function storageText() { return storageVolatile ? "Storage is unavailable or full. Work is kept for this session; export your notebook before closing." : "Progress and the optional Notebook save locally in this browser."; }
   function saveBook() { if (!Lab.save(store, notebook, GS.save)) storageVolatile = true; if(!Notes.save(store,inquiry,Lab.progressStamp(GS.save)))storageVolatile=true; }
   function persist() { if (GS.design && GS.level && !GS.practice) GS.save.designs[GS.level.id] = M.clone(GS.design.members); if (!Pr.save(store, GS.save)) storageVolatile = true; saveBook(); }
@@ -58,6 +60,8 @@
     $('chapter-lead').textContent=advanced?'Two trucks. Tall boats. Two spans. Meet every constraint in five new engineering commissions.':'The flood took the valley’s bridges. Build new ones, choose who to help first, and live with what your choices change.';
     $('menu-practice').hidden=advanced;
     $("btn-continue").hidden = !started;
+    $("btn-continue").textContent = canContinueToAdvanced() ? "Continue to Chapter II" : "Continue";
+    $("btn-report").hidden = !(advanced ? w.results.riverport : w.results.finale);
     $("btn-select").hidden = !started;
     $("btn-new").textContent = started ? "Start over" : advanced?"New expedition":"New journey";
     $("btn-new").classList.toggle("primary", !started);
@@ -72,7 +76,7 @@
     if(chapter==='advanced'){goNode('convoy');return;}
     GS.comicIndex = 0; renderComic(); show("comic");
   }
-  function cont() { goNode(world().node); }
+  function cont() { if(canContinueToAdvanced()){continueToAdvanced();return;} goNode(world().node); }
 
   // ---------- comic ----------
   function renderComic() {
@@ -93,7 +97,14 @@
     else if (n.type === "level") openLevel(n.level);
     else renderReport();
   }
-  function advance(fromId) { goNode(L.NODES[fromId].next); }
+  function advance(fromId) {
+    const next=L.NODES[fromId].next;
+    if(chapter==='foundation'&&fromId==='finale'&&world().results.finale){
+      // Keep Chapter I at its completed report before loading Chapter II's separate save.
+      world().node=next;persist();continueToAdvanced();return;
+    }
+    goNode(next);
+  }
   function renderChoice(id) {
     const n = L.NODES[id], w = world();
     $("choice-title").textContent = n.title; $("choice-text").innerHTML = `<p class="choice-short">${esc(({route:"Choose who to reach first.",share:"Trade savings for materials and trust?",support:"Choose the supports for your final bridge."})[id])}</p><details class="choice-story"><summary>The valley’s request</summary><p>${esc(n.text(w))}</p></details>`;
@@ -502,12 +513,13 @@
       <div class="engineering-feedback"><strong>Your engineering evidence</strong><p>${notebook.runs.length} recorded tests. Revisit your designs, compare matching conditions, and export your observations and explanation. Stars and quiz answers do not establish engineering mastery.</p><button class="btn" id="rep-notebook">Open engineering notebook</button></div>
       <h3>Final question</h3><p>If you played again, which decision would you change, and how would it change the Riverbend bridge? Use one number from the table as evidence.</p>
       <textarea id="reflection" aria-label="Your answer">${esc(GS.save.reflection || "")}</textarea>
-      <div class="result-actions"><button class="btn" id="rep-print">Print / save as PDF</button><button class="btn" id="rep-menu">Main menu</button><button class="btn primary" id="rep-again">Try another path</button></div>`;
+      <div class="result-actions"><button class="btn" id="rep-print">Print / save as PDF</button><button class="btn" id="rep-menu">Main menu</button><button class="btn" id="rep-again">Try another path</button><button class="btn primary" id="rep-advanced">Continue to Chapter II</button></div>`;
     $("reflection").addEventListener("input", (e) => { GS.save.reflection = e.target.value; persist(); });
     $("rep-notebook").onclick=()=>Edu.open("finale");
     $("rep-print").onclick = () => root.print();
     $("rep-menu").onclick = renderMenu;
     $("rep-again").onclick = newJourney;
+    $("rep-advanced").onclick = continueToAdvanced;
     show("report");
   }
 
@@ -528,6 +540,7 @@
     document.querySelectorAll('.language-switch').forEach(b=>b.onclick=()=>root.BridgeI18n.toggle());
     $("btn-new").onclick = newJourney; $("btn-continue").onclick = cont;
     $("btn-select").onclick = () => openModal("map");
+    $("btn-report").onclick = () => { persist(); renderReport(); };
     $("comic-next").onclick = comicNext; $("comic-skip").onclick = () => advance("prologue");
     $("btn-menu").onclick = () => { if(GS.practice){endPractice(false,true);return;} if (GS.mode !== "edit") backToEdit(); persist(); renderMenu(); };
     $("menu-practice").onclick=()=>{persist();openLevel("tabletop",{practice:true});};

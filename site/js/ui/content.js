@@ -13,6 +13,7 @@
   const about = `
     <p class="lead">For ages 11–14 with adult facilitation. No bridge-design experience needed. Expected play time is about 45–75 minutes; actual time varies.</p>
     <h3>STEM focus</h3><p><strong>Engineering:</strong> structural design under budget. <strong>Science:</strong> gravity, self-weight, tension and compression. <strong>Mathematics:</strong> length, cost, load and measured comparison. <strong>Technology:</strong> an inspectable simulation.</p>
+    <p>Complete Chapter I to continue straight into Chapter II, where two trucks, boat clearance and multiple spans add new constraints.</p>
     <h3>Learning goals</h3><ol>
       <li>Compare two tests under the same load using maximum drop, peak member load and cost, then explain one change through the load path.</li>
       <li>Choose timber, steel or cable for a role and justify it with tension/compression, strength, buckling and self-weight evidence.</li>
@@ -83,7 +84,7 @@
     if (savings && level.id !== 'tabletop') {
       if (savings.carry > 0) world += `Deliver this bridge to carry <strong>${savings.carry} credits</strong> saved here into later crossings. `;
       if (savings.brought > 0) world += `You brought <strong>${savings.brought} saved credits</strong> into this crossing${savings.used ? `; this design uses ${savings.used} of them` : ''}. `;
-      if (world) world += `After delivery, your reserve will be <strong>${savings.total} credits</strong>. ${level.id === 'finale' ? 'This is the final crossing.' : 'Earlier choices shape what reaches Riverbend.'}`;
+      if (world) world += `After delivery, your reserve will be <strong>${savings.total} credits</strong>. ${level.id === 'finale' ? 'This is the final crossing of Chapter I. Chapter II follows.' : 'Earlier choices shape what reaches Riverbend.'}`;
     }
     return `<section class="task-block real-world" data-task-block="3"><div class="concept-visual">${root.VisualGuide?root.VisualGuide.concept(level):""}<h3>One crossing. Many designs.</h3></div>${savings&&level.id!=="tabletop"?`<p class="reserve-preview">After delivery: <strong>${savings.total} credits</strong> in reserve</p>`:""}<details class="transfer-more"><summary>Beyond this crossing</summary><p>${esc(REAL_WORLD_MAP[level.id] || '')}</p><p class="ill-structured">${esc(ILL_STRUCTURED)}</p>${world ? `<p class="world-state-hint">${world}</p>` : ''}</details></section>`;
   }

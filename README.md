@@ -1,4 +1,4 @@
-# Riverbend: Bridge Engineer — Two chapters · 中文 / English · 1.4.1
+# Riverbend: Bridge Engineer — Two chapters · 中文 / English · 1.4.2
 
 Offline STEM bridge-building game for ages 11–14. Open `index.html` (or
 `site/index.html`) in a browser with WebGL 2. No server, install, build step,
@@ -9,7 +9,7 @@ shadows and delivery truck. The structural simulation remains the original 2D
 fixed-step XPBD model. Chapter I retains its original structural cases and version-1 progress. Chapter II adds simultaneous prescribed axle loads and a 2D swept navigation envelope. Neither is a real bridge-safety model.
 
 - 中文 / English: switch from the menu or workshop. The choice saves locally. Menus, story, tasks, hints, quizzes, evidence and reports are translated; your own notes retain their original writing.
-- Two independent chapters: select **I · Valley journey** or **II · River challenges** on the menu. Changing chapters preserves each journey and notebook.
+- Continuous journey: finishing Chapter I automatically opens Chapter II, or resumes its existing progress. **Continue** also advances older completed Chapter I saves. Each chapter keeps its own designs and notebook; **View chapter report** revisits a finished chapter. The menu chapter buttons remain available for direct access and replay. See `docs/RELEASE-NOTES-v1.4.2_zh.md`.
 - Advanced navigation: choose +0 / +1 / +2 m deck height. Applying a different height rebuilds the road and clears supports, with an explicit label; old tests stay in the Notebook. Both trucks and every boat must finish. A blocked lane identifies the obstructing member.
 - Real bridge cases: all eleven level definitions include a local photo with attribution, an engineering connection and a clear model difference. See `docs/BRIDGE-CASES.md` and `assets/bridges/SOURCES.json` for licenses and sources.
 - First-chapter balance update: tighter per-crossing drop limits and budgets, with investigation prompts in both languages. See `docs/RELEASE-NOTES-v1.4.1_zh.md`.
@@ -37,6 +37,7 @@ fixed-step XPBD model. Chapter I retains its original structural cases and versi
   Export before moving folders because browsers can separate local-file storage.
 - Teaching update and acceptance: `docs/TEACHING-UPDATE_zh.md`.
 - Advanced numerical checks: `node --test tests/expansion.test.cjs`; full bilingual/touch progression: `node scripts/verify-expansion.cjs [project-directory]`. Reference fixtures and accelerated solver checks are identified in its report.
+- Chapter handoff regression: `node scripts/verify-chapter-flow.cjs [project-directory]` checks automatic continuation, older saves, report access, existing Chapter II progress and Chinese mobile controls.
 - Optional touch/layout checks: `node scripts/verify-mobile.cjs [project-directory]`.
 - Optional teaching browser checks: `node scripts/verify-pedagogy.cjs [project-directory]`.
 - Upgrade, acceptance and limitations: `docs/3D-UPGRADE_zh.md`.
