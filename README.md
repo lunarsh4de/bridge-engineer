@@ -1,4 +1,4 @@
-# Riverbend: Bridge Engineer — Two chapters · 中文 / English · 1.4.3
+# Riverbend: Bridge Engineer — Two chapters · 中文 / English · 1.4.4
 
 Offline STEM bridge-building game for ages 11–14. Open `index.html` (or
 `site/index.html`) in a browser with WebGL 2. No server, install, build step,
@@ -15,6 +15,7 @@ fixed-step XPBD model. Chapter I retains its original structural cases and versi
 - First-chapter balance update: tighter per-crossing drop limits and budgets, with investigation prompts in both languages. See `docs/RELEASE-NOTES-v1.4.1_zh.md`.
 - Expansion specification, teaching flow and limitations: `docs/EXPANSION-v1.4_zh.md`.
 - Mobile: pictorial controls and mission cards, compact touch tools, an instruction strip outside the scene, and expandable explanations. First workshop entry gently turns once to reveal the 3D view; touch stops it immediately and reduced-motion settings disable it. See `docs/MOBILE-UPDATE_zh.md`.
+- Tutorial focus and sound: a grey translucent mask reveals each current action. A pointer shows Orbit view → drag to look around → Front view before construction. Keyboard users can advance without dragging, and reduced-motion settings keep demonstrations static. Offline synthesized effects accompany clicks, connections, undo/redo, tests, breaks and outcomes. The speaker button saves your mute preference. See `docs/RELEASE-NOTES-v1.4.4_zh.md`.
 - First crossing is a guided tutorial: a translucent pointer/finger demonstrates holding, dragging and releasing; ghost supports and click rings show the target. Build the real bridge, try undo/redo and two-end taps, then test and continue directly to Willow. Replay/skip are available; earlier saves continue normally. See `docs/TUTORIAL-UPDATE_zh.md`. Controls practice stays available separately from the menu.
 - Build: the road is prelaid, budgeted and locked. Drag between grid dots, tap two points, or use Arrow keys + Enter to build support members.
 - Camera: right-drag to orbit; wheel to zoom. Use **Orbit view** for left-drag or
@@ -30,6 +31,7 @@ fixed-step XPBD model. Chapter I retains its original structural cases and versi
 - Per-test notes: Predict before testing, then Claim/Evidence/Reasoning; automatic 500ms saving and previous/next history.
 - Engineering evidence: the optional Notebook records matched tests, observations, one-variable material changes and claim/evidence/reasoning notes.
 - Portable release: `python scripts/package-release.py`
+- Focus/camera/audio acceptance: `node scripts/verify-focus-audio.cjs [project-directory]`. Uses actual mouse/native touch and Web Audio analyser samples.
 - Tutorial acceptance: `node scripts/verify-tutorial.cjs [project-directory]`. Uses actual mouse and native touch input.
 - Optional browser verification: `node scripts/verify-3d.cjs [project-directory]`.
   Set `RIVERBEND_PLAYWRIGHT_MODULE` to an external Playwright installation if needed.

@@ -587,3 +587,14 @@ html[lang=zh-CN] .menu-card h1 {letter-spacing:0;}
 @media(prefers-reduced-motion:reduce) {
   .tutorial-pointer { filter:none; }
 }
+
+/* The mask darkens surrounding UI while leaving the current lesson and escape controls clear. */
+.tutorial-shade { pointer-events:none; }
+.sound-toggle { display:inline-flex; align-items:center; justify-content:center; min-width:36px; }
+.sound-toggle .ui-icon { margin:0; }
+@media(max-width:380px) {
+ .topbar { gap:2px; padding-inline:4px; }
+ .topbar .btn { width:30px; min-width:30px; }
+ .topbar .language-switch { width:36px; min-width:36px; }
+ .topbar .level-title { min-width:0; }
+}

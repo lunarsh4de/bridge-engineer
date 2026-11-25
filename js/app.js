@@ -14,8 +14,8 @@
   const GS = {
     screen: "menu", save: null, level: null, design: null, sim: null, mode: "edit",
     tool: "road", forces: true, slowmo: 0, endHold: 0, accum: 0, lastSummary: null, hintStep: 0,
-    teaching:{block2:false,block3:false}, teachingNotice:null, savings:null, testNoteIndex:null, comicIndex: 0, coachStep: 0, firstBreakShown: false, practice: false, onboarding: false, practiceStep: 0, practiceUndone: false, paused: false, observedSlack: new Set(), testDesign: null, lastRecord: null,
-    reset() { this.teaching={block2:false,block3:false};this.teachingNotice=null;this.savings=null;this.testNoteIndex=null; this.level = null; this.design = null; this.sim = null; this.mode = "edit"; this.slowmo = 0; this.endHold = 0; this.accum = 0; this.lastSummary = null; this.hintStep = 0; this.firstBreakShown = false; this.breakText = ""; this.seenEvents = 0; this.practice=false; this.onboarding=false; this.practiceStep=0; this.practiceUndone=false; this.paused = false; this.inspectList = null; this.testDesign = null; this.lastRecord = null; this.observedSlack = new Set(); },
+    teaching:{block2:false,block3:false}, teachingNotice:null, savings:null, testNoteIndex:null, comicIndex: 0, coachStep: 0, firstBreakShown: false, practice: false, onboarding: false, practiceStep: 0, practiceUndone: false, tutorialCamera: null, paused: false, observedSlack: new Set(), testDesign: null, lastRecord: null,
+    reset() { this.teaching={block2:false,block3:false};this.teachingNotice=null;this.savings=null;this.testNoteIndex=null; this.level = null; this.design = null; this.sim = null; this.mode = "edit"; this.slowmo = 0; this.endHold = 0; this.accum = 0; this.lastSummary = null; this.hintStep = 0; this.firstBreakShown = false; this.breakText = ""; this.seenEvents = 0; this.practice=false; this.onboarding=false; this.practiceStep=0; this.practiceUndone=false; this.tutorialCamera=null; this.paused = false; this.inspectList = null; this.testDesign = null; this.lastRecord = null; this.observedSlack = new Set(); },
   };
   const rawStore = (() => { try { const s = root.localStorage; s.setItem("rb.t", "1"); s.removeItem("rb.t"); return s; } catch (e) { storageVolatile = true; const m = {}; return { getItem: (k) => m[k] || null, setItem: (k, v) => { m[k] = String(v); }, removeItem: (k) => { delete m[k]; } }; } })();
   let chapter=rawStore.getItem('riverbend.chapter')==='advanced'?'advanced':'foundation';
@@ -150,6 +150,7 @@
     buildMaterials(); renderWorldStrip(); setMode("edit"); refreshBudget();
     GS.coachStep = id === "tabletop" && !GS.design.members.some(m=>m.m!=="road") ? 1 : -1;
     if(GS.onboarding){w.checks['controls:offered']=true;w.checks['tutorial:active']=true;GS.practiceStep=hasSupport([8,-2],[4,0])&&hasSupport([0,-2],[4,0])?4:hasSupport([0,-2],[4,0])?3:0;}
+    if(GS.onboarding&&GS.practiceStep===0&&!w.checks["tutorial:camera"])GS.tutorialCamera="orbit";
     renderCoach();
     show("build");
     if (!root.__GAME__) root.__GAME__ = R.mount("stage", { frame });
@@ -162,12 +163,13 @@
     const c = $("coach");
     if(GS.practice||GS.onboarding){
       if(GS.mode==='result'||GS.mode==='inspect'){c.hidden=true;Guide.clear();return;}
-      const step=GS.practiceStep,titles=['Choose a material','Hold → drag → release','Undo, then redo','Tap 1, then tap 2','Test your bridge'];
+      const step=GS.practiceStep,cam=GS.tutorialCamera,titles=['Choose a material','Hold → drag → release','Undo, then redo','Tap 1, then tap 2','Test your bridge'];
       c.hidden=false;c.classList.add('tutorial-coach');
-      c.innerHTML=`<div class="tutorial-heading"><span class="tutorial-kicker">${GS.practice?'Controls practice':'First crossing · Tutorial'}</span><span class="tutorial-count">${step+1} / 5</span></div><strong>${GS.mode==='test'?'Pause and read the colors':titles[step]}</strong><span id="tutorial-action" class="tutorial-action" aria-hidden="true"></span><div class="tutorial-actions">${step===0?'<button class="btn small" id="practice-next">Next: connect</button>':''}<button class="btn ghost small" id="tutorial-replay" aria-label="Replay demonstration">${V.icon('reset')}<span>Replay</span></button><button class="btn ghost small" id="practice-skip" aria-label="Skip tutorial" title="Skip tutorial">×</button></div>`;
+      c.innerHTML=`<div class="tutorial-heading"><span class="tutorial-kicker">${GS.practice?'Controls practice':'First crossing · Tutorial'}</span><span class="tutorial-count">${cam?({orbit:1,turn:2,front:3})[cam]:step+4} / 8</span></div><strong>${GS.mode==='test'?'Pause and read the colors':cam?({orbit:'Turn the 3D scene',turn:'Drag to look around',front:'Return to Front view'})[cam]:titles[step]}</strong><span id="tutorial-action" class="tutorial-action" aria-hidden="true"></span><div class="tutorial-actions">${cam==='turn'?'<button class="btn small" id="camera-next">Next: front view</button>':!cam&&step===0?'<button class="btn small" id="practice-next">Next: connect</button>':''}<button class="btn ghost small" id="tutorial-replay" aria-label="Replay demonstration">${V.icon('reset')}<span>Replay</span></button><button class="btn ghost small" id="practice-skip" aria-label="Skip tutorial" title="Skip tutorial">×</button></div>`;
       R.setGuide(step===1?[[0,-2],[4,0]]:step===3?[[8,-2],[4,0]]:[]);
-      Guide.configure({step,undone:GS.practiceUndone,hasLeft:hasSupport([0,-2],[4,0]),hasRight:hasSupport([8,-2],[4,0]),testing:GS.mode==='test'});
+      Guide.configure({step,cameraPhase:cam,onRotate:()=>cameraLesson('front'),undone:GS.practiceUndone,hasLeft:hasSupport([0,-2],[4,0]),hasRight:hasSupport([8,-2],[4,0]),testing:GS.mode==='test'});
       if($('practice-next'))$('practice-next').onclick=beginTutorialBuild;
+      if($('camera-next'))$('camera-next').onclick=()=>cameraLesson('front');
       const action=$('tutorial-action');action.textContent=step===1?'Hold, drag, release.':step===3?'Tap 1, then tap 2.':step===2?'Undo removes your last support.':step===4?'Your bridge is ready. Test it.':'Choose Timber below.';
       $('tutorial-replay').onclick=()=>{if(GS.mode==='edit'&&(step===1||step===3))R.frontView();Guide.replay();};
       $('practice-skip').onclick=()=>GS.practice?endPractice(false):skipTutorial();return;
@@ -180,8 +182,9 @@
     $("coach-skip").onclick = () => { GS.coachStep = -1; renderCoach(); };
   }
   function hasSupport(a,b){return !!GS.design&&GS.design.members.some(m=>(P.keyOf(m.a)===P.keyOf(a)&&P.keyOf(m.b)===P.keyOf(b))||(P.keyOf(m.a)===P.keyOf(b)&&P.keyOf(m.b)===P.keyOf(a)));}
-  function beginTutorialBuild(){GS.practiceStep=1;setTool('timber');R.frontView();renderCoach();}
-  function skipTutorial(){world().checks['tutorial:active']=false;world().checks['controls:skipped']=true;GS.onboarding=false;GS.coachStep=-1;renderCoach();persist();if(!world().checks['seen:tabletop']){world().checks['seen:tabletop']=true;persist();openModal('brief');}}
+  function cameraLesson(phase){GS.tutorialCamera=phase;if(phase==='turn'){R.stopIntro();R.setNavigation(true);}if(!phase){R.frontView();world().checks['tutorial:camera']=true;persist();}renderCoach();}
+  function beginTutorialBuild(){GS.tutorialCamera=null;GS.practiceStep=1;setTool('timber');R.frontView();renderCoach();}
+  function skipTutorial(){world().checks['tutorial:active']=false;world().checks['controls:skipped']=true;GS.onboarding=false;GS.tutorialCamera=null;R.setNavigation(false);GS.coachStep=-1;renderCoach();persist();if(!world().checks['seen:tabletop']){world().checks['seen:tabletop']=true;persist();openModal('brief');}}
   function coachAfterEdit() {
     if(GS.practice||GS.onboarding){
       const left=hasSupport([0,-2],[4,0]),right=hasSupport([8,-2],[4,0]);
@@ -210,7 +213,7 @@
     if (t === "road") { toast("Road is already laid and locked. Build its supports."); return; }
     if (t !== "erase" && !GS.level.materials.includes(t)) return;
     GS.tool = t; R.setTool(t);
-    if((GS.onboarding||GS.practice)&&GS.practiceStep===0&&t==='timber'&&GS.screen==='build'&&$('modal').hidden){GS.practiceStep=1;R.frontView();renderCoach();}
+    if((GS.onboarding||GS.practice)&&!GS.tutorialCamera&&GS.practiceStep===0&&t==='timber'&&GS.screen==='build'&&$('modal').hidden){GS.practiceStep=1;R.frontView();renderCoach();}
     document.querySelectorAll("#toolbar [data-tool]").forEach((b) => { const on = b.dataset.tool === t; b.setAttribute(b.getAttribute("role") === "radio" ? "aria-checked" : "aria-pressed", String(on)); b.classList.toggle("on", on); });
   }
   function renderWorldStrip() {
@@ -239,16 +242,16 @@
     const r = M.add(GS.design, a, b, type);
     lastAddOk = r.ok;
     if (!r.ok) { toast(r.error, "warn"); Bus.emit(E.DESIGN_REJECTED, { error: r.error }); return; }
-    changed(); Guide.connected();
+    changed(); Guide.connected(); root.GameAudio.play("connect");
   });
-  Bus.on(E.DESIGN_ERASE, ({ i }) => { if (GS.mode!=="edit") return; if(GS.design.members[i]&&GS.design.members[i].m==="road"){toast("Road is locked; erase or change a support instead.");return;}if(M.removeAt(GS.design,i))changed(); });
-  function undo() { if (GS.mode === "edit" && M.undo(GS.design)) {if((GS.practice||GS.onboarding)&&GS.practiceStep===2)GS.practiceUndone=true;changed();} }
-  function redo() { if (GS.mode === "edit" && M.redo(GS.design)) {if((GS.practice||GS.onboarding)&&GS.practiceStep===2&&GS.practiceUndone)GS.practiceStep=3;changed();} }
-  function clearAll() { if(GS.mode==="edit"&&GS.design.members.some(m=>m.m!=="road")){M.load(GS.design,fixedRoad(GS.level));changed();toast("Supports cleared. The road stays. Undo brings the supports back.");} }
+  Bus.on(E.DESIGN_ERASE, ({ i }) => { if (GS.mode!=="edit") return; if(GS.design.members[i]&&GS.design.members[i].m==="road"){toast("Road is locked; erase or change a support instead.");return;}if(M.removeAt(GS.design,i)){changed();root.GameAudio.play("erase");} });
+  function undo() { if (GS.mode === "edit" && M.undo(GS.design)) {if((GS.practice||GS.onboarding)&&GS.practiceStep===2)GS.practiceUndone=true;changed();root.GameAudio.play("undo");} }
+  function redo() { if (GS.mode === "edit" && M.redo(GS.design)) {if((GS.practice||GS.onboarding)&&GS.practiceStep===2&&GS.practiceUndone)GS.practiceStep=3;changed();root.GameAudio.play("redo");} }
+  function clearAll() { if(GS.mode==="edit"&&GS.design.members.some(m=>m.m!=="road")){M.load(GS.design,fixedRoad(GS.level));changed();root.GameAudio.play("erase");toast("Supports cleared. The road stays. Undo brings the supports back.");} }
   function practiceIntro(){
     openModal('practice',V.practice()+'<div class="result-actions task-actions"><button class="btn" id="practice-intro-skip">Skip to first crossing</button><button class="btn primary" id="practice-start">Practice in 3D</button></div>');
     $('practice-intro-skip').textContent=world().node==='tabletop'?'Skip to first crossing':'Skip practice & return';
-    $('practice-start').onclick=()=>{closeModal();GS.practiceStep=0;renderCoach();};$('practice-intro-skip').onclick=()=>endPractice(false);
+    $('practice-start').onclick=()=>{closeModal();GS.practiceStep=0;GS.tutorialCamera='orbit';renderCoach();};$('practice-intro-skip').onclick=()=>endPractice(false);
   }
   function endPractice(done,toMenu=false){world().checks[done?'controls:done':'controls:skipped']=true;persist();GS.practice=false;resetWorkshop();closeModal(false);if(toMenu)renderMenu();else goNode(world().node);}
   function renderPracticeResult(){Guide.clear();const {rec,s}=GS.lastSummary;$('coach').hidden=true;$('test-hud').hidden=true;const box=$('result');box.className='result '+(rec.pass?'pass':'fail');box.innerHTML=`<h3 id="result-title">${rec.pass?'Controls practice complete':'Try the practice again'}</h3><p>${esc(s.reason)}</p><p class="practice-complete">${V.icon("check")} Connect · undo · test</p><div class="result-actions"><button class="btn" id="practice-edit">Edit practice bridge</button><button class="btn primary" id="practice-finish">${rec.pass?'Start first crossing':'Skip to first crossing'}</button></div>`;box.hidden=false;$('practice-finish').textContent=world().node==='tabletop'?(rec.pass?'Start first crossing':'Skip to first crossing'):'Return to journey';$('practice-edit').onclick=backToEdit;$('practice-finish').onclick=()=>endPractice(rec.pass);$('practice-finish').focus();}
@@ -265,6 +268,7 @@
   }
   function startTest() {
     if (GS.mode !== "edit") return;
+    GS.tutorialCamera=null;
     const warn = M.warnings(GS.design);
     if (warn.length) toast(warn[0], "warn");
     if(!GS.practice)world().tests++;
@@ -285,7 +289,7 @@
     setMode("edit"); renderCoach();
   }
   function returnToResults() { if (GS.mode!=="inspect" || !GS.lastSummary || !GS.sim) return; R.setInspect(null); R.setTrace([]); R.setSim(GS.sim); hideTip(); setMode("result"); renderResult(); }
-  function togglePause() { if (GS.mode!=="test") return; GS.paused=!GS.paused; $("btn-pause").textContent=GS.paused?"Resume test":"Pause test"; $("btn-pause").setAttribute("aria-pressed",String(GS.paused)); renderHud(); }
+  function togglePause() { if (GS.mode!=="test") return; GS.paused=!GS.paused; root.GameAudio.play('pause'); $("btn-pause").textContent=GS.paused?"Resume test":"Pause test"; $("btn-pause").setAttribute("aria-pressed",String(GS.paused)); renderHud(); }
   function frame(dt) {
     Guide.update(dt);
     if (GS.mode !== "test" || !GS.sim || GS.paused || !$("modal").hidden) return;
@@ -584,6 +588,12 @@
     document.querySelectorAll("[data-open]").forEach((b) => b.addEventListener("click", () => openModal(b.dataset.open)));
     $("modal-close").onclick = closeModal;
     $("modal").addEventListener("click", (e) => { if (e.target === $("modal")) closeModal(); });
+    document.addEventListener("click",e=>{
+      if(!(GS.onboarding||GS.practice)||!GS.tutorialCamera||GS.mode!=='edit')return;
+      const view=e.target.closest('[data-view]')?.dataset.view;
+      if(view==='orbit')cameraLesson(R.navigating?'turn':'orbit');
+      else if(view==='front')cameraLesson(null);
+    });
     document.addEventListener("keydown", onKey);
   }
   function onKey(e) {

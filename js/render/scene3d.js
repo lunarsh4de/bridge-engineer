@@ -139,6 +139,8 @@
   function burst(x,y,color,n,speed){if(!fx||reduced())return;for(let k=0;k<n;k++){const a=k*2.4;const p=mesh(fx,new T.BoxGeometry(.045,.045,.045),mat(color),x,y,.08);p.userData={life:.65,v:new T.Vector3(Math.cos(a),Math.abs(Math.sin(a))*2,Math.sin(a)*.5).multiplyScalar(speed/120)};}}
   const api={state:S,mount,setMode,setBlocked,stopIntro,interact:userCameraInput,render,destroy,refresh:resize,
     frontView(){stopIntro();setNavigation(false);fit(true);},
+    setNavigation, get navigating(){return nav;},
+    demonstrateOrbit(offset,angle){if(!camera||!orbit)return;stopIntro();camera.position.copy(offset).applyAxisAngle(up,angle).add(orbit.target);camera.lookAt(orbit.target);camera.updateMatrixWorld();},
     setLevel(l,d){stopIntro();introPending=!introSeen;S.level=l;S.design=d;S.sim=null;S.inspect=null;S.highlight=S.hover=-1;S.trace=[];S.guide=[];S.mode="edit";rebuild();},
     setDesign(d){S.design=d;rebuildBridge();},setSim(s){S.sim=s;root.Vehicle3D&&root.Vehicle3D.reset(vehicle);},
     setTool(t){S.tool=t;input&&input.cancel();},setForces(on){S.forces=on;},setInspect(list){S.inspect=list;},setHighlight(i){S.highlight=i;},setTrace(indices){S.trace=indices||[];},setGuide(points){S.guide=points||[];},

@@ -765,6 +765,19 @@ Replay|重播
 Skip tutorial|跳过教程
 `);
 
+pairs(`
+Turn the 3D scene|转动3D场景
+Drag to look around|拖动，换个角度看
+Return to Front view|回到正面，开始搭桥
+Tap Orbit view.|点击「旋转」按钮。
+Tap Front view to build.|点击「正面」，回到搭建视角。
+Hold and drag sideways.|按住场景，向左右拖动。
+Drag sideways to turn.|在场景中左右拖动即可旋转。
+Now tap Front view.|转动成功，再点击「正面」。
+Next: front view|下一步：正面
+Enable sound|开启音效
+Mute sound|关闭音效
+`);
 // EXTRA_TRANSLATIONS
  }
 })(typeof self!=='undefined'?self:this);
