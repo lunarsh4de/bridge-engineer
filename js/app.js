@@ -5,7 +5,7 @@
   const P = root.BridgePhysics, L = root.BridgeLevels, M = root.BridgeModel, Pr = root.BridgeProgress, Sc = root.BridgeScoring;
   const Bus = root.BridgeBus, E = root.BridgeEvents, C = root.BridgeConstants, T = root.BridgeContent, R = root.BridgeScene;
   const $ = (id) => document.getElementById(id);
-  const V=root.VisualGuide, X=root.BridgeExpansion;
+  const V=root.VisualGuide, X=root.BridgeExpansion, Guide=root.TutorialGuide;
   X.install(L,root.EngineeringLab);
   const esc = T.esc, Lab = root.EngineeringLab, Notes=root.InquiryNotes;
   let notebook = Lab.blank(), inquiry={}, storageVolatile = false;
@@ -14,8 +14,8 @@
   const GS = {
     screen: "menu", save: null, level: null, design: null, sim: null, mode: "edit",
     tool: "road", forces: true, slowmo: 0, endHold: 0, accum: 0, lastSummary: null, hintStep: 0,
-    teaching:{block2:false,block3:false}, teachingNotice:null, savings:null, testNoteIndex:null, comicIndex: 0, coachStep: 0, firstBreakShown: false, practice: false, practiceStep: 0, practiceUndone: false, paused: false, observedSlack: new Set(), testDesign: null, lastRecord: null,
-    reset() { this.teaching={block2:false,block3:false};this.teachingNotice=null;this.savings=null;this.testNoteIndex=null; this.level = null; this.design = null; this.sim = null; this.mode = "edit"; this.slowmo = 0; this.endHold = 0; this.accum = 0; this.lastSummary = null; this.hintStep = 0; this.firstBreakShown = false; this.breakText = ""; this.seenEvents = 0; this.practice=false; this.practiceStep=0; this.practiceUndone=false; this.paused = false; this.inspectList = null; this.testDesign = null; this.lastRecord = null; this.observedSlack = new Set(); },
+    teaching:{block2:false,block3:false}, teachingNotice:null, savings:null, testNoteIndex:null, comicIndex: 0, coachStep: 0, firstBreakShown: false, practice: false, onboarding: false, practiceStep: 0, practiceUndone: false, paused: false, observedSlack: new Set(), testDesign: null, lastRecord: null,
+    reset() { this.teaching={block2:false,block3:false};this.teachingNotice=null;this.savings=null;this.testNoteIndex=null; this.level = null; this.design = null; this.sim = null; this.mode = "edit"; this.slowmo = 0; this.endHold = 0; this.accum = 0; this.lastSummary = null; this.hintStep = 0; this.firstBreakShown = false; this.breakText = ""; this.seenEvents = 0; this.practice=false; this.onboarding=false; this.practiceStep=0; this.practiceUndone=false; this.paused = false; this.inspectList = null; this.testDesign = null; this.lastRecord = null; this.observedSlack = new Set(); },
   };
   const rawStore = (() => { try { const s = root.localStorage; s.setItem("rb.t", "1"); s.removeItem("rb.t"); return s; } catch (e) { storageVolatile = true; const m = {}; return { getItem: (k) => m[k] || null, setItem: (k, v) => { m[k] = String(v); }, removeItem: (k) => { delete m[k]; } }; } })();
   let chapter=rawStore.getItem('riverbend.chapter')==='advanced'?'advanced':'foundation';
@@ -30,7 +30,7 @@
   function saveBook() { if (!Lab.save(store, notebook, GS.save)) storageVolatile = true; if(!Notes.save(store,inquiry,Lab.progressStamp(GS.save)))storageVolatile=true; }
   function persist() { if (GS.design && GS.level && !GS.practice) GS.save.designs[GS.level.id] = M.clone(GS.design.members); if (!Pr.save(store, GS.save)) storageVolatile = true; saveBook(); }
   function download(name, text) { const a = document.createElement("a"), url = URL.createObjectURL(new Blob([text], {type:"application/json"})); a.href=url; a.download=name; a.click(); setTimeout(()=>URL.revokeObjectURL(url),1000); }
-  function resetWorkshop() { GS.reset(); R.setGuide([]); R.setSim(null); R.setInspect(null); R.setHighlight(-1); R.setTrace([]); Edu.reset(); }
+  function resetWorkshop() { Guide.clear(); GS.reset(); R.setGuide([]); R.setSim(null); R.setInspect(null); R.setHighlight(-1); R.setTrace([]); Edu.reset(); }
   function installSave(data, book, notes) { Edu.flush();persist();resetWorkshop();chapter=data.world.chapter==='advanced'?'advanced':'foundation';rawStore.setItem('riverbend.chapter',chapter); GS.save=data; notebook=book||Lab.blank(); inquiry=Notes.migrate(notebook,notes||{}); persist(); closeModal(false); renderMenu(); toast("Progress loaded."); }
 
   // ---------- screens ----------
@@ -54,6 +54,7 @@
 
   // ---------- menu ----------
   function renderMenu() {
+    Guide.clear();
     const w=world(),advanced=chapter==='advanced',started=GS.save.started&&w.node!=='prologue';
     document.querySelectorAll('[data-chapter]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.chapter===chapter)));
     $('chapter-label').textContent=advanced?'Chapter II · Design for a working river':'Chapter I · A bridge-building story';
@@ -136,39 +137,61 @@
   function withFixedRoad(level,members) { return fixedRoad(level).concat(M.clone(members||[]).filter(m=>m.m!=='road')); }
   function openLevel(id,options={}) {
     const previous=GS.level&&GS.level.id===id&&!GS.practice&&!options.practice?GS.teaching:null;
-    GS.reset(); if(previous)GS.teaching=previous; Edu.reset();
+    Guide.clear(); GS.reset(); if(previous)GS.teaching=previous; Edu.reset();
     const w = world(), lv = L.resolveLevel(id, w);
-    GS.level = lv; GS.practice=!!options.practice || id==='tabletop'&&!w.checks['controls:offered'];
+    GS.level = lv; GS.practice=!!options.practice;
+    GS.onboarding=!GS.practice&&id==='tabletop'&&!w.results.tabletop&&(!w.checks['controls:offered']||!!w.checks['tutorial:active']);
     GS.design = M.create(lv, withFixedRoad(lv, GS.practice?[]:GS.save.designs[id]||[]));
     GS.tool = lv.materials.find(m=>m!=="road");
     R.setLevel(lv, GS.design); R.setTool(GS.tool); R.setForces(GS.forces); R.setInspect(null);
-    $("lv-place").textContent = lv.place; $("lv-title").textContent = lv.title;
+    $("lv-place").textContent = GS.onboarding?"First crossing":lv.place; $("lv-title").textContent = GS.onboarding?"Build your first bridge":lv.title;
     $("result").hidden = true; $("result").innerHTML = ""; $("test-hud").hidden = true; hideTip();
     GS.inspectList = null;
     buildMaterials(); renderWorldStrip(); setMode("edit"); refreshBudget();
     GS.coachStep = id === "tabletop" && !GS.design.members.some(m=>m.m!=="road") ? 1 : -1;
+    if(GS.onboarding){w.checks['controls:offered']=true;w.checks['tutorial:active']=true;GS.practiceStep=hasSupport([8,-2],[4,0])&&hasSupport([0,-2],[4,0])?4:hasSupport([0,-2],[4,0])?3:0;}
     renderCoach();
     show("build");
     if (!root.__GAME__) root.__GAME__ = R.mount("stage", { frame });
     if (GS.practice) { w.checks['controls:offered']=true; persist(); practiceIntro(); return; }
+    if(GS.onboarding){persist();return;}
     if (!w.checks["seen:" + id]) { w.checks["seen:" + id] = true; persist(); openModal("brief"); }
     if (lv.newMaterial) toast(`New material here: ${P.MATERIALS[lv.newMaterial].name}`, "good");
   }
   function renderCoach() {
     const c = $("coach");
-    if(GS.practice){
-      c.hidden=false;c.innerHTML=V.coach(GS.practiceStep,true)+`<div class="tip-row">${GS.practiceStep===0?'<button class="btn small" id="practice-next">Next: connect</button>':''}<button class="btn ghost small" id="practice-skip" aria-label="Skip practice">Skip</button></div>`;
-      R.setGuide(GS.practiceStep===1?[[0,-2],[4,0]]:GS.practiceStep===3?[[8,-2],[4,0]]:[]);
-      if($('practice-next'))$('practice-next').onclick=()=>{GS.practiceStep=1;renderCoach();};$('practice-skip').onclick=()=>endPractice(false);return;
+    if(GS.practice||GS.onboarding){
+      if(GS.mode==='result'||GS.mode==='inspect'){c.hidden=true;Guide.clear();return;}
+      const step=GS.practiceStep,titles=['Choose a material','Hold → drag → release','Undo, then redo','Tap 1, then tap 2','Test your bridge'];
+      c.hidden=false;c.classList.add('tutorial-coach');
+      c.innerHTML=`<div class="tutorial-heading"><span class="tutorial-kicker">${GS.practice?'Controls practice':'First crossing · Tutorial'}</span><span class="tutorial-count">${step+1} / 5</span></div><strong>${GS.mode==='test'?'Pause and read the colors':titles[step]}</strong><span id="tutorial-action" class="tutorial-action" aria-hidden="true"></span><div class="tutorial-actions">${step===0?'<button class="btn small" id="practice-next">Next: connect</button>':''}<button class="btn ghost small" id="tutorial-replay" aria-label="Replay demonstration">${V.icon('reset')}<span>Replay</span></button><button class="btn ghost small" id="practice-skip" aria-label="Skip tutorial" title="Skip tutorial">×</button></div>`;
+      R.setGuide(step===1?[[0,-2],[4,0]]:step===3?[[8,-2],[4,0]]:[]);
+      Guide.configure({step,undone:GS.practiceUndone,hasLeft:hasSupport([0,-2],[4,0]),hasRight:hasSupport([8,-2],[4,0]),testing:GS.mode==='test'});
+      if($('practice-next'))$('practice-next').onclick=beginTutorialBuild;
+      const action=$('tutorial-action');action.textContent=step===1?'Hold, drag, release.':step===3?'Tap 1, then tap 2.':step===2?'Undo removes your last support.':step===4?'Your bridge is ready. Test it.':'Choose Timber below.';
+      $('tutorial-replay').onclick=()=>{if(GS.mode==='edit'&&(step===1||step===3))R.frontView();Guide.replay();};
+      $('practice-skip').onclick=()=>GS.practice?endPractice(false):skipTutorial();return;
     }
+    c.classList.remove('tutorial-coach');Guide.clear();
     R.setGuide([]);
     if (GS.coachStep < 0 || GS.coachStep >= COACH.length) { c.hidden = true; return; }
     c.hidden = false;
     c.innerHTML = V.coach(GS.coachStep===2?4:1,false)+`<div class="tip-row"><button class="btn ghost small" id="coach-skip" aria-label="Hide tips">×</button></div>`;
     $("coach-skip").onclick = () => { GS.coachStep = -1; renderCoach(); };
   }
+  function hasSupport(a,b){return !!GS.design&&GS.design.members.some(m=>(P.keyOf(m.a)===P.keyOf(a)&&P.keyOf(m.b)===P.keyOf(b))||(P.keyOf(m.a)===P.keyOf(b)&&P.keyOf(m.b)===P.keyOf(a)));}
+  function beginTutorialBuild(){GS.practiceStep=1;setTool('timber');R.frontView();renderCoach();}
+  function skipTutorial(){world().checks['tutorial:active']=false;world().checks['controls:skipped']=true;GS.onboarding=false;GS.coachStep=-1;renderCoach();persist();if(!world().checks['seen:tabletop']){world().checks['seen:tabletop']=true;persist();openModal('brief');}}
   function coachAfterEdit() {
-    if(GS.practice){const has=(a,b)=>GS.design.members.some(m=>(P.keyOf(m.a)===P.keyOf(a)&&P.keyOf(m.b)===P.keyOf(b))||(P.keyOf(m.a)===P.keyOf(b)&&P.keyOf(m.b)===P.keyOf(a)));if(GS.practiceStep===1&&has([0,-2],[4,0]))GS.practiceStep=2;if(GS.practiceStep===3&&has([8,-2],[4,0]))GS.practiceStep=4;renderCoach();return;}
+    if(GS.practice||GS.onboarding){
+      const left=hasSupport([0,-2],[4,0]),right=hasSupport([8,-2],[4,0]);
+      if(left&&right)GS.practiceStep=4;
+      else if(!left&&GS.design.redo.length){GS.practiceStep=2;GS.practiceUndone=true;}
+      else if(!left){GS.practiceStep=1;GS.practiceUndone=false;}
+      else if(GS.practiceStep<=1)GS.practiceStep=2;
+      else if(GS.practiceStep===4)GS.practiceStep=3;
+      renderCoach();return;
+    }
     if (GS.coachStep < 0) return;
     const ms = GS.design.members, hasRoad = ms.some((m) => m.m === "road"), hasSup = ms.some((m) => m.m !== "road");
     const step = !hasRoad ? 0 : !hasSup ? 1 : 2;
@@ -187,6 +210,7 @@
     if (t === "road") { toast("Road is already laid and locked. Build its supports."); return; }
     if (t !== "erase" && !GS.level.materials.includes(t)) return;
     GS.tool = t; R.setTool(t);
+    if((GS.onboarding||GS.practice)&&GS.practiceStep===0&&t==='timber'&&GS.screen==='build'&&$('modal').hidden){GS.practiceStep=1;R.frontView();renderCoach();}
     document.querySelectorAll("#toolbar [data-tool]").forEach((b) => { const on = b.dataset.tool === t; b.setAttribute(b.getAttribute("role") === "radio" ? "aria-checked" : "aria-pressed", String(on)); b.classList.toggle("on", on); });
   }
   function renderWorldStrip() {
@@ -215,11 +239,11 @@
     const r = M.add(GS.design, a, b, type);
     lastAddOk = r.ok;
     if (!r.ok) { toast(r.error, "warn"); Bus.emit(E.DESIGN_REJECTED, { error: r.error }); return; }
-    changed();
+    changed(); Guide.connected();
   });
   Bus.on(E.DESIGN_ERASE, ({ i }) => { if (GS.mode!=="edit") return; if(GS.design.members[i]&&GS.design.members[i].m==="road"){toast("Road is locked; erase or change a support instead.");return;}if(M.removeAt(GS.design,i))changed(); });
-  function undo() { if (GS.mode === "edit" && M.undo(GS.design)) {if(GS.practice&&GS.practiceStep===2)GS.practiceUndone=true;changed();} }
-  function redo() { if (GS.mode === "edit" && M.redo(GS.design)) {if(GS.practice&&GS.practiceStep===2&&GS.practiceUndone)GS.practiceStep=3;changed();} }
+  function undo() { if (GS.mode === "edit" && M.undo(GS.design)) {if((GS.practice||GS.onboarding)&&GS.practiceStep===2)GS.practiceUndone=true;changed();} }
+  function redo() { if (GS.mode === "edit" && M.redo(GS.design)) {if((GS.practice||GS.onboarding)&&GS.practiceStep===2&&GS.practiceUndone)GS.practiceStep=3;changed();} }
   function clearAll() { if(GS.mode==="edit"&&GS.design.members.some(m=>m.m!=="road")){M.load(GS.design,fixedRoad(GS.level));changed();toast("Supports cleared. The road stays. Undo brings the supports back.");} }
   function practiceIntro(){
     openModal('practice',V.practice()+'<div class="result-actions task-actions"><button class="btn" id="practice-intro-skip">Skip to first crossing</button><button class="btn primary" id="practice-start">Practice in 3D</button></div>');
@@ -227,10 +251,11 @@
     $('practice-start').onclick=()=>{closeModal();GS.practiceStep=0;renderCoach();};$('practice-intro-skip').onclick=()=>endPractice(false);
   }
   function endPractice(done,toMenu=false){world().checks[done?'controls:done':'controls:skipped']=true;persist();GS.practice=false;resetWorkshop();closeModal(false);if(toMenu)renderMenu();else goNode(world().node);}
-  function renderPracticeResult(){const {rec,s}=GS.lastSummary;$('coach').hidden=true;$('test-hud').hidden=true;const box=$('result');box.className='result '+(rec.pass?'pass':'fail');box.innerHTML=`<h3 id="result-title">${rec.pass?'Controls practice complete':'Try the practice again'}</h3><p>${esc(s.reason)}</p><p class="practice-complete">${V.icon("check")} Connect · undo · test</p><div class="result-actions"><button class="btn" id="practice-edit">Edit practice bridge</button><button class="btn primary" id="practice-finish">${rec.pass?'Start first crossing':'Skip to first crossing'}</button></div>`;box.hidden=false;$('practice-finish').textContent=world().node==='tabletop'?(rec.pass?'Start first crossing':'Skip to first crossing'):'Return to journey';$('practice-edit').onclick=backToEdit;$('practice-finish').onclick=()=>endPractice(rec.pass);$('practice-finish').focus();}
+  function renderPracticeResult(){Guide.clear();const {rec,s}=GS.lastSummary;$('coach').hidden=true;$('test-hud').hidden=true;const box=$('result');box.className='result '+(rec.pass?'pass':'fail');box.innerHTML=`<h3 id="result-title">${rec.pass?'Controls practice complete':'Try the practice again'}</h3><p>${esc(s.reason)}</p><p class="practice-complete">${V.icon("check")} Connect · undo · test</p><div class="result-actions"><button class="btn" id="practice-edit">Edit practice bridge</button><button class="btn primary" id="practice-finish">${rec.pass?'Start first crossing':'Skip to first crossing'}</button></div>`;box.hidden=false;$('practice-finish').textContent=world().node==='tabletop'?(rec.pass?'Start first crossing':'Skip to first crossing'):'Return to journey';$('practice-edit').onclick=backToEdit;$('practice-finish').onclick=()=>endPractice(rec.pass);$('practice-finish').focus();}
   // ---------- test run (fixed 1/60 s steps, same as the Node tests) ----------
   function setMode(mode) {
     GS.mode = mode; R.setMode(mode);
+    if(mode==='result'||mode==='inspect'){Guide.clear();$('coach').hidden=true;}
     $("build").dataset.mode = mode;
     const testing = mode !== "edit";
     $("btn-test").hidden = testing; $("btn-edit").hidden = !testing;
@@ -251,7 +276,7 @@
     R.setSim(GS.sim); R.setInspect(null); R.setHighlight(-1);
     $("result").hidden = true; $("coach").hidden = true; hideTip();
     setMode("test");
-    $("test-hud").hidden = false; renderHud(); if(GS.practice)renderCoach();
+    $("test-hud").hidden = false; renderHud(); if(GS.practice||GS.onboarding)renderCoach();
     Bus.emit(E.TEST_STARTED, {});
   }
   function backToEdit() {
@@ -262,6 +287,7 @@
   function returnToResults() { if (GS.mode!=="inspect" || !GS.lastSummary || !GS.sim) return; R.setInspect(null); R.setTrace([]); R.setSim(GS.sim); hideTip(); setMode("result"); renderResult(); }
   function togglePause() { if (GS.mode!=="test") return; GS.paused=!GS.paused; $("btn-pause").textContent=GS.paused?"Resume test":"Pause test"; $("btn-pause").setAttribute("aria-pressed",String(GS.paused)); renderHud(); }
   function frame(dt) {
+    Guide.update(dt);
     if (GS.mode !== "test" || !GS.sim || GS.paused || !$("modal").hidden) return;
     const sim = GS.sim;
     let scale = 1;
@@ -323,6 +349,8 @@
     rec.stars = Sc.stars(rec.pass, rec.cost, par, lv.totalBudget);
     rec.badges = Sc.badges(lv.badges, rec);
     if(GS.practice){GS.lastSummary={s,rec,par};setMode("result");renderPracticeResult();return;}
+    if(GS.onboarding&&rec.pass){world().checks['controls:done']=true;world().checks['tutorial:active']=false;GS.onboarding=false;GS.coachStep=-1;}
+    Guide.clear();
     GS.lastRecord=Lab.add(notebook,Lab.record(lv,GS.testDesign||GS.design.members,sim,rec,GS.prediction,GS.observedSlack)); if(!GS.lastRecord.valid){rec.pass=false;rec.stars=0;rec.badges=[];} GS.lastRecord.example=!!world().checks["example:"+lv.id];
     GS.lastRecord.noteIndex=GS.testNoteIndex;
     GS.lastSummary = { s, rec, par }; persist();
@@ -442,7 +470,7 @@
     if(GS.mode!=='edit')return;const d=+$('deck-height').value;if(d===GS.level.deckY)return;
     const id=GS.level.id;Edu.flush();world().challengeOptions[id]={deckY:d};GS.save.designs[id]=[];GS.design=null;persist();closeModal(false);openLevel(id);persist();openModal('brief');toast('Height applied. Road rebuilt; supports cleared. Previous tests stay in the Notebook.');
   };}
-  function closeModal(restore=true) { Edu.flush(); $("modal").hidden = true; R.setBlocked&&R.setBlocked(false); $("modal").classList.remove("notebook-modal"); if(GS.practice&&GS.screen==="build")renderCoach(); if (restore && lastFocus && lastFocus.isConnected && lastFocus.getClientRects().length && !lastFocus.disabled) lastFocus.focus(); }
+  function closeModal(restore=true) { Edu.flush(); $("modal").hidden = true; R.setBlocked&&R.setBlocked(false); $("modal").classList.remove("notebook-modal"); if((GS.practice||GS.onboarding)&&GS.screen==="build")renderCoach(); if (restore && lastFocus && lastFocus.isConnected && lastFocus.getClientRects().length && !lastFocus.disabled) lastFocus.focus(); }
   function helpHtml() {
     return `<div class="tabs"><button class="btn small primary" data-tab="controls">How to play</button><button class="btn small" data-tab="settings">Settings</button></div>
       <div data-pane="controls"><div class="help-actions"><button class="btn small" id="help-hint">Get a hint</button><button class="btn small" id="help-map">Journey map</button></div>${V.practice()}<details class="full-controls"><summary>Full controls &amp; force colors</summary><p class="small">3D view: right-drag to orbit, scroll to zoom, or use Orbit view and drag with one finger. Use two fingers to rotate and zoom. Front view restores the building elevation. During tests, green → yellow → red shows the fraction of each member’s load limit; blue/red end bands show tension/compression. Slack cables are pale and dashed.</p>${T.controls.replace("<h3>Draw road</h3><p>Pick <strong>Road</strong>, then drag from one bank to the other along the dotted line. You can also tap one point, then another.</p>","<h3>Road is ready</h3><p>The prelaid road is locked and counted in your budget. Pick a support material, then drag between existing joints or tap both endpoints. Both truss sides update together.</p>").replace("Blue members are pulled (tension), red members are pushed (compression).", "Blue end bands are pulled (tension), red end bands are pushed (compression). Member bodies show load from green through yellow to red.").replace("Remove members that stayed pale, strengthen the red ones.", "Compare lightly loaded green members with highly loaded red ones, then test your changes. A low reading alone does not prove a member is unnecessary.").replace("1–4 materials · X erase", "1–3 support materials · Arrow keys + Enter build · P pause · X erase")}</details></div>
@@ -586,6 +614,7 @@
     if (GS.screen === "build" && GS.level) {
       out.level = { id: GS.level.id, span_m: GS.level.span, budget: GS.level.totalBudget, materials: GS.level.materials, deckY:GS.level.deckY||0, traffic:GS.level.traffic, navigation:GS.level.navigation };
       out.design = { members: GS.design.members.length, cost: cost(), warnings: M.warnings(GS.design) };
+      out.tutorial=Guide.state; out.onboarding=GS.onboarding; out.practice=GS.practice;
       out.tool = GS.tool; out.paused=GS.paused; out.notebookRuns=notebook.runs.length;
       if (GS.sim) out.sim = { t: +GS.sim.t.toFixed(2), vehicle_x_m: +GS.sim.vehicle.front.toFixed(2), maxSagCm: Math.round(GS.sim.maxSag * 1000) / 10, broken: GS.sim.mems.filter((m) => m.broken).length, outcome: GS.sim.outcome, slowmo: GS.slowmo > 0 };
       if (GS.lastSummary && GS.mode !== "test") out.result = GS.lastSummary.rec;

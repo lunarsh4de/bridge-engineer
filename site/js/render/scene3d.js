@@ -133,11 +133,12 @@
     observer=new ResizeObserver(resize);observer.observe(stage);rebuild();resize();setMode(S.mode);wake();hooks.ready&&hooks.ready();
     return{loop:{wake,sleep},destroy,renderer};
   }
-  function onLost(e){e.preventDefault();stopIntro();lost=true;cancelAnimationFrame(raf);raf=0;input.cancel();notice.textContent="3D view paused while graphics recover…";notice.hidden=false;}
+  function onLost(e){e.preventDefault();stopIntro();lost=true;root.TutorialGuide&&root.TutorialGuide.update(0);cancelAnimationFrame(raf);raf=0;input.cancel();notice.textContent="3D view paused while graphics recover…";notice.hidden=false;}
   function onRestored(){lost=false;notice.hidden=true;last=0;if(active&&!raf)raf=requestAnimationFrame(tick);}
-  function destroy(){sleep();stopIntro();stage&&stage.removeEventListener("pointerdown",userCameraInput,true);stage&&stage.removeEventListener("wheel",userCameraInput,true);stage&&stage.removeEventListener("keydown",userCameraInput,true);observer&&observer.disconnect();input&&input.destroy();orbit&&orbit.dispose();if(renderer){renderer.domElement.removeEventListener("webglcontextlost",onLost);renderer.domElement.removeEventListener("webglcontextrestored",onRestored);}dispose(scene);renderer&&renderer.dispose();stage&&stage.replaceChildren();renderer=scene=camera=orbit=null;}
+  function destroy(){root.TutorialGuide&&root.TutorialGuide.clear();sleep();stopIntro();stage&&stage.removeEventListener("pointerdown",userCameraInput,true);stage&&stage.removeEventListener("wheel",userCameraInput,true);stage&&stage.removeEventListener("keydown",userCameraInput,true);observer&&observer.disconnect();input&&input.destroy();orbit&&orbit.dispose();if(renderer){renderer.domElement.removeEventListener("webglcontextlost",onLost);renderer.domElement.removeEventListener("webglcontextrestored",onRestored);}dispose(scene);renderer&&renderer.dispose();stage&&stage.replaceChildren();renderer=scene=camera=orbit=null;}
   function burst(x,y,color,n,speed){if(!fx||reduced())return;for(let k=0;k<n;k++){const a=k*2.4;const p=mesh(fx,new T.BoxGeometry(.045,.045,.045),mat(color),x,y,.08);p.userData={life:.65,v:new T.Vector3(Math.cos(a),Math.abs(Math.sin(a))*2,Math.sin(a)*.5).multiplyScalar(speed/120)};}}
   const api={state:S,mount,setMode,setBlocked,stopIntro,interact:userCameraInput,render,destroy,refresh:resize,
+    frontView(){stopIntro();setNavigation(false);fit(true);},
     setLevel(l,d){stopIntro();introPending=!introSeen;S.level=l;S.design=d;S.sim=null;S.inspect=null;S.highlight=S.hover=-1;S.trace=[];S.guide=[];S.mode="edit";rebuild();},
     setDesign(d){S.design=d;rebuildBridge();},setSim(s){S.sim=s;root.Vehicle3D&&root.Vehicle3D.reset(vehicle);},
     setTool(t){S.tool=t;input&&input.cancel();},setForces(on){S.forces=on;},setInspect(list){S.inspect=list;},setHighlight(i){S.highlight=i;},setTrace(indices){S.trace=indices||[];},setGuide(points){S.guide=points||[];},

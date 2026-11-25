@@ -8,7 +8,7 @@
 [hidden] { display:none !important; }
 html,body { margin:0; width:100%; height:100%; overflow:hidden; font-family:"Segoe UI",system-ui,-apple-system,sans-serif; color:var(--ink); background:var(--paper); }
 button,textarea { font:inherit; }
-button { cursor:pointer; -webkit-tap-highlight-color:transparent; }
+button { cursor:pointer; -webkit-tap-highlight-color:transparent; touch-action:manipulation; }
 button:focus-visible,a:focus-visible,textarea:focus-visible { outline:3px solid #14778a; outline-offset:3px; }
 h1,h2,h3 { margin:0 0 .5em; line-height:1.15; text-wrap:balance; }
 p { line-height:1.55; }
@@ -534,3 +534,56 @@ kbd { background:#eaf0ed; border:1px solid #c4d4cd; border-bottom-width:2px; bor
 html[lang=zh-CN] .menu-card h1 {letter-spacing:0;}
 @media(max-width:760px){.menu-settings {top:12px;right:14px;}.chapter-tabs {margin-bottom:15px;}.chapter-tab {font-size:.76rem;padding:6px 10px;}.bridge-case summary>img {width:76px;height:54px;}.bridge-case summary strong {font-size:.8rem;}.bridge-case summary>span {font-size:.66rem;}.bridge-case p {font-size:.78rem;}.height-control {padding:9px;}.height-control .btn {font-size:.72rem;}.topbar .language-switch {width:40px;min-width:40px;font-size:.62rem!important;}.height-control select {font-size:16px;}.menu-card>.menu-lead {max-width:320px;}}
 @media(max-height:500px) and (max-width:950px){.menu-settings {top:8px;}.chapter-tabs {margin-bottom:8px;}#menu {padding-top:50px;}.menu-card h1 {font-size:2.7rem;}.menu-card>.eyebrow {display:none;}.menu-card>.menu-lead {margin:8px 0;}.bridge-case figure>img {max-height:190px;}}
+
+/* A small field prompt accompanies the transparent in-scene demonstration. */
+#build .instruction-rail .tutorial-coach { display:grid; grid-template-columns:1fr; gap:5px; width:300px; max-width:calc(100% - 24px); padding:12px 14px; border-left-color:#d3a04b; }
+.tutorial-heading { display:flex; align-items:center; justify-content:space-between; gap:14px; color:var(--accent-d); font-size:.72rem; }
+.tutorial-kicker { font-weight:700; }
+.tutorial-count { color:var(--muted); white-space:nowrap; }
+.tutorial-coach>strong { font-size:1rem; line-height:1.3; }
+.tutorial-action { color:var(--muted); font-size:.78rem; min-height:1.3em; }
+.tutorial-actions { display:flex; align-items:center; justify-content:flex-end; gap:5px; }
+.tutorial-actions .btn { padding:4px 7px; min-height:34px; }
+#practice-skip { font-size:1.3rem; line-height:1; min-width:34px; }
+.tutorial-overlay { position:fixed; inset:0; width:100%; height:100%; z-index:12; pointer-events:none; overflow:hidden; }
+.tutorial-path { fill:none; stroke:#e4ac47; stroke-width:3; stroke-dasharray:7 7; opacity:.7; }
+.tutorial-progress { fill:none; stroke:#c0ffea; stroke-width:8; stroke-linecap:round; opacity:.8; }
+.tutorial-overlay>g:not(.tutorial-pointer) circle { fill:#fff9e7; fill-opacity:.92; stroke:#ac7829; stroke-width:2; }
+.tutorial-overlay text { font:700 15px 'Segoe UI',sans-serif; fill:#735024; }
+.tutorial-pointer { opacity:.75; filter:drop-shadow(0 3px 3px #183e4555); }
+.tutorial-pointer path { fill:#fff; stroke:#1c5956; stroke-width:2; stroke-linejoin:round; }
+.tutorial-pointer .tutorial-mouse-key rect { fill:#f2fffb; stroke:#286f65; stroke-width:2; }
+.tutorial-pointer .tutorial-mouse-key path { fill:none; stroke:#286f65; stroke-width:1.5; }
+.tutorial-pointer .tutorial-mouse-key .tutorial-left-key { fill:#c6d8d1; stroke:none; }
+.tutorial-pointer.pressed .tutorial-mouse-key .tutorial-left-key { fill:#e2a73c; }
+.tutorial-pointer.pressed>.tutorial-mouse>path,.tutorial-pointer.pressed>.tutorial-finger>path { fill:#ffe4a5; }
+.tutorial-mouse-key { transform:translate(-4px,-8px); }
+.tutorial-finger { display:none; }
+.tutorial-overlay[data-touch=true] .tutorial-finger { display:block; }
+.tutorial-overlay[data-touch=true] .tutorial-mouse,.tutorial-overlay[data-touch=true] .tutorial-mouse-key { display:none; }
+.tutorial-pointer.near-bottom .tutorial-mouse,.tutorial-pointer.near-bottom .tutorial-finger { transform:rotate(180deg); }
+.tutorial-pointer.near-bottom .tutorial-mouse-key { transform:translate(0,-100px); }
+.tutorial-ripple { fill:none; stroke-width:3; }
+.tutorial-target { outline:3px solid #dfad51; outline-offset:3px; box-shadow:0 0 0 7px #e4ac4726!important; }
+@media(max-width:1024px) {
+  #build .instruction-rail .tutorial-coach { width:100%; max-width:none; grid-template-columns:minmax(0,1fr) auto; gap:2px 8px; padding:6px 10px; min-height:76px; }
+  .tutorial-heading,.tutorial-coach>strong,.tutorial-action { grid-column:1; }
+  .tutorial-heading { font-size:.65rem; justify-content:flex-start; gap:9px; }
+  .tutorial-coach>strong { font-size:.84rem; }
+  .tutorial-action { font-size:.69rem; }
+  .tutorial-actions { grid-column:2; grid-row:1 / span 3; flex-wrap:wrap; max-width:132px; gap:3px; }
+  .tutorial-actions .btn { min-height:38px; }
+  #tutorial-replay span { display:none; }
+  #tutorial-replay .ui-icon { margin:0; }
+  #practice-next { flex-basis:100%; font-size:.68rem; padding:3px 5px; min-height:29px; }
+}
+@media(max-height:500px) and (max-width:950px) {
+  #build .instruction-rail .tutorial-coach { min-height:55px; padding:3px 8px; }
+  .tutorial-actions { flex-wrap:nowrap; max-width:none; }
+  #practice-next { flex-basis:auto; min-height:34px; }
+  .tutorial-heading { font-size:.58rem; }
+  .tutorial-action { font-size:.63rem; }
+}
+@media(prefers-reduced-motion:reduce) {
+  .tutorial-pointer { filter:none; }
+}

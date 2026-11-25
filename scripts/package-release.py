@@ -8,7 +8,7 @@ import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
 parser = argparse.ArgumentParser(description=__doc__)
-parser.add_argument('--out', type=Path, default=ROOT / 'output/releases/riverbend-3d-v1.4.2-20261124.zip')
+parser.add_argument('--out', type=Path, default=ROOT / 'output/releases/riverbend-3d-v1.4.3-20261125.zip')
 args = parser.parse_args()
 allowed_dirs = ('site', 'css', 'js', 'assets', 'vendor', 'docs', 'tests', 'scripts')
 allowed_files = ('index.html', 'favicon.svg', 'README.md', 'PROJECT_REQUIREMENTS.md')

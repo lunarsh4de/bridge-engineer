@@ -734,6 +734,37 @@ Rendering uses Three.js r165 and OrbitControls (MIT). Original artwork: assets/A
 pairs(`
 and|和
 `);
+
+pairs(`
+First crossing|第一关
+Build your first bridge|搭建你的第一座桥
+First crossing · Tutorial|第一关 · 新手教程
+Choose a material|选择材料
+Choose Timber below.|点击下方的木材。
+Hold → drag → release|按住 → 拖动 → 松开
+Hold, drag, release.|按住起点，拖到终点，再松开。
+Tap 1, then tap 2|点①，再点②
+Tap 1, then tap 2.|先点起点①，再点终点②。
+Test your bridge|测试你的桥
+Watch the pointer.|跟着半透明指针看一遍。
+Demo · hold|演示 · 按住
+Demo · drag|演示 · 拖动
+Demo · release|演示 · 松开
+Your turn · drag the same way|轮到你了 · 沿路径拖动
+Demo · tap 1|演示 · 点击①
+Demo · move|演示 · 移到②
+Demo · tap 2|演示 · 点击②
+Your turn · tap both dots|轮到你了 · 依次点两个圆点
+Undo removes your last support.|点击撤销，移除刚搭的支撑。
+Redo brings your support back.|点击重做，恢复刚才的支撑。
+Your bridge is ready. Test it.|桥已搭好，点击测试过桥。
+Pause to watch the forces.|点击暂停，观察受力颜色。
+Pause and read the colors|暂停，观察受力
+Replay demonstration|重播操作演示
+Replay|重播
+Skip tutorial|跳过教程
+`);
+
 // EXTRA_TRANSLATIONS
  }
 })(typeof self!=='undefined'?self:this);
