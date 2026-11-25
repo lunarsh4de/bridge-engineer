@@ -56,6 +56,7 @@
   function pulse(x,y,success=false){lastFeedback={x,y,age:0,success};}
   function actualDown(e){
     if(!options||!document.getElementById('modal').hidden||root.__GAME_STATE__.screen!=='build')return;
+    cursor.style.display='none';
     quiet=1.2;time=0;held=e.target.id==='game-canvas';if(held&&options.cameraPhase==='turn'){cameraTouched=true;dragStart={x:e.clientX,y:e.clientY,position:root.BridgeScene.camera.position.clone()};}pulse(e.clientX,e.clientY);
   }
   function actualUp(e){if(!options)return;held=false;quiet=1.1;time=0;pulse(e.clientX,e.clientY);if(dragStart){const d=dragStart;dragStart=null;if(options.cameraPhase==='turn'&&Math.hypot(e.clientX-d.x,e.clientY-d.y)>12&&root.BridgeScene.camera.position.distanceTo(d.position)>.02)options.onRotate&&options.onRotate();}}
